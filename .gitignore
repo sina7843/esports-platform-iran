@@ -1,12 +1,51 @@
-# dependencies and build output
+# Git in this repo holds ONLY what the server needs to build and run.
+# AI tooling, prompts, specs, status docs and local helper scripts stay local.
+
+# ---- AI / agent tooling ----
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+GEMINI.md
+.mcp.json
+.claude-mem/
+.cursor/
+.cursorrules
+.windsurf/
+.windsurfrules
+.codex/
+.gemini/
+.aider*
+.continue/
+.github/copilot-instructions.md
+
+# ---- prompts, specs, planning and status docs (AI workflow material) ----
+prompts/
+tools/
+Requirements.md
+IMPLEMENTATION_DECISIONS.md
+IMPLEMENTATION_STATUS.md
+PROJECT_STATUS.md
+DECISIONS.md
+REQUIREMENTS_TRACEABILITY.md
+README_START_HERE_FA.md
+ESPORTS_ALL_7_PROMPTS_FA.md
+PACKAGE_VALIDATION.txt
+VERSION.txt
+/0[1-6]-*.cmd
+.esports-current-prompt.txt
+.esports-backups/
+
+# ---- dependencies and build output ----
 node_modules/
 dist/
 build/
 coverage/
 .playwright/
+playwright-report/
 test-results/
 
-# local environment and secrets
+# ---- local environment and secrets ----
 .env
 .env.*
 !.env.example
@@ -17,24 +56,14 @@ test-results/
 *.pfx
 secrets/
 
-# local Claude state
-.claude/settings.local.json
-.claude/agent-memory-local/
-
-# editors and OS
+# ---- editors and OS ----
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 
-# logs
+# ---- logs ----
 *.log
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
-
-# generated prompt clipboard backup
-.esports-current-prompt.txt
-
-# local recovery artifacts
-.esports-backups/
