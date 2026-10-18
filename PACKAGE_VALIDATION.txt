@@ -1,0 +1,21 @@
+Esports Platform — Seven-Prompt Package Validation
+Date: 2026-10-18
+
+ACTUALLY RUN on Linux with Node.js:
+- node tools/validate-package.mjs — PASS.
+- node .claude/tests/guardrails.test.mjs — PASS: 7 tests, 0 failures.
+
+Verified by package validation:
+- Exactly 7 copyable implementation prompts, ESP-01..ESP-07; no slices.
+- Manifest order and dependency chain are consistent.
+- Combined Markdown contains identical full copies of all 7 prompts.
+- Requirements.md SHA-256 matches supplied source bytes.
+- All 307 unique source IDs have an owner and final integration stage.
+- All 307 IDs appear in the editable traceability table.
+- UTF-8 clipboard tool, setup filenames and Windows wrappers agree.
+- Guardrail hooks protect source files, secrets and recovery paths in tested cases.
+
+NOT RUN / NOT CLAIMED:
+- Interactive Windows PowerShell, WinGet installation or clipboard execution.
+- Product application build, deployment, live integrations or product acceptance tests.
+- The product has not been implemented; all product traceability rows begin not-started.

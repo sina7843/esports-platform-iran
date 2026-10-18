@@ -1,0 +1,1542 @@
+{
+  "source": "Requirements.md",
+  "source_sha256": "18843e67c9a493703361d45decabd688eeb35458217202d4e3beec29b6623062",
+  "count": 307,
+  "requirements": [
+    {
+      "requirement_id": "BASE-001",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-002",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-003",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-004",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-005",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-006",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-007",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-008",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "BASE-009",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-001",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-002",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-003",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-004",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-005",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-006",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DATA-007",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ACL-001",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ACL-002",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ACL-003",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ACL-004",
+      "primary_prompt": "ESP-01",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-001",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-002",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-003",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-004",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-005",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-006",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-007",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-008",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-009",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-010",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "USR-011",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-001",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-002",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-003",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-004",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-005",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-006",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "TEAM-007",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REC-001",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REC-002",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REC-003",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REC-004",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REC-005",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "GAME-001",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "GAME-002",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "GAME-003",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "GAME-004",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "GAME-005",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "GAME-006",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-001",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-002",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-003",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-004",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-005",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-006",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-007",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-008",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-009",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-010",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-011",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RULE-012",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-001",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-002",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-003",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-004",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-005",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-006",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-007",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EVT-008",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "STG-001",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "STG-002",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "STG-003",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "STG-004",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "STG-005",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "STG-006",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-001",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-002",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-003",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-004",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-005",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-006",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-007",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-008",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-009",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REG-010",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROS-001",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROS-002",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROS-003",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROS-004",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROS-005",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROS-006",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CHK-001",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CHK-002",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CHK-003",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CHK-004",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FMT-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FMT-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FMT-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FMT-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FMT-005",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DRAW-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DRAW-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DRAW-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "DRAW-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SCH-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SCH-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SCH-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SCH-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SCH-005",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SCH-006",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CFG-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CFG-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CFG-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CFG-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CFG-005",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CFG-006",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROOM-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROOM-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROOM-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ROOM-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SRV-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SRV-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SRV-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SRV-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RUN-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RUN-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RUN-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RUN-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RUN-005",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RUN-006",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-001",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-002",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-003",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-004",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-005",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-006",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-007",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RES-008",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REF-001",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REF-002",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REF-003",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REF-004",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REF-005",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "REF-006",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INT-001",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INT-002",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INT-003",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INT-004",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INT-005",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-001",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-002",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-003",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-004",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-005",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-006",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LAN-007",
+      "primary_prompt": "ESP-04",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-001",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-002",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-003",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-004",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-005",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-006",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "END-007",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-001",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-002",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-003",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-004",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-005",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-006",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-007",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "RANK-008",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AWD-001",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AWD-002",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AWD-003",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AWD-004",
+      "primary_prompt": "ESP-05",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LIVE-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LIVE-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LIVE-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LIVE-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LIVE-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "LIVE-006",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-006",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-007",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NEWS-008",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-006",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "EDIT-007",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-006",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-007",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "CAST-008",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AUD-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AUD-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AUD-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AUD-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AUD-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "COM-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "COM-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "COM-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "COM-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "COM-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "COM-006",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-001",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-002",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-003",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-004",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-005",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-006",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "UX-007",
+      "primary_prompt": "ESP-06",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-001",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-002",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-003",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-004",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-005",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-006",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-007",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-008",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-009",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-010",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-011",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "FIN-012",
+      "primary_prompt": "ESP-03",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-001",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-002",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-003",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-004",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-005",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-006",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-007",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-008",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-009",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-010",
+      "primary_prompt": "ESP-02",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-011",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-012",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "ADM-013",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-001",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-002",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-003",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-004",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-005",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-006",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-007",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-008",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "INTG-009",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-001",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-002",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-003",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-004",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-005",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-006",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-007",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-008",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-009",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-010",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "NFR-011",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-001",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-002",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-003",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-004",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-005",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-006",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-007",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-008",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "SEC-009",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-001",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-002",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-003",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-004",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-005",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-006",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "OPS-007",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-01",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-02",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-03",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-04",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-05",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-06",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-07",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-08",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-09",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-10",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-11",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-12",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-13",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-14",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-15",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-16",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-17",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-18",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-19",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-20",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-21",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-22",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-23",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    },
+    {
+      "requirement_id": "AC-24",
+      "primary_prompt": "ESP-07",
+      "integration_prompt": "ESP-07"
+    }
+  ]
+}
