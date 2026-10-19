@@ -14,6 +14,7 @@ import type { Adapters } from './adapters/types.js';
 import { Files } from './files/files.js';
 import { createLogger } from './logging.js';
 import { registerCoreConsumers } from './outbox/consumers.js';
+import { registerEsp03Consumers } from './finance/consumers.js';
 
 /** Composition root shared by api, worker, CLIs and tests. */
 export interface Container {
@@ -44,7 +45,7 @@ export async function createContainer(opts: { serviceName: string; env?: NodeJS.
   const sessions = new Sessions(c, config.SESSION_TTL_HOURS);
   const approvals = new Approvals(c, acl, audit, outbox);
   const realtime = new Realtime(c, acl, sessions);
-  const adapters = buildAdapters(config);
+  const adapters = buildAdapters(config, dbh.db);
   const files = new Files(c, acl, audit, adapters, {
     secret: config.appSecret,
     linkTtlSeconds: config.SIGNED_LINK_TTL_SECONDS,
@@ -54,7 +55,7 @@ export async function createContainer(opts: { serviceName: string; env?: NodeJS.
   });
   const consumer = new OutboxConsumer(dbh, c, audit, { workerId: opts.workerId ?? `${opts.serviceName}-${process.pid}`, pollMs: config.OUTBOX_POLL_MS, leaseMs: config.OUTBOX_LEASE_MS, logger });
   registerCoreConsumers(consumer, { realtime, sessions, c, logger });
-  return {
+  const container: Container = {
     config,
     logger,
     dbh,
@@ -73,4 +74,6 @@ export async function createContainer(opts: { serviceName: string; env?: NodeJS.
       await dbh.close();
     },
   };
+  registerEsp03Consumers(container);
+  return container;
 }

@@ -14,7 +14,7 @@ import type {
 } from '@esp/contracts';
 
 /** Base URL comes from configuration (VITE_API_BASE), defaulting to the same-origin proxy. */
-const BASE: string = import.meta.env.VITE_API_BASE ?? '/api/v1';
+export const API_BASE: string = import.meta.env.VITE_API_BASE ?? '/api/v1';
 
 export type ClientErrorCode = ErrorCode | 'NETWORK' | 'UNKNOWN';
 
@@ -38,7 +38,7 @@ type Query = Record<string, string | number | undefined>;
 export async function request<T>(method: string, path: string, opts: { body?: unknown; query?: Query } = {}): Promise<T> {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined && v !== '') qs.set(k, String(v));
-  const url = `${BASE}${path}${qs.size ? `?${qs.toString()}` : ''}`;
+  const url = `${API_BASE}${path}${qs.size ? `?${qs.toString()}` : ''}`;
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (method !== 'GET') headers['X-Requested-With'] = 'fetch'; // CSRF guard
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
@@ -142,7 +142,7 @@ export const api = {
     request<Approval>('POST', `/approvals/${encodeURIComponent(id)}/decision`, { body: { decision, reason, expectedVersion } }),
   // realtime
   realtimeEvents: (after: number, channels = 'system') => request<RealtimePoll>('GET', '/realtime/events', { query: { after, channels, limit: 100 } }),
-  realtimeStreamUrl: (after: number, channels = 'system') => `${BASE}/realtime/stream?after=${after}&channels=${encodeURIComponent(channels)}`,
+  realtimeStreamUrl: (after: number, channels = 'system') => `${API_BASE}/realtime/stream?after=${after}&channels=${encodeURIComponent(channels)}`,
   // public catalogue
   events: (cursor?: string, limit = 20) =>
     request<{ items: EventSummary[]; page: { nextCursor: string | null; limit: number } }>('GET', '/events', { query: { cursor, limit } }),

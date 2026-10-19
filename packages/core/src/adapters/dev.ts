@@ -1,9 +1,8 @@
 import { mkdir, readFile, writeFile, unlink, appendFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { join, resolve, sep } from 'node:path';
-import { DomainError, type Money, type ProviderHealth } from '@esp/contracts';
-import type { EmailAdapter, MapAdapter, PaymentAdapter, PublisherAdapter, ScannerAdapter, SmsAdapter, StorageAdapter, VideoAdapter } from './types.js';
+import { DomainError, type ProviderHealth } from '@esp/contracts';
+import type { EmailAdapter, MapAdapter, PublisherAdapter, ScannerAdapter, SmsAdapter, StorageAdapter, VideoAdapter } from './types.js';
 
 /**
  * Deterministic development doubles. They never contact a network, write their "outbound" messages to a
@@ -34,34 +33,6 @@ export async function readDevInbox(dataDir: string, file: 'sms.jsonl' | 'email.j
     }
   }
   return rows.slice(-limit).reverse();
-}
-
-export class DevPaymentAdapter implements PaymentAdapter {
-  readonly name = 'dev-payment';
-  readonly mode = 'development_double' as const;
-  readonly capabilities = ['create', 'verify', 'refund', 'deterministic'] as const;
-  private readonly store = new Map<string, { orderId: string; amount: Money; verified: boolean; refunded: number }>();
-  constructor(private readonly dataDir: string) {}
-  async health() {
-    return health('payment', this.name, [...this.capabilities], 'test double: no real gateway; amounts never move');
-  }
-  async createPayment(input: { orderId: string; amount: Money; description: string; callbackUrl: string }) {
-    const gatewayRef = `dev_${createHash('sha256').update(input.orderId).digest('hex').slice(0, 16)}`;
-    if (!this.store.has(gatewayRef)) this.store.set(gatewayRef, { orderId: input.orderId, amount: input.amount, verified: false, refunded: 0 });
-    await appendInbox(this.dataDir, 'payments.jsonl', { action: 'create', gatewayRef, ...input });
-    return { gatewayRef, redirectUrl: `${input.callbackUrl}?ref=${gatewayRef}&dev=1` };
-  }
-  async verify(input: { gatewayRef: string; expectedAmount: Money; orderId: string }) {
-    const p = this.store.get(input.gatewayRef);
-    if (!p) return { status: 'unknown' as const, providerRef: null, amount: null };
-    if (p.orderId !== input.orderId || p.amount.amount !== input.expectedAmount.amount) return { status: 'failed' as const, providerRef: null, amount: p.amount };
-    p.verified = true; // idempotent: re-verify returns the same answer
-    return { status: 'verified' as const, providerRef: `${input.gatewayRef}_ok`, amount: p.amount };
-  }
-  async refund(input: { providerRef: string; amount: Money; reason: string; idempotencyKey: string }) {
-    await appendInbox(this.dataDir, 'payments.jsonl', { action: 'refund', ...input });
-    return { status: 'accepted' as const, refundRef: `rf_${input.idempotencyKey}` };
-  }
 }
 
 export class DevSmsAdapter implements SmsAdapter {

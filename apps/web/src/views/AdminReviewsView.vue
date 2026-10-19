@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import type { ApiClientError } from '../api/client';
+import { api } from '../api/client';
 import { esp02 } from '../api/esp02';
+import { esp03 as esp03Api } from '../api/esp03';
 import DataState from '../components/DataState.vue';
 import ErrorNote from '../components/ErrorNote.vue';
 import FormField from '../components/FormField.vue';
@@ -18,6 +20,12 @@ const failure = ref<ApiClientError | null>(null);
 
 const ratings = useLoad(() => esp02.ratingsForModeration());
 const pendingIds = useLoad(() => esp02.pendingGameIdentities());
+/** template alias (vue-tsc mis-types direct use of this import inside template arrow functions) */
+const esp03: typeof esp03Api = esp03Api;
+const affs = useLoad(() => esp03.pendingAffiliations());
+const affNote = reactive<Record<string, string>>({});
+// evidence opens through a short-lived signed link; access to the private file is checked by the server
+const openEvidence = (fileId: string) => staff(async () => void window.open((await api.fileLink(fileId)).url, '_blank', 'noopener'));
 const notice = ref('');
 async function staff(fn: () => Promise<unknown>, reload?: () => Promise<void>) {
   failure.value = null;
@@ -169,6 +177,25 @@ async function review(id: string, version: number) {
             <FormField :id="`no-${a.id}`" :label="t('org.note')" required><template #default="{ id }"><input :id="id" v-model="form(a.id).note" class="input" dir="auto" /></template></FormField>
             <button type="submit" class="btn btn-primary" :disabled="!form(a.id).note">{{ t('org.submit') }}</button>
           </form>
+        </li>
+      </ul>
+    </DataState>
+  </section>
+
+  <!-- EVT-008: official affiliation claims; the claimant can never decide their own -->
+  <section class="block" aria-labelledby="af-h">
+    <h2 id="af-h">{{ t('evm.affReview') }}</h2>
+    <DataState :loading="affs.loading.value" :error="affs.error.value" :forbidden="isForbidden(affs.error.value)" :empty="!!affs.data.value && affs.data.value.items.length === 0" @retry="affs.load">
+      <ul v-if="affs.data.value" class="cards">
+        <li v-for="a in affs.data.value.items" :key="a.eventId" class="card stack">
+          <RouterLink :to="`/events/${a.eventId}`"><bdi>{{ a.name }}</bdi></RouterLink>
+          <p>{{ t(`evm.aff.${a.affiliation.kind}` as never) }}: <bdi>{{ a.affiliation.body }}</bdi></p>
+          <button type="button" class="btn btn-sm" @click="openEvidence(a.affiliation.evidenceFileId)">{{ t('evm.affEvidence') }}</button>
+          <FormField :id="`afn-${a.eventId}`" :label="t('evm.reason')"><template #default="{ id }"><input :id="id" v-model="affNote[a.eventId]" class="input" dir="auto" /></template></FormField>
+          <div class="row">
+            <button type="button" class="btn btn-primary btn-sm" :disabled="(affNote[a.eventId] ?? '').length < 5" @click="staff(() => esp03.decideAffiliation(a.eventId, 'verify', affNote[a.eventId] ?? ''), affs.load)">{{ t('evm.affVerify') }}</button>
+            <button type="button" class="btn btn-danger btn-sm" :disabled="(affNote[a.eventId] ?? '').length < 5" @click="staff(() => esp03.decideAffiliation(a.eventId, 'reject', affNote[a.eventId] ?? ''), affs.load)">{{ t('evm.reject') }}</button>
+          </div>
         </li>
       </ul>
     </DataState>

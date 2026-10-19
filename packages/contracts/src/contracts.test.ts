@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { allMachines, findTransition, matchMachine } from './states.js';
 import { formatToman, rialToToman, tomanToRial, formatRial } from './money.js';
-import { formatInstant, normalizeDigits, toJalaliParts, UtcInstantSchema } from './time.js';
+import { formatInstant, normalizeDigits, toJalaliParts, UtcInstantSchema, zonedWallTimeToUtc } from './time.js';
 import { Roles, rolePermissions, roleScopeTypes, scopeInheritance } from './acl.js';
 import { decodeCursor, encodeCursor } from './pagination.js';
 import { z } from 'zod';
@@ -31,6 +31,11 @@ describe('time (DATA-004, UX-004)', () => {
   it('accepts only UTC instants for storage', () => {
     expect(UtcInstantSchema.safeParse('2026-10-18T09:30:00.000Z').success).toBe(true);
     expect(UtcInstantSchema.safeParse('2026-10-18T13:00:00+03:30').success).toBe(false);
+  });
+  it('reads form wall time in the event zone, not the browser zone', () => {
+    expect(zonedWallTimeToUtc('2026-10-18T13:00')).toBe('2026-10-18T09:30:00.000Z');
+    expect(zonedWallTimeToUtc('۱۴۰۵-۰۱-۰۱T۰۰:۰۰'.replace('۱۴۰۵-۰۱-۰۱', '2026-03-21'))).toBe('2026-03-20T20:30:00.000Z');
+    expect(zonedWallTimeToUtc('2026-07-01T12:00', 'Europe/Berlin')).toBe('2026-07-01T10:00:00.000Z');
   });
   it('renders Tehran time in the Persian calendar', () => {
     const parts = toJalaliParts('2026-03-21T00:00:00Z'); // Nowruz 1405 at 03:30 Tehran

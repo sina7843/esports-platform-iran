@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|
 | `/` | همه | صفحه اصلی و وضعیت سرویس | `GET /health` | اخبار و رویدادهای ویژه | L, Err, O |
 | `/events` | همه | فهرست رویدادهای عمومی، صفحه‌بندی با cursor | `GET /events` | فیلتر و جستجو | L, E, Err, O |
-| `/events/:id` | همه | جزئیات رویداد، رشته‌ها و مراحل | `GET /events/:id` | فهرست مسابقه‌ها و درخت حذفی | L, Err, O |
+| `/events/:id` | همه | جزئیات رویداد، شرایط، بازپرداخت، ظرفیت، جوایز (بدون تضمین)، ثبت‌نام و بلیت (ESP-03) | `GET /events/:id?t=` | فهرست مسابقه‌ها و درخت حذفی (ESP-04) | L, Err, O, F (ورود) |
 | `/matches/:id` | همه؛ لابی فقط با `match.lobby.read` | پروژکشن عمومی مسابقه + پنل خصوصی لابی | `GET /matches/:id`، `GET /matches/:id/lobby` (فقط با کلیک) | نتیجه، شواهد | L, Err, F (لابی), O |
 | `/news` `/rankings` `/teams` `/organizers` `/search` | همه | پوسته‌ی عمومی | — | دامنه‌ی مربوطه | پیام «مرحله بعد» |
 | `/login` | مهمان | ورود توسعه‌ای (development double) | `POST /auth/dev-session` | ورود واقعی با پیامک | Err، فرم دارای اعتبارسنجی |
@@ -19,11 +19,11 @@
 | `/account/notifications` | کاربر واردشده | اعلان‌ها | — | اعلان‌ها | پیام «مرحله بعد» |
 | `/account/settings` | همه | زبان، پوسته، ارقام، منطقه زمانی (localStorage) + فرم نمونه موبایل/تاریخ شمسی/مبلغ | محلی | ذخیره در پروفایل | اعتبارسنجی خطا |
 | `/team` | `team.read_private` | پنل تیم | — | فهرست اعضا و ثبت‌نام | 403 / «مرحله بعد» |
-| `/organizer` | `event.manage` | پنل برگزارکننده | — | مدیریت رویداد | 403 / «مرحله بعد» |
+| `/organizer` | `event.manage` | رویدادهای سازمان و ساخت رویداد (ESP-03) | `GET /organizations/:id/events`، `POST /events` | — | L, E, Err, F, O |
 | `/organizer/access` | `acl.read` | فهرست، ایجاد و لغو دسترسی در یک حوزه | `GET/POST /acl/grants`، `DELETE /acl/grants/:id` | — | L, E, Err, F, O |
 | `/referee` | `match.result.verify` | پنل داور | — | تأیید نتیجه | 403 / «مرحله بعد» |
 | `/newsroom` | `news.draft` | اتاق خبر | — | پیش‌نویس و انتشار | 403 / «مرحله بعد» |
-| `/finance` | `finance.read` | پنل مالی | — | پرداخت و بازپرداخت | 403 / «مرحله بعد» |
+| `/finance` | `finance.read` | صف تطبیق، بازپرداخت، پرداخت دستی، قیمت، تخفیف، تسویه، پرداخت جایزه، خروجی دفتر کل (ESP-03) | `/finance/*`، `/payments/:id/refunds`، `/prizes/:id/*` | — | L, E, Err, F, O |
 | `/finance/approvals` | `approval.read` | فهرست تأییدیه‌های حوزه‌ی site و فرم تصمیم | `GET /approvals`، `POST /approvals/:id/decision` | — | L, E, Err, F, O |
 | `/admin` | `platform.settings` | مدیریت پلتفرم | — | تنظیمات | 403 / «مرحله بعد» |
 | `/admin/ops` | `outbox.read` | سلامت سرویس‌ها، outbox، dead-letter، صحت زنجیره‌ی ممیزی | `GET /ops/providers`، `/ops/outbox`، `POST /ops/outbox/:id/replay`، `GET /ops/audit/verify` | — | L, E, Err, F, O |
@@ -51,3 +51,13 @@
 | `/admin/reviews` | پشتیبان/مدیر | حساب‌های مشکوک (بدون ادغام خودکار)، شناسه‌های بازی، سطح تأییدشده، نشان، امتیازهای برگزارکننده، درخواست‌های برگزارکنندگی | `/admin/*`, `/organizer-ratings/*`, `/organizers/applications` | FORBIDDEN بدون مجوز |
 
 `/search` و اعلان‌ها همچنان صفحه پوسته‌اند و در ESP-06 کامل می‌شوند (UX-001، COM-*).
+
+## مسیرهای افزوده‌شده در ESP-03
+
+| مسیر | مخاطب | هدف | منبع داده | حالت‌ها |
+|---|---|---|---|---|
+| `/organizer/events/:id` | کارکنان رویداد (`event.read_private`؛ هر اقدام را سرور دوباره بررسی می‌کند) | دروازه‌ی انتشار و موانع، چرخه‌ی عمر، زمان‌بندی، تکثیر/قالب، لغو با تأیید مستقل، رشته/مرحله، ثبت‌نام‌ها و تصمیم با دلیل، CSV خروجی/ورودی، کد دعوت، قفل روستر، حضور، گزارش مالی، جوایز، بلیت، حامی | `/events/:id/manage` و مسیرهای `docs/architecture/registration-finance.md` | L, E, Err, F, O |
+| `/account/registrations` | کاربر | ثبت‌نام‌های من، تأیید عضویت روستر، پرداخت، اعلام حضور، انصراف، بازبینی، رسیدها، بلیت‌ها، اشتراک | `/me/registrations`، `/me/orders`، `/me/tickets`، `/me/subscriptions` | L, E, Err, O |
+| `/payments/return` | کاربر | استعلام سرور پس از بازگشت از درگاه، poll سفارش، رسید قابل چاپ، پرداخت دوباره | `GET /orders/:id`، `POST /payments/:id/verify` | در حال استعلام، ناموفق، موفق |
+
+همه‌ی صفحه‌ها در عرض موبایل یک‌ستونی می‌شوند. جدول ثبت‌نام‌ها اسکرول افقی دارد. زمان‌های فرم به وقت تهران خوانده می‌شوند (`zonedWallTimeToUtc`)، نه منطقه‌ی زمانی مرورگر.

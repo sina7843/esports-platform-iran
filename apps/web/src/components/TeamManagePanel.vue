@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { CalendarKinds, RecruitmentKinds, TeamRoles } from '@esp/contracts';
+import { CalendarKinds, RecruitmentKinds, TeamRoles, zonedWallTimeToUtc } from '@esp/contracts';
 import type { ApiClientError } from '../api/client';
 import { esp02, type Application, type CalendarEntry, type JoinRequest, type RecruitmentAd, type Scrim, type TeamPage } from '../api/esp02';
 import { toClientError } from '../errors';
@@ -20,7 +20,7 @@ const call: typeof esp02 = esp02;
 const failure = ref<ApiClientError | null>(null);
 const notice = ref('');
 const assignable = TeamRoles.filter((r) => r !== 'owner');
-const toIso = (local: string) => (local ? new Date(local).toISOString() : '');
+const toIso = (local: string) => (local ? zonedWallTimeToUtc(local) : '');
 
 async function act(fn: () => Promise<unknown>, ok = '', reloadTeam = false) {
   failure.value = null;

@@ -1,7 +1,9 @@
 import { DomainError, type ProviderHealth } from '@esp/contracts';
 import type { AppConfig } from '../config.js';
 import type { AdapterBase, Adapters } from './types.js';
-import { DevEmailAdapter, DevMapAdapter, DevPaymentAdapter, DevScannerAdapter, DevSmsAdapter, DevVideoAdapter, LocalStorageAdapter, NoPublisherAdapter } from './dev.js';
+import type { Db } from 'mongodb';
+import { DevGatewayAdapter } from './devGateway.js';
+import { DevEmailAdapter, DevMapAdapter, DevScannerAdapter, DevSmsAdapter, DevVideoAdapter, LocalStorageAdapter, NoPublisherAdapter } from './dev.js';
 
 /**
  * Adapter selection from configuration. 'none' yields a blocking adapter that reports `unconfigured` and throws
@@ -25,10 +27,10 @@ function unconfigured<T extends AdapterBase>(kind: ProviderHealth['kind'], metho
   return base as unknown as T;
 }
 
-export function buildAdapters(config: AppConfig): Adapters {
+export function buildAdapters(config: AppConfig, db: Db): Adapters {
   const storageMode = config.isProduction ? 'production' : 'development_double';
   return {
-    payment: config.PAYMENT_ADAPTER === 'dev' ? new DevPaymentAdapter(config.DATA_DIR) : unconfigured('payment', ['createPayment', 'verify', 'refund']),
+    payment: config.PAYMENT_ADAPTER === 'dev' ? new DevGatewayAdapter(db, config.appSecret, config.PUBLIC_API_ORIGIN) : unconfigured('payment', ['createPayment', 'verify', 'refund', 'verifyCallback']),
     sms: config.SMS_ADAPTER === 'dev' ? new DevSmsAdapter(config.DATA_DIR) : unconfigured('sms', ['send']),
     email: config.EMAIL_ADAPTER === 'dev' ? new DevEmailAdapter(config.DATA_DIR) : unconfigured('email', ['send']),
     storage: config.STORAGE_ADAPTER === 'local' ? new LocalStorageAdapter(config.DATA_DIR, config.PUBLIC_API_ORIGIN, storageMode) : unconfigured('storage', ['put', 'get', 'delete', 'publicUrl']),

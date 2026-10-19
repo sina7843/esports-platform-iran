@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { defaultEventConfig } from '../events/defaults.js';
 import { testContainer, rid } from '../test/harness.js';
 import { loadConfig } from '../config.js';
 import { assertTransitionAllowed } from '../domain/transition.js';
@@ -57,7 +58,7 @@ describe('transition guard (chapter 15)', () => {
   it('applies optimistic concurrency on the stored document', async () => {
     const { applyTransition } = await import('../domain/transition.js');
     const now = new Date().toISOString();
-    await t.c.events.insertOne({ _id: 'evt_t1', slug: 'evt-t1', name: 'x', organizerOrgId: 'org', visibility: 'public', state: 'draft', timeZone: 'Asia/Tehran', startsAt: null, endsAt: null, rulesSnapshot: null, createdBy: 'u', createdAt: now, updatedAt: now, version: 0 });
+    await t.c.events.insertOne({ _id: 'evt_t1', slug: 'evt-t1', name: 'x', organizerOrgId: 'org', visibility: 'public', state: 'draft', timeZone: 'Asia/Tehran', startsAt: null, endsAt: null, rulesSnapshot: null, config: defaultEventConfig(), createdBy: 'u', createdAt: now, updatedAt: now, version: 0 });
     const r = await applyTransition(eventMachine, t.c.events, 'evt_t1', { transition: 'publish', expectedVersion: 0, actorRoles: ['organizer'] });
     expect(r.doc.state).toBe('published');
     expect(r.doc.version).toBe(1);

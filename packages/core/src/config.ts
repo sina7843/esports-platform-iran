@@ -60,6 +60,10 @@ const EnvSchema = z.object({
   OUTBOX_LEASE_MS: z.coerce.number().int().min(1000).default(30_000),
   OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(8),
 
+  /** Payments (FIN-002/004): in-flight payment lifetime and the refund size that needs an independent approval (ACL-003). */
+  PAYMENT_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(20),
+  REFUND_APPROVAL_THRESHOLD_RIAL: z.coerce.number().int().min(0).default(50_000_000),
+
   RATE_LIMIT_MAX: z.coerce.number().int().default(300),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().default(60_000),
 });

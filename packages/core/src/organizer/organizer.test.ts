@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { defaultEventConfig } from '../events/defaults.js';
 import { DomainError } from '@esp/contracts';
 import { rid, testContainer } from '../test/harness.js';
 import { createDefaultProfile } from '../profiles/defaults.js';
@@ -45,7 +46,7 @@ async function approvedOrg(owner: string, level: 'basic' | 'trusted' | 'partner'
 async function mkEvent(orgId: string, state: EventDoc['state'], visibility: EventDoc['visibility'] = 'public'): Promise<string> {
   n += 1;
   const t = new Date().toISOString();
-  const e: EventDoc = { _id: `evt_o${n}`, slug: `evt-o${n}`, name: `رویداد ${n}`, organizerOrgId: orgId, visibility, state, timeZone: 'Asia/Tehran', startsAt: t, endsAt: null, rulesSnapshot: null, createdBy: 'x', createdAt: t, updatedAt: t, version: 0 };
+  const e: EventDoc = { _id: `evt_o${n}`, slug: `evt-o${n}`, name: `رویداد ${n}`, organizerOrgId: orgId, visibility, state, timeZone: 'Asia/Tehran', startsAt: t, endsAt: null, rulesSnapshot: null, config: defaultEventConfig(), createdBy: 'x', createdAt: t, updatedAt: t, version: 0 };
   await ct.c.events.insertOne(e);
   return e._id;
 }

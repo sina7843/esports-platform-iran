@@ -1,5 +1,6 @@
 import { faEsp02 } from './esp02';
 import { faMgmt } from './esp02-mgmt';
+import { faEsp03 } from './esp03';
 
 export const fa = {
   'app.name': 'پلتفرم ورزش‌های الکترونیکی',
@@ -237,6 +238,7 @@ export const fa = {
   'notfound.title': 'صفحه‌ای پیدا نشد',
   ...faEsp02,
   ...faMgmt,
+  ...faEsp03,
 } as const;
 
 export type MessageKey = keyof typeof fa;

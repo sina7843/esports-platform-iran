@@ -234,6 +234,10 @@ export const SensitiveActions = [
   'match.result.correct',
   'stage.delete_active',
   'acl.grant.platform_admin',
+  'finance.manual_payment',
+  'finance.prize.recipient_change',
+  'event.cancel',
+  'stage.start_exception',
 ] as const;
 export type SensitiveAction = (typeof SensitiveActions)[number];
 
@@ -243,6 +247,10 @@ export const sensitiveActionApproverPermission: Record<SensitiveAction, Permissi
   'match.result.correct': 'approval.decide',
   'stage.delete_active': 'approval.decide',
   'acl.grant.platform_admin': 'approval.decide',
+  'finance.manual_payment': 'approval.decide',
+  'finance.prize.recipient_change': 'approval.decide',
+  'event.cancel': 'approval.decide',
+  'stage.start_exception': 'approval.decide',
 };
 
 export const GrantSchema = z.object({

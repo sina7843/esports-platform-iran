@@ -3,7 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import { createContainer, createDefaultProfile, runMigrations, seedDatabase, seedIds, seedOrganizerDomain, type Container } from '@esp/core';
+import { createContainer, createDefaultProfile, defaultEventConfig, runMigrations, seedDatabase, seedIds, seedOrganizerDomain, type Container } from '@esp/core';
 import { buildApp } from './app.js';
 
 let container: Container;
@@ -97,7 +97,7 @@ describe('organizer HTTP flows', () => {
 
     // ratings
     const t = new Date().toISOString();
-    await container.c.events.insertOne({ _id: 'evt_ao1', slug: 'evt-ao1', name: 'پایان‌یافته', organizerOrgId: orgId, visibility: 'public', state: 'finished', timeZone: 'Asia/Tehran', startsAt: t, endsAt: null, rulesSnapshot: null, createdBy: owner.id, createdAt: t, updatedAt: t, version: 0 });
+    await container.c.events.insertOne({ _id: 'evt_ao1', slug: 'evt-ao1', name: 'پایان‌یافته', organizerOrgId: orgId, visibility: 'public', state: 'finished', timeZone: 'Asia/Tehran', startsAt: t, endsAt: null, rulesSnapshot: null, config: defaultEventConfig(), createdBy: owner.id, createdAt: t, updatedAt: t, version: 0 });
     await container.c.participations.insertOne({ _id: 'ptc_ao1', eventId: 'evt_ao1', disciplineId: 'd', kind: 'team', snapshot: { displayName: 'T', teamId: null, roster: [{ principalId: player.id, displayName: 'p', role: 'player' }] }, acceptedRules: null, registrationState: 'confirmed', createdAt: t, updatedAt: t, version: 0 });
     expect((await api(stranger, 'POST', `/organizers/${orgId}/ratings`, { eventId: 'evt_ao1', score: 5 })).statusCode).toBe(403);
     const rate = await api(player, 'POST', `/organizers/${orgId}/ratings`, { eventId: 'evt_ao1', score: 2, comment: 'ضعیف' });

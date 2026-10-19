@@ -1,5 +1,6 @@
 import type { Db, Collection } from 'mongodb';
 import { esp02CollectionNames, esp02Collections, type Esp02Collections } from './collections-esp02.js';
+import { esp03CollectionNames, esp03Collections, type Esp03Collections, type EventConfig, type DisciplineConfig, type StageLink } from './collections-esp03.js';
 import type { Grant, OutboxRecord, RealtimeEvent, Scope, Approval, FileRecord, AuditEntry, EventState, MatchState, RegistrationState } from '@esp/contracts';
 
 /**
@@ -95,6 +96,7 @@ export interface EventDoc {
   startsAt: string | null;
   endsAt: string | null;
   rulesSnapshot: RulesSnapshot | null;
+  config: EventConfig;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -111,6 +113,7 @@ export interface DisciplineDoc {
   mode: string;
   name: string;
   rulesSnapshot: RulesSnapshot | null;
+  config: DisciplineConfig;
   createdAt: string;
   version: number;
 }
@@ -124,6 +127,10 @@ export interface StageDoc {
   format: string; // single_elim | double_elim | round_robin | groups | swiss | ladder | multi_lobby | record | mixed
   state: 'planned' | 'drawn' | 'active' | 'finished' | 'cancelled';
   dependsOnStageIds: string[];
+  presence: 'online' | 'offline' | 'hybrid';
+  links: StageLink[];
+  /** Starting before dependencies are final requires an approved, reasoned exception (STG-006). */
+  startException: { approvalId: string; reason: string; by: string; at: string } | null;
   createdAt: string;
   version: number;
 }
@@ -249,7 +256,7 @@ export interface ResultVersionDoc {
   createdAt: string;
 }
 
-export interface Collections extends Esp02Collections {
+export interface Collections extends Esp02Collections, Esp03Collections {
   principals: Collection<PrincipalDoc>;
   sessions: Collection<SessionDoc>;
   grants: Collection<GrantDoc>;
@@ -296,6 +303,7 @@ export const collectionNames = {
   teamMemberships: 'team_memberships',
   resultVersions: 'result_versions',
   ...esp02CollectionNames,
+  ...esp03CollectionNames,
 } as const satisfies Record<keyof Collections, string>;
 
 export function collections(db: Db): Collections {
@@ -322,6 +330,7 @@ export function collections(db: Db): Collections {
     teamMemberships: db.collection(collectionNames.teamMemberships),
     resultVersions: db.collection(collectionNames.resultVersions),
     ...esp02Collections(db),
+    ...esp03Collections(db),
   };
 }
 

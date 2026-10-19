@@ -13,7 +13,20 @@ export interface AdapterBase {
   health(): Promise<ProviderHealth>;
 }
 
+/** Callback shape posted by the PSP; never trusted without signature check AND server-side verify (FIN-002). */
+export interface CallbackPayload {
+  gatewayRef: string;
+  status: 'success' | 'failed' | 'cancelled';
+  amountRial: number;
+  orderId: string;
+  merchantId: string;
+  ts: number;
+  signature: string;
+}
+
 export interface PaymentAdapter extends AdapterBase {
+  readonly merchantId: string;
+  verifyCallback(payload: CallbackPayload): boolean;
   /** Creates a gateway payment and returns the redirect target. `orderId` is the idempotency key. */
   createPayment(input: { orderId: string; amount: Money; description: string; callbackUrl: string }): Promise<{ gatewayRef: string; redirectUrl: string }>;
   /** Server-side verification (FIN-002). Must be idempotent per gatewayRef (FIN-004). */

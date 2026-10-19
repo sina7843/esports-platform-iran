@@ -1,9 +1,9 @@
 import { createServer } from 'node:http';
-import { createContainer, runMigrations } from '@esp/core';
+import { createContainer, runMigrations, startEsp03Jobs } from '@esp/core';
 
 /**
- * Worker: hosts the outbox consumer loop (and, in later stages, scheduled jobs such as reservation expiry,
- * payment reconciliation and notification fan-out). Safe to run with several replicas: records are leased.
+ * Worker: hosts the outbox consumer loop and the ESP-03 jobs (reservation expiry, waitlist promotion, payment
+ * reconciliation, scheduled publication, subscription renewal). Safe to run with several replicas: records are leased.
  * `--once` drains the queue and exits (used by operators and CI).
  */
 const container = await createContainer({ serviceName: 'worker' });
@@ -18,6 +18,7 @@ if (process.argv.includes('--once')) {
 }
 
 consumer.start();
+const stopJobs = startEsp03Jobs(container);
 logger.info({ pollMs: config.OUTBOX_POLL_MS, leaseMs: config.OUTBOX_LEASE_MS }, 'outbox consumer started');
 
 // Minimal health endpoint for container orchestration (no business routes here).
@@ -41,6 +42,7 @@ health.listen(config.PORT + 1, config.HOST);
 const shutdown = async (signal: string) => {
   logger.info({ signal }, 'worker shutting down');
   health.close();
+  stopJobs();
   await consumer.stop(); // releases leases so another replica continues without loss
   await container.close();
   process.exit(0);

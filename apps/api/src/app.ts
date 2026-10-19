@@ -27,8 +27,11 @@ import { recruitmentRoutes } from './routes/recruitment.js';
 import { organizerRoutes } from './routes/organizer.js';
 import { catalogRoutes } from './routes/catalog.js';
 import { rulesRoutes } from './routes/rules.js';
+import { eventsAdminRoutes } from './routes/events-admin.js';
+import { registrationRoutes } from './routes/registrations.js';
+import { financeRoutes } from './routes/finance.js';
 
-export const API_VERSION = '0.2.0-esp02';
+export const API_VERSION = '0.3.0-esp03';
 
 export async function buildApp(container: Container): Promise<FastifyInstance> {
   const { config } = container;
@@ -85,6 +88,9 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       organizerRoutes(api, container);
       catalogRoutes(api, container);
       rulesRoutes(api, container);
+      eventsAdminRoutes(api, container);
+      registrationRoutes(api, container);
+      financeRoutes(api, container);
     },
     { prefix: '/api/v1' },
   );

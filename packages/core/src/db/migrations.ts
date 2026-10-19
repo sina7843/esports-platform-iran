@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Db } from 'mongodb';
 import type { Logger } from 'pino';
 import { collectionNames, collections } from './collections.js';
+import { defaultDisciplineConfig, defaultEventConfig } from '../events/defaults.js';
 
 /**
  * Versioned, forward-only migrations recorded in the `migrations` collection with a checksum of the
@@ -162,6 +163,61 @@ export const migrations: Migration[] = [
         const p = await c.principals.findOne({ _id: m.principalId }, { projection: { displayName: 1 } });
         await c.teamMemberships.updateOne({ _id: m._id }, { $set: { displayNameAtJoin: p?.displayName ?? m.principalId, endedReason: null, endedBy: null } });
       }
+    },
+  },
+  {
+    id: '0006_esp03_events_registration_finance',
+    revision: 1,
+    description: 'ESP-03 indexes (registration uniqueness, capacity, payments, ledger, refunds idempotency) and config backfill for events, disciplines and stages',
+    async up(db) {
+      const c = collections(db);
+      const active = ['incomplete', 'awaiting_payment', 'awaiting_review', 'awaiting_capacity', 'confirmed'];
+      await c.registrations.createIndexes([
+        { key: { trackingCode: 1 }, unique: true },
+        // REG-003/REG-009: one non-terminal registration per team/player per discipline
+        { key: { disciplineId: 1, holderKey: 1 }, unique: true, partialFilterExpression: { state: { $in: active } }, name: 'uniq_active_registration' },
+        { key: { disciplineId: 1, state: 1, waitlistSeq: 1 } },
+        { key: { state: 1, 'reservation.expiresAt': 1 } },
+        { key: { applicantPrincipalId: 1, createdAt: -1 } },
+        { key: { 'roster.principalId': 1, disciplineId: 1 } },
+      ]);
+      await c.capacityCounters.createIndexes([{ key: { disciplineId: 1 } }]);
+      await c.entryCodes.createIndexes([{ key: { disciplineId: 1 } }]);
+      await c.qualificationSlots.createIndexes([{ key: { targetDisciplineId: 1, holderKey: 1 }, unique: true, partialFilterExpression: { state: { $in: ['reserved', 'claimed'] } }, name: 'uniq_slot_holder' }]);
+      await c.substitutions.createIndexes([{ key: { registrationId: 1, createdAt: 1 } }, { key: { seasonId: 1, registrationId: 1 } }]);
+      await c.checkins.createIndexes([{ key: { level: 1, ref: 1, state: 1 } }]);
+      await c.priceLists.createIndexes([{ key: { productKey: 1, version: 1 }, unique: true }]);
+      await c.orders.createIndexes([{ key: { payerPrincipalId: 1, createdAt: -1 } }, { key: { 'refs.registrationId': 1 } }, { key: { receiptNo: 1 }, unique: true, partialFilterExpression: { receiptNo: { $type: 'string' } } }]);
+      await c.payments.createIndexes([
+        { key: { gatewayRef: 1 }, unique: true, partialFilterExpression: { gatewayRef: { $type: 'string' } } },
+        // at most one in-flight payment per order: parallel "pay" clicks cannot create two charges
+        { key: { orderId: 1 }, unique: true, partialFilterExpression: { state: { $in: ['created', 'awaiting_gateway', 'unknown'] } }, name: 'uniq_inflight_payment' },
+        { key: { state: 1, expiresAt: 1 } },
+      ]);
+      await c.gatewayCallbacks.createIndexes([{ key: { gatewayRef: 1, receivedAt: 1 } }]);
+      await c.ledger.createIndexes([{ key: { seq: 1 }, unique: true }, { key: { txId: 1 } }, { key: { account: 1, createdAt: 1 } }]);
+      await c.refunds.createIndexes([{ key: { idempotencyKey: 1 }, unique: true }, { key: { paymentId: 1 } }, { key: { state: 1 } }]);
+      await c.prizes.createIndexes([{ key: { eventId: 1, prizeKey: 1 }, unique: true }, { key: { state: 1 } }]);
+      await c.subscriptions.createIndexes([{ key: { 'holder.kind': 1, 'holder.ref': 1, state: 1 } }, { key: { state: 1, periodEnd: 1 } }]);
+      await c.tickets.createIndexes([{ key: { code: 1 }, unique: true }, { key: { eventId: 1, state: 1 } }]);
+      await c.sponsorPlacements.createIndexes([{ key: { eventId: 1, state: 1 } }]);
+      await c.events.createIndexes([{ key: { 'config.linkToken': 1 }, sparse: true }, { key: { state: 1, 'config.publishAt': 1 } }]);
+      await db.command({ collMod: collectionNames.ledger, validator: { $jsonSchema: { bsonType: 'object', required: ['seq', 'txId', 'account', 'amountRial', 'kind', 'createdAt'], properties: { amountRial: { bsonType: ['int', 'long', 'double'] } } } } }).catch(async (err: Error) => {
+        if (/not found|ns does not exist/i.test(err.message)) await db.createCollection(collectionNames.ledger, { validator: { $jsonSchema: { bsonType: 'object', required: ['seq', 'txId', 'account', 'amountRial', 'kind', 'createdAt'] } } });
+        else throw err;
+      });
+      // backfill configuration of documents created before ESP-03
+      await c.events.updateMany({ config: { $exists: false } }, { $set: { config: defaultEventConfig() } });
+      await c.disciplines.updateMany({ config: { $exists: false } }, { $set: { config: defaultDisciplineConfig() } });
+      await c.stages.updateMany({ links: { $exists: false } }, { $set: { presence: 'online', links: [], startException: null } });
+    },
+  },
+  {
+    id: '0007_esp03_one_open_subscription',
+    revision: 1,
+    description: 'At most one active or pending subscription per plan and holder (concurrent purchases cannot double-charge)',
+    async up(db) {
+      await collections(db).subscriptions.createIndex({ plan: 1, 'holder.ref': 1 }, { unique: true, partialFilterExpression: { state: { $in: ['active', 'pending_payment'] } }, name: 'uniq_open_subscription' });
     },
   },
 ];

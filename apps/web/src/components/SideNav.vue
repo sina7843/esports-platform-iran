@@ -39,6 +39,7 @@ const sections: Section[] = [
       { to: '/account/profile', label: 'nav.profile', auth: true },
       { to: '/account/security', label: 'nav.security', auth: true },
       { to: '/teams', label: 'nav.myTeams', auth: true },
+      { to: '/account/registrations', label: 'reg.mine', auth: true },
       { to: '/account/notifications', label: 'nav.notifications', auth: true },
       { to: '/account/settings', label: 'nav.settings' },
     ],

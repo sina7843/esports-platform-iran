@@ -68,3 +68,20 @@ export function toJalaliParts(instant: string | Date, timeZone = DEFAULT_TIME_ZO
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
   return { year: get('year'), month: get('month'), day: get('day') };
 }
+
+/**
+ * Converts a wall-clock time typed in a form (`YYYY-MM-DDTHH:mm`, e.g. from <input type="datetime-local">) in the
+ * given IANA zone to a UTC instant. The browser's own zone is irrelevant: an organizer abroad still means Tehran time.
+ */
+export function zonedWallTimeToUtc(local: string, timeZone = DEFAULT_TIME_ZONE): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(normalizeDigits(local));
+  if (!m) throw new Error('expected YYYY-MM-DDTHH:mm');
+  const wall = Date.UTC(+m[1]!, +m[2]! - 1, +m[3]!, +m[4]!, +m[5]!);
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const offsetAt = (ms: number) => {
+    const p = Object.fromEntries(fmt.formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+    return Date.UTC(+p['year']!, +p['month']! - 1, +p['day']!, +p['hour']!, +p['minute']!, +p['second']!) - ms;
+  };
+  // second pass corrects the offset when the first guess lands across a DST change
+  return new Date(wall - offsetAt(wall - offsetAt(wall))).toISOString();
+}
