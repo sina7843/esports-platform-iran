@@ -113,6 +113,16 @@ export const Permissions = [
   'platform.settings',
   'moderation.act',
   'discipline.platform_wide',
+  'account.review',
+  'badge.issue',
+  'team.ownership.transfer',
+  'recruitment.manage',
+  'scrim.manage',
+  'organizer.review',
+  'organizer.profile.manage',
+  'rating.moderate',
+  'rules.review',
+  'rules.publish',
 ] as const;
 export type Permission = (typeof Permissions)[number];
 
@@ -120,14 +130,15 @@ export type Permission = (typeof Permissions)[number];
 export const rolePermissions: Record<Role, readonly Permission[]> = {
   guest: ['file.read_public'],
   player: ['session.read_self', 'session.revoke_self', 'file.read_public', 'file.upload_private', 'approval.read'],
-  team_owner: ['team.read_private', 'team.manage', 'team.roster.manage', 'organization.read', 'file.upload_private'],
-  team_manager: ['team.read_private', 'team.manage', 'team.roster.manage', 'file.upload_private'],
-  team_captain: ['team.read_private', 'team.roster.manage', 'match.result.submit', 'match.lobby.read', 'match.read_private'],
+  team_owner: ['team.read_private', 'team.manage', 'team.roster.manage', 'team.ownership.transfer', 'recruitment.manage', 'scrim.manage', 'organization.read', 'file.upload_private', 'file.upload_public'],
+  team_manager: ['team.read_private', 'team.manage', 'team.roster.manage', 'recruitment.manage', 'scrim.manage', 'file.upload_private', 'file.upload_public'],
+  team_captain: ['team.read_private', 'team.roster.manage', 'scrim.manage', 'match.result.submit', 'match.lobby.read', 'match.read_private'],
   coach: ['team.read_private'],
   analyst: ['team.read_private'],
   organizer: [
     'organization.read',
     'organization.manage',
+    'organizer.profile.manage',
     'event.read_private',
     'event.manage',
     'event.staff.manage',
@@ -168,7 +179,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
   editor: ['news.draft', 'news.publish', 'event.read_private', 'file.upload_public'],
   broadcast_crew: ['broadcast.read', 'event.read_private'],
   finance_officer: ['finance.read', 'finance.refund', 'finance.payout', 'approval.request', 'approval.decide', 'approval.read', 'audit.read'],
-  support_moderator: ['moderation.act'],
+  support_moderator: ['moderation.act', 'rating.moderate', 'account.review'],
   platform_admin: [
     'acl.grant',
     'acl.revoke',
@@ -182,11 +193,15 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     'catalog.manage',
     'platform.settings',
     'moderation.act',
+    'account.review',
+    'badge.issue',
+    'organizer.review',
+    'rating.moderate',
     'file.read_private',
     'file.upload_private',
     'file.upload_public',
   ],
-  rules_officer: ['catalog.manage', 'rules.manage'],
+  rules_officer: ['catalog.manage', 'rules.manage', 'rules.review', 'rules.publish'],
   disciplinary_admin: ['discipline.platform_wide', 'event.evidence.read'],
 };
 

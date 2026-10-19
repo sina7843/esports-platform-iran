@@ -35,7 +35,7 @@ export class ApiClientError extends Error {
 
 type Query = Record<string, string | number | undefined>;
 
-async function request<T>(method: string, path: string, opts: { body?: unknown; query?: Query } = {}): Promise<T> {
+export async function request<T>(method: string, path: string, opts: { body?: unknown; query?: Query } = {}): Promise<T> {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(opts.query ?? {})) if (v !== undefined && v !== '') qs.set(k, String(v));
   const url = `${BASE}${path}${qs.size ? `?${qs.toString()}` : ''}`;

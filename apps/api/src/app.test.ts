@@ -66,7 +66,7 @@ describe('sessions', () => {
     const cookie = await login(seedIds.player);
     const me = await app.inject({ url: '/api/v1/auth/me', headers: { cookie } });
     expect(me.json().principal.id).toBe(seedIds.player);
-    expect(me.json().grants.map((g: { role: string }) => g.role)).toEqual(['player']);
+    expect(me.json().grants.map((g: { role: string }) => g.role).sort()).toEqual(['player', 'team_owner']); // seed player owns Team B (ESP-02 teams seed)
     const list = await app.inject({ url: '/api/v1/auth/sessions', headers: { cookie } });
     const current = list.json().items.find((s: { current: boolean }) => s.current);
     // CSRF: cookie-authenticated mutation without the header is refused

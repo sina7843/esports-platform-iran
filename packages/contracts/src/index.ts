@@ -6,3 +6,8 @@ export * from './acl.js';
 export * from './states.js';
 export * from './events.js';
 export * from './api.js';
+export * from './identity.js';
+export * from './teams.js';
+export * from './organizer.js';
+export * from './catalog.js';
+export * from './rules.js';

@@ -1,4 +1,5 @@
 import type { Db, Collection } from 'mongodb';
+import { esp02CollectionNames, esp02Collections, type Esp02Collections } from './collections-esp02.js';
 import type { Grant, OutboxRecord, RealtimeEvent, Scope, Approval, FileRecord, AuditEntry, EventState, MatchState, RegistrationState } from '@esp/contracts';
 
 /**
@@ -16,6 +17,8 @@ export interface PrincipalDoc {
   /** ESP-02 fills phone/email/identity; ESP-01 keeps the identity surface minimal. */
   status: 'active' | 'suspended' | 'deleted';
   aclVersion: number; // bumped on any grant change → live connections re-evaluate
+  deletedAt: string | null;
+  anonymizedAt: string | null;
   createdAt: string;
   updatedAt: string;
   version: number;
@@ -33,6 +36,10 @@ export interface SessionDoc {
   revokedReason: string | null;
   userAgent: string | null;
   ip: string | null;
+  /** Second factor proven on this session (USR-009); required by MFA-gated roles when MFA_ENFORCED. */
+  mfaVerifiedAt?: string | null;
+  /** Last fresh OTP/TOTP re-verification; gates phone/email change and account deletion (10 min). */
+  reauthAt?: string | null;
 }
 
 export type GrantDoc = Omit<Grant, 'id'> & { _id: string };
@@ -182,18 +189,38 @@ export interface OrganizationDoc {
   _id: string;
   name: string;
   slug: string;
+  ownerPrincipalId: string;
+  description: string | null;
+  city: string | null;
+  links: Array<{ label: string; url: string }>;
+  sponsors: Array<{ name: string; url: string | null; logoFileId: string | null }>;
+  logoFileId: string | null;
+  nameHistory: Array<{ name: string; from: string; to: string | null }>;
+  ownerHistory: Array<{ principalId: string; from: string; to: string | null }>;
   createdAt: string;
+  updatedAt: string;
   version: number;
   seedLabel?: string;
 }
 
+/** A team is one competitive lineup for one game; an organization may own several (TEAM-002). */
 export interface TeamDoc {
   _id: string;
   organizationId: string | null;
+  ownerPrincipalId: string;
+  gameId: string;
   name: string;
   tag: string;
+  description: string | null;
+  city: string | null;
+  links: Array<{ label: string; url: string }>;
+  sponsors: Array<{ name: string; url: string | null; logoFileId: string | null }>;
+  logoFileId: string | null;
+  coverFileId: string | null;
   nameHistory: Array<{ name: string; tag: string; from: string; to: string | null }>;
+  ownerHistory: Array<{ principalId: string; from: string; to: string | null }>;
   createdAt: string;
+  updatedAt: string;
   version: number;
   seedLabel?: string;
 }
@@ -205,6 +232,10 @@ export interface TeamMembershipDoc {
   role: string;
   from: string;
   to: string | null;
+  endedReason: string | null;
+  endedBy: string | null;
+  /** Display name at join time, kept for historical lineups (TEAM-006). */
+  displayNameAtJoin: string;
 }
 
 export interface ResultVersionDoc {
@@ -218,7 +249,7 @@ export interface ResultVersionDoc {
   createdAt: string;
 }
 
-export interface Collections {
+export interface Collections extends Esp02Collections {
   principals: Collection<PrincipalDoc>;
   sessions: Collection<SessionDoc>;
   grants: Collection<GrantDoc>;
@@ -264,6 +295,7 @@ export const collectionNames = {
   teams: 'teams',
   teamMemberships: 'team_memberships',
   resultVersions: 'result_versions',
+  ...esp02CollectionNames,
 } as const satisfies Record<keyof Collections, string>;
 
 export function collections(db: Db): Collections {
@@ -289,6 +321,7 @@ export function collections(db: Db): Collections {
     teams: db.collection(collectionNames.teams),
     teamMemberships: db.collection(collectionNames.teamMemberships),
     resultVersions: db.collection(collectionNames.resultVersions),
+    ...esp02Collections(db),
   };
 }
 

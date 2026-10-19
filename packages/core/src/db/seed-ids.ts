@@ -1,0 +1,26 @@
+export const SEED_LABEL = 'TEST ONLY — synthetic seed, not an approved game, rule package or real organization';
+/** Fixed ids of the TEST ONLY synthetic seed (separate module to avoid import cycles). */
+export const seedIds = {
+  admin: 'usr_seed_admin',
+  organizer: 'usr_seed_organizer',
+  organizerB: 'usr_seed_organizer_b',
+  referee: 'usr_seed_referee',
+  refereeB: 'usr_seed_referee_b',
+  captain: 'usr_seed_captain',
+  player: 'usr_seed_player',
+  reporter: 'usr_seed_reporter',
+  finance: 'usr_seed_finance',
+  finance2: 'usr_seed_finance_2',
+  orgA: 'org_seed_a',
+  orgB: 'org_seed_b',
+  teamA: 'team_seed_a',
+  teamB: 'team_seed_b',
+  eventA: 'evt_seed_a',
+  eventB: 'evt_seed_b',
+  disciplineA: 'dsc_seed_a',
+  stageA: 'stg_seed_a',
+  matchA: 'mch_seed_a',
+  matchB: 'mch_seed_b',
+  participationA1: 'ptc_seed_a1',
+  participationA2: 'ptc_seed_a2',
+} as const;

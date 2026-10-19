@@ -1,4 +1,6 @@
 import type { MessageKey } from './fa';
+import { enEsp02 } from './esp02';
+import { enMgmt } from './esp02-mgmt';
 
 export const en: Record<MessageKey, string> = {
   'app.name': 'Esports Platform',
@@ -234,4 +236,6 @@ export const en: Record<MessageKey, string> = {
   'forbidden.hint': 'This browser-side check is only a hint; the server is the final authority.',
   'offline.title': 'You are offline',
   'notfound.title': 'Page not found',
+  ...enEsp02,
+  ...enMgmt,
 };

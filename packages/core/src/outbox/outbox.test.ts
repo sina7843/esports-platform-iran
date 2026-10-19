@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { testContainer, rid } from '../test/harness.js';
+import { orgDoc } from '../test/harness.js';
 
 let t: Awaited<ReturnType<typeof testContainer>>;
 beforeAll(async () => {
@@ -15,7 +16,7 @@ describe('transactional outbox', () => {
   it('writes the domain change and the event atomically — rollback drops both', async () => {
     await expect(
       t.dbh.withTransaction(async (session) => {
-        await t.c.organizations.insertOne({ _id: 'org_ob_1', name: 'x', slug: 'ob-1', createdAt: new Date().toISOString(), version: 0 }, { session });
+        await t.c.organizations.insertOne(orgDoc('org_ob_1', 'ob-1', 'x'), { session });
         await t.outbox.append({ type: 'organization.created', aggregate: { type: 'organization', id: 'org_ob_1' }, aggregateVersion: 0, actor, payload: {}, correlationId: rid() }, session);
         throw new Error('abort');
       }),
@@ -24,7 +25,7 @@ describe('transactional outbox', () => {
     expect(await t.c.outbox.countDocuments({ 'aggregate.id': 'org_ob_1' })).toBe(0);
 
     await t.dbh.withTransaction(async (session) => {
-      await t.c.organizations.insertOne({ _id: 'org_ob_2', name: 'x', slug: 'ob-2', createdAt: new Date().toISOString(), version: 0 }, { session });
+      await t.c.organizations.insertOne(orgDoc('org_ob_2', 'ob-2', 'x'), { session });
       await t.outbox.append({ type: 'organization.created', aggregate: { type: 'organization', id: 'org_ob_2' }, aggregateVersion: 0, actor, payload: {}, correlationId: rid() }, session);
     });
     expect(await t.c.outbox.countDocuments({ 'aggregate.id': 'org_ob_2', status: 'pending' })).toBe(1);

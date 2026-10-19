@@ -1,3 +1,6 @@
+import { faEsp02 } from './esp02';
+import { faMgmt } from './esp02-mgmt';
+
 export const fa = {
   'app.name': 'پلتفرم ورزش‌های الکترونیکی',
   'app.skip': 'پرش به محتوای اصلی',
@@ -232,6 +235,8 @@ export const fa = {
   'forbidden.hint': 'این بررسی سمت مرورگر فقط راهنماست؛ سرور مرجع نهایی دسترسی است.',
   'offline.title': 'آفلاین هستید',
   'notfound.title': 'صفحه‌ای پیدا نشد',
+  ...faEsp02,
+  ...faMgmt,
 } as const;
 
 export type MessageKey = keyof typeof fa;

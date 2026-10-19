@@ -3,7 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { timingSafeEqual } from 'node:crypto';
 import { DevSessionRequestSchema, DomainError, ErrorResponse, GrantSchema, MeResponseSchema, SessionSchema } from '@esp/contracts';
-import type { Container, GrantDoc, SessionDoc } from '@esp/core';
+import { AuthService, type Container, type GrantDoc, type SessionDoc } from '@esp/core';
 import { SESSION_COOKIE, setSessionCookie } from '../plugins/auth.js';
 
 const grantOut = (g: GrantDoc) => ({ id: g._id, principalId: g.principalId, role: g.role, scope: g.scope, grantedBy: g.grantedBy, grantedAt: g.grantedAt, expiresAt: g.expiresAt, revokedAt: g.revokedAt, revokedBy: g.revokedBy, reason: g.reason });
@@ -62,6 +62,12 @@ export function authRoutes(app: FastifyInstance, container: Container): void {
     await container.audit.append({ actorPrincipalId: ctx.principal._id, action: 'session.revoke', target: { type: 'session', id: target._id }, scope: { type: 'site', id: 'site' }, outcome: 'success', requestId: req.id });
     if (target._id === ctx.session._id) reply.clearCookie(SESSION_COOKIE, { path: '/' });
     return reply.status(204).send(null);
+  });
+
+  r.post('/auth/logout-others', { schema: { tags: ['auth'], summary: 'Sign out every other device (USR-009)', response: { 200: z.object({ revoked: z.number().int() }), 401: ErrorResponse } } }, async (req) => {
+    const ctx = req.requireAuth();
+    const revoked = await new AuthService(container).logoutOthers(ctx.principal._id, ctx.session._id, { ip: req.ip, requestId: req.id });
+    return { revoked };
   });
 
   r.get('/auth/grants/self', { schema: { tags: ['auth'], response: { 200: z.object({ items: z.array(GrantSchema) }) } } }, async (req) => {

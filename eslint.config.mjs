@@ -21,6 +21,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
+      // TypeScript (tsc / vue-tsc) already reports undefined identifiers with real lib types; per typescript-eslint guidance.
+      'no-undef': 'off',
       'no-console': 'off',
     },
   },

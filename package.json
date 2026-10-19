@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build:libs": "pnpm --filter @esp/contracts --filter @esp/core build",
-    "typecheck": "pnpm build:libs && pnpm -r --if-present typecheck",
+    "typecheck": "pnpm build:libs && pnpm -r --workspace-concurrency=2 --if-present typecheck",
     "lint": "eslint .",
     "test": "pnpm build:libs && pnpm -r --if-present test",
     "build": "pnpm -r --if-present build",

@@ -22,7 +22,7 @@ export class Sessions {
     private readonly ttlHours: number,
   ) {}
 
-  async create(principalId: string, meta: { userAgent?: string | null; ip?: string | null } = {}): Promise<{ token: string; session: SessionDoc }> {
+  async create(principalId: string, meta: { userAgent?: string | null; ip?: string | null; mfaVerifiedAt?: string | null; reauthAt?: string | null } = {}): Promise<{ token: string; session: SessionDoc }> {
     const token = randomBytes(32).toString('base64url');
     const now = new Date();
     const session: SessionDoc = {
@@ -36,6 +36,8 @@ export class Sessions {
       revokedReason: null,
       userAgent: meta.userAgent ?? null,
       ip: meta.ip ?? null,
+      mfaVerifiedAt: meta.mfaVerifiedAt ?? null,
+      reauthAt: meta.reauthAt ?? null,
     };
     await this.c.sessions.insertOne(session);
     return { token, session };
@@ -59,6 +61,12 @@ export class Sessions {
   async isStillValid(sessionId: string): Promise<boolean> {
     const s = await this.c.sessions.findOne({ _id: sessionId }, { projection: { revokedAt: 1, expiresAt: 1 } });
     return !!s && !s.revokedAt && s.expiresAt > new Date().toISOString();
+  }
+
+  /** Records a fresh second factor (`mfa`) and/or re-verification on a live session. */
+  async stamp(sessionId: string, what: { mfa?: boolean; reauth?: boolean }): Promise<void> {
+    const now = new Date().toISOString();
+    await this.c.sessions.updateOne({ _id: sessionId, revokedAt: null }, { $set: { ...(what.mfa ? { mfaVerifiedAt: now } : {}), ...(what.reauth ? { reauthAt: now } : {}) } });
   }
 
   async revoke(sessionId: string, reason: string): Promise<boolean> {

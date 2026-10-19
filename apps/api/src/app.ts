@@ -19,8 +19,16 @@ import { realtimeRoutes } from './routes/realtime.js';
 import { competitionRoutes } from './routes/competition.js';
 import { opsRoutes } from './routes/ops.js';
 import { fileRoutes } from './routes/files.js';
+import { identityRoutes } from './routes/identity.js';
+import { profileRoutes } from './routes/profiles.js';
+import { socialRoutes } from './routes/social.js';
+import { teamsRoutes } from './routes/teams.js';
+import { recruitmentRoutes } from './routes/recruitment.js';
+import { organizerRoutes } from './routes/organizer.js';
+import { catalogRoutes } from './routes/catalog.js';
+import { rulesRoutes } from './routes/rules.js';
 
-export const API_VERSION = '0.1.0-esp01';
+export const API_VERSION = '0.2.0-esp02';
 
 export async function buildApp(container: Container): Promise<FastifyInstance> {
   const { config } = container;
@@ -69,6 +77,14 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       competitionRoutes(api, container);
       opsRoutes(api, container);
       fileRoutes(api, container);
+      identityRoutes(api, container);
+      profileRoutes(api, container);
+      socialRoutes(api, container);
+      teamsRoutes(api, container);
+      recruitmentRoutes(api, container);
+      organizerRoutes(api, container);
+      catalogRoutes(api, container);
+      rulesRoutes(api, container);
     },
     { prefix: '/api/v1' },
   );

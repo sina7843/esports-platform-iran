@@ -26,6 +26,21 @@ const EnvSchema = z.object({
   AUTH_DEV_LOGIN_ENABLED: z.coerce.boolean().default(false),
   AUTH_DEV_CODE: z.string().min(8).optional(),
 
+  /** OTP / login hardening (SEC-002, USR-001). */
+  AUTH_OTP_TTL_SECONDS: z.coerce.number().int().min(30).max(900).default(120),
+  AUTH_OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(10).default(5),
+  AUTH_OTP_RESEND_SECONDS: z.coerce.number().int().min(0).max(600).default(60),
+  AUTH_OTP_PHONE_HOURLY: z.coerce.number().int().min(1).default(5),
+  AUTH_OTP_IP_HOURLY: z.coerce.number().int().min(1).default(20),
+  AUTH_SMS_TIMEOUT_MS: z.coerce.number().int().min(10).default(8000),
+  AUTH_LOGIN_MAX_FAILURES: z.coerce.number().int().min(1).default(5),
+  AUTH_LOCKOUT_MINUTES: z.coerce.number().int().min(1).default(15),
+  AUTH_REAUTH_MINUTES: z.coerce.number().int().min(1).default(10),
+  /** Signups from one IP within 24h at/over this count open an account review (USR-010). */
+  AUTH_SIGNUP_IP_REVIEW_THRESHOLD: z.coerce.number().int().min(2).default(3),
+  /** Explicit 'true'/'false'; default: on in production, off in development/test. */
+  MFA_ENFORCED: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['true', 'false']).optional()),
+
   /** Provider adapters. Values are adapter names; '' or absent means unconfigured. */
   PAYMENT_ADAPTER: z.enum(['dev', 'none']).default('dev'),
   SMS_ADAPTER: z.enum(['dev', 'none']).default('dev'),
@@ -49,7 +64,7 @@ const EnvSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().default(60_000),
 });
 
-export type AppConfig = z.infer<typeof EnvSchema> & { isProduction: boolean; appSecret: string; devLoginEnabled: boolean };
+export type AppConfig = z.infer<typeof EnvSchema> & { isProduction: boolean; appSecret: string; devLoginEnabled: boolean; mfaEnforced: boolean };
 
 const DEV_SECRET = 'development-only-secret-do-not-use-in-production-0123456789';
 
@@ -71,6 +86,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     if (c.VIDEO_ADAPTER === 'dev') problems.push('VIDEO_ADAPTER=dev (test double) is forbidden');
     if (c.MAP_ADAPTER === 'dev') problems.push('MAP_ADAPTER=dev (test double) is forbidden');
     if (c.SCANNER_ADAPTER === 'dev') problems.push('SCANNER_ADAPTER=dev (test double) is forbidden');
+    if (c.MFA_ENFORCED === 'false') problems.push('MFA_ENFORCED=false is forbidden');
     if (!c.TRUST_PROXY) problems.push('TRUST_PROXY must be true behind the Iranian edge/CDN');
     if (problems.length) {
       // Fail closed: production never silently degrades to development doubles.
@@ -82,5 +98,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     isProduction,
     appSecret: c.APP_SECRET ?? DEV_SECRET,
     devLoginEnabled: !isProduction && c.AUTH_DEV_LOGIN_ENABLED && !!c.AUTH_DEV_CODE,
+    mfaEnforced: c.MFA_ENFORCED ? c.MFA_ENFORCED === 'true' : isProduction,
   };
 }

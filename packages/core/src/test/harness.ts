@@ -1,3 +1,4 @@
+import type { OrganizationDoc, TeamDoc } from '../db/collections.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -31,3 +32,13 @@ export async function testContainer(opts: { seed?: boolean } = {}): Promise<Cont
 }
 
 export const rid = () => `req_${newId()}`;
+
+/** Minimal valid fixtures for tests that only need structural documents. */
+export function orgDoc(id: string, slug: string, name = 'org'): OrganizationDoc {
+  const now = new Date().toISOString();
+  return { _id: id, name, slug, ownerPrincipalId: 'usr_test', description: null, city: null, links: [], sponsors: [], logoFileId: null, nameHistory: [], ownerHistory: [], createdAt: now, updatedAt: now, version: 0 };
+}
+export function teamDoc(id: string, organizationId: string | null, tag = 'TX', name = 'team'): TeamDoc {
+  const now = new Date().toISOString();
+  return { _id: id, organizationId, ownerPrincipalId: 'usr_test', gameId: 'game_test', name, tag, description: null, city: null, links: [], sponsors: [], logoFileId: null, coverFileId: null, nameHistory: [], ownerHistory: [], createdAt: now, updatedAt: now, version: 0 };
+}

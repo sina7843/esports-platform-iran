@@ -20,6 +20,22 @@ async function appendInbox(dataDir: string, file: string, record: Record<string,
   await appendFile(join(dir, file), JSON.stringify({ at: new Date().toISOString(), ...record }) + '\n', 'utf8');
 }
 
+/** Reads the newest dev-inbox records for one recipient (`to`). Used only by the protected dev route; never in production. */
+export async function readDevInbox(dataDir: string, file: 'sms.jsonl' | 'email.jsonl', to: string, limit = 10): Promise<Array<Record<string, unknown>>> {
+  const raw = await readFile(join(dataDir, 'dev-inbox', file), 'utf8').catch(() => '');
+  const rows: Array<Record<string, unknown>> = [];
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line) continue;
+    try {
+      const r = JSON.parse(line) as Record<string, unknown>;
+      if (r['to'] === to) rows.push(r);
+    } catch {
+      /* skip a torn line */
+    }
+  }
+  return rows.slice(-limit).reverse();
+}
+
 export class DevPaymentAdapter implements PaymentAdapter {
   readonly name = 'dev-payment';
   readonly mode = 'development_double' as const;
