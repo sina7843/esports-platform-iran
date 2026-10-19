@@ -1,0 +1,56 @@
+# Production overlay (Iran-hosted infrastructure, D-004, chapter 13/14). Usage:
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d
+# Requirements before first use (owner-side, outside the coding agent):
+#   - a real .env with APP_SECRET, provider adapters != dev, TRUST_PROXY=true (loadConfig refuses otherwise)
+#   - Mongo keyfile + admin/app users created once via docker/mongo/init-prod.md; app role has NO update/remove on audit_log
+#   - encrypted off-site backups (docs/architecture/backup-restore.md), restore drill at least quarterly (OPS-004)
+# The database and the outbox queue are never published to any network except the internal one.
+services:
+  mongo:
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--auth", "--keyFile", "/etc/mongo/keyfile"]
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+      - mongo-keyfile:/etc/mongo:ro
+    ports: []
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    security_opt: ["no-new-privileges:true"]
+
+  api:
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+      HOST: 0.0.0.0
+      TRUST_PROXY: "true"
+    ports: []              # exposed only through the web/nginx edge or the Iranian CDN
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    deploy:
+      replicas: 2
+
+  worker:
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      APP_ENV: production
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+
+  web:
+    ports:
+      - "8080:8080"        # behind the Iranian edge/TLS terminator; TLS certificates managed outside the agent
+    read_only: true
+    tmpfs: ["/tmp", "/var/cache/nginx", "/var/run"]
+    security_opt: ["no-new-privileges:true"]
+
+volumes:
+  mongo-keyfile:
+    external: true         # created by the operator: docker volume create esp_mongo-keyfile (see docker/mongo/init-prod.md)

@@ -1,0 +1,102 @@
+/* Design tokens. One accent (teal-blue), neutral slate scale, semantic status colours. */
+:root {
+  --font-sans: Vazirmatn, 'Segoe UI', Tahoma, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --fs-xs: 0.78rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.625rem;
+  --fs-2xl: 2.25rem;
+  --lh-tight: 1.35;
+  --lh-body: 1.85; /* Persian script needs generous leading */
+
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --topbar-h: 3.5rem;
+  --sidebar-w: 15rem;
+  --content-max: 72rem;
+
+  /* light */
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --border: #d5dae2;
+  --text: #14181f;
+  --text-muted: #4a5565;
+  --accent: #0b6e80;
+  --accent-strong: #08515f;
+  --accent-soft: #dff1f4;
+  --on-accent: #ffffff;
+  --ok: #17692f;
+  --ok-soft: #dff3e5;
+  --warn: #8a5300;
+  --warn-soft: #fbecd0;
+  --danger: #a3261f;
+  --danger-soft: #fbe1de;
+  --info: #234f9c;
+  --info-soft: #e0e9fa;
+  --focus: #1a56db;
+  --shadow: 0 1px 2px rgb(20 24 31 / 8%), 0 4px 16px rgb(20 24 31 / 6%);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0e1218;
+  --surface: #161c25;
+  --surface-2: #1e2631;
+  --border: #323d4c;
+  --text: #eef1f5;
+  --text-muted: #aab4c3;
+  --accent: #4cc3d6;
+  --accent-strong: #7fd8e6;
+  --accent-soft: #123941;
+  --on-accent: #06222a;
+  --ok: #6fd48c;
+  --ok-soft: #12301c;
+  --warn: #f0b952;
+  --warn-soft: #382a0c;
+  --danger: #ff8e86;
+  --danger-soft: #3d1613;
+  --info: #8db4ff;
+  --info-soft: #14284d;
+  --focus: #8db4ff;
+  --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
+  color-scheme: dark;
+}
+
+/* theme "system": no data-theme attribute is set by the app, the OS preference decides */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
+    --bg: #0e1218;
+    --surface: #161c25;
+    --surface-2: #1e2631;
+    --border: #323d4c;
+    --text: #eef1f5;
+    --text-muted: #aab4c3;
+    --accent: #4cc3d6;
+    --accent-strong: #7fd8e6;
+    --accent-soft: #123941;
+    --on-accent: #06222a;
+    --ok: #6fd48c;
+    --ok-soft: #12301c;
+    --warn: #f0b952;
+    --warn-soft: #382a0c;
+    --danger: #ff8e86;
+    --danger-soft: #3d1613;
+    --info: #8db4ff;
+    --info-soft: #14284d;
+    --focus: #8db4ff;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%), 0 4px 16px rgb(0 0 0 / 30%);
+    color-scheme: dark;
+  }
+}

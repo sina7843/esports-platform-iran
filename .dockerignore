@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/coverage
+.git
+.claude
+.esports-backups
+prompts
+tools
+docs
+*.md
+.env
+.env.*
+!.env.example
+data

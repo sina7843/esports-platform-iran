@@ -1,0 +1,89 @@
+# Development/base topology. Mongo is reachable ONLY on the internal network as mongo:27017.
+# No host port is published by default (see compose.local-tools.yaml for an explicit opt-in used by host-run tests).
+# Production: use compose.prod.yaml (no public DB/queue, auth + keyfile, encrypted backups) — see docs/architecture/deployment.md.
+name: esp
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.5"]
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    networks: [internal]
+    healthcheck:
+      # Deterministic replica-set initialization: idempotent, runs until the node is PRIMARY.
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --eval "
+          try { const s = rs.status(); if (s.myState === 1) { quit(0) } quit(1) }
+          catch (e) { rs.initiate({_id:'rs0', members:[{_id:0, host:'mongo:27017'}]}); quit(1) }"
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: [.env.example]
+    environment:
+      MONGO_URL: mongodb://mongo:27017/esports?replicaSet=rs0
+      HOST: 0.0.0.0
+      PORT: "3000"
+      DATA_DIR: /data
+    volumes:
+      - app-data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks: [internal, edge]
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    env_file: [.env.example]
+    environment:
+      MONGO_URL: mongodb://mongo:27017/esports?replicaSet=rs0
+      DATA_DIR: /data
+    volumes:
+      - app-data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    networks: [edge]
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+  mongo-config:
+  app-data:
+
+networks:
+  internal:
+    internal: true
+  edge:

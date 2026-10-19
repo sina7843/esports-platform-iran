@@ -1,0 +1,33 @@
+{
+  "name": "esports-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Iranian esports platform — modular monolith (web, api, worker, shared contracts)",
+  "license": "MIT",
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build:libs": "pnpm --filter @esp/contracts --filter @esp/core build",
+    "typecheck": "pnpm build:libs && pnpm -r --if-present typecheck",
+    "lint": "eslint .",
+    "test": "pnpm build:libs && pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "dev:api": "pnpm --filter @esp/api dev",
+    "dev:web": "pnpm --filter @esp/web dev",
+    "dev:worker": "pnpm --filter @esp/worker dev",
+    "db:migrate": "pnpm --filter @esp/core db:migrate",
+    "db:seed": "pnpm --filter @esp/core db:seed",
+    "docs:generate": "pnpm --filter @esp/contracts docs:generate && pnpm --filter @esp/api openapi:export"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.13.0",
+    "eslint-plugin-vue": "10.11.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2",
+    "vue-eslint-parser": "10.4.1"
+  }
+}

@@ -1,0 +1,9 @@
+# OPT-IN override for developers running api/worker/tests on the host instead of in containers.
+# Publishes Mongo on loopback only (needs the non-internal "edge" network for the bind). Never use in production.
+#   docker compose -f compose.yaml -f compose.local-tools.yaml up -d mongo
+#   MONGO_URL=mongodb://127.0.0.1:27018/esports?directConnection=true
+services:
+  mongo:
+    networks: [internal, edge]
+    ports:
+      - "127.0.0.1:27018:27017"

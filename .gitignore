@@ -67,3 +67,6 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+
+# ---- runtime data (files, quarantine, dev inbox) ----
+data/
