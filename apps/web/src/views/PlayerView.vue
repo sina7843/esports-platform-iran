@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CareerPanel from '../components/CareerPanel.vue';
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { ApiClientError } from '../api/client';
@@ -85,10 +86,7 @@ const block = () => act(async () => { if (data.value) { await esp02.block(data.v
         </ul>
       </section>
 
-      <section class="card stack block" aria-labelledby="r-h">
-        <h2 id="r-h">{{ t('player.record') }}</h2>
-        <p class="muted">{{ t('player.noRecord') }}</p>
-      </section>
+      <CareerPanel class="block" kind="player" :id="data.id" />
     </template>
   </DataState>
 </template>

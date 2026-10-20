@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { createContainer, runMigrations, startEsp03Jobs, startEsp04Jobs } from '@esp/core';
+import { createContainer, runMigrations, startEsp03Jobs, startEsp04Jobs, startEsp05Jobs } from '@esp/core';
 
 /**
  * Worker: hosts the outbox consumer loop, the ESP-03 jobs (reservation expiry, waitlist promotion, payment
@@ -21,6 +21,7 @@ if (process.argv.includes('--once')) {
 consumer.start();
 const stopJobs = startEsp03Jobs(container);
 const stopCompetitionJobs = startEsp04Jobs(container);
+const stopIntegrityJobs = startEsp05Jobs(container);
 logger.info({ pollMs: config.OUTBOX_POLL_MS, leaseMs: config.OUTBOX_LEASE_MS }, 'outbox consumer started');
 
 // Minimal health endpoint for container orchestration (no business routes here).
@@ -46,6 +47,7 @@ const shutdown = async (signal: string) => {
   health.close();
   stopJobs();
   stopCompetitionJobs();
+  stopIntegrityJobs();
   await consumer.stop(); // releases leases so another replica continues without loss
   await container.close();
   process.exit(0);

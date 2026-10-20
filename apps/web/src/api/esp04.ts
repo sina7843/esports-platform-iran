@@ -25,6 +25,9 @@ export interface RoomView {
     side: number; official: boolean; config: Obj & { vetoSequence: string[]; undecided: string[]; pauses: Obj; disconnect: Obj; bestOf: number };
     ready: Array<{ side: number; at: string }>; countdownTo: string | null; referees: string[]; run: Obj | null; lobbyAvailable: boolean;
     calls: Array<{ _id: string; reason: string; state: string; createdAt: string }>;
+    lineup?: Array<Array<{ principalId: string; displayName: string; present: boolean }> | null>;
+    result?: { deadline: string | null; policy: string | null; review: { reason: string } | null; submissions: Array<{ side: number | null; source: string; outcome: Obj; at: string }>; confirmations: Array<{ side: number; at: string }> } | null;
+    openCaseId?: string | null;
   };
 }
 export interface SelectionView {

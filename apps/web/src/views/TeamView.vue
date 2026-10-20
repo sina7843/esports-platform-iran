@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CareerPanel from '../components/CareerPanel.vue';
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { TeamRoles } from '@esp/contracts';
@@ -108,6 +109,7 @@ const requestJoin = () => act(() => esp02.joinRequest(String(route.params['id'])
         </form>
       </section>
 
+      <CareerPanel class="block" kind="team" :id="team.id" />
       <section v-if="team.pastMembers.length" class="card stack block" aria-labelledby="p-h">
         <h2 id="p-h">{{ t('teams.pastMembers') }}</h2>
         <ul class="list"><li v-for="m in team.pastMembers" :key="m.principalId"><bdi>{{ m.nickname }}</bdi> — {{ t(`role.${m.role}` as MessageKey) }}</li></ul>

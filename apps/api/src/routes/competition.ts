@@ -134,7 +134,7 @@ export function competitionRoutes(app: FastifyInstance, container: Container): v
     const scope = { type: 'event' as const, id: req.params.id };
     await req.requirePermission('event.manage', scope);
     const roles = await rolesInScope(container, ctx.principal._id, scope);
-    if (['publish', 'cancel'].includes(req.body.transition)) throw new DomainError('PRECONDITION_FAILED', `use the dedicated ${req.body.transition} endpoint (publication gate / cancellation settlement)`);
+    if (['publish', 'cancel', 'finish', 'close', 'archive'].includes(req.body.transition)) throw new DomainError('PRECONDITION_FAILED', `use the dedicated ${req.body.transition} endpoint (publication gate / cancellation settlement / END-001..006 close gates)`);
     const t = eventMachine.transitions.find((x) => x.name === req.body.transition);
     if (t?.secondApproval) {
       if (!req.body.approvalId) throw new DomainError('PRECONDITION_FAILED', 'this transition requires an independent approval', { secondApproval: true });
@@ -159,6 +159,8 @@ export function competitionRoutes(app: FastifyInstance, container: Container): v
       throw err;
     });
     await container.acl.requireNoConflict(ctx.principal._id, scope, req.id);
+    // result lifecycle transitions carry case/confirmation/correction rules (AC-09/AC-11): dedicated endpoints only
+    if (['submit_result', 'dispute', 'finalize', 'reopen', 'forfeit', 'reset_sides'].includes(req.body.transition)) throw new DomainError('PRECONDITION_FAILED', `use the dedicated result endpoint for ${req.body.transition}`);
     const roles = await rolesInScope(container, ctx.principal._id, scope);
     const t = matchMachine.transitions.find((x) => x.name === req.body.transition);
     if (t?.secondApproval) {

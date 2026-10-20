@@ -12,6 +12,7 @@ import JalaliDate from '../components/JalaliDate.vue';
 import MoneyLabel from '../components/MoneyLabel.vue';
 import PageHeader from '../components/PageHeader.vue';
 import StatusBadge from '../components/StatusBadge.vue';
+import EventResultsPanel from '../components/EventResultsPanel.vue';
 import { toClientError } from '../errors';
 import { num, t } from '../i18n';
 import { session } from '../session';
@@ -239,6 +240,7 @@ function login() {
           <button type="submit" class="btn">{{ t('reg.buyTicket') }}</button>
         </form>
       </section>
+      <EventResultsPanel v-if="['active', 'paused', 'finished', 'closed', 'archived'].includes(data.event.state)" class="block" :event-id="data.event.id" :token="token" :state="data.event.state" />
     </template>
   </DataState>
 </template>

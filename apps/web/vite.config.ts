@@ -6,5 +6,6 @@ export default defineConfig({
   plugins: [vue()],
   server: { proxy: { '/api': 'http://127.0.0.1:3000' } },
   build: { outDir: 'dist' },
-  test: { environment: 'happy-dom', include: ['src/**/*.test.ts'] },
+  // two workers: DOM workers abort (exit 134) when the dev machine runs low on memory
+  test: { environment: 'happy-dom', include: ['src/**/*.test.ts'], maxWorkers: 2 },
 });

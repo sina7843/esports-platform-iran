@@ -46,7 +46,7 @@ export class StructureService {
   private scope(eventId: string): Scope {
     return { type: 'event', id: eventId };
   }
-  private async load(stageId: string): Promise<{ stage: StageDoc; discipline: DisciplineDoc }> {
+  async load(stageId: string): Promise<{ stage: StageDoc; discipline: DisciplineDoc }> {
     const stage = await this.c.stages.findOne({ _id: stageId });
     if (!stage) throw new DomainError('NOT_FOUND', 'stage not found');
     const discipline = await this.c.disciplines.findOne({ _id: stage.disciplineId });
@@ -129,18 +129,18 @@ export class StructureService {
   }
 
   // ------------------------------------------------------------------ phase helpers (mixed stages)
-  private phaseFormat(st: StageStructureDoc, stage: StageDoc): string {
+  phaseFormat(st: StageStructureDoc, stage: StageDoc): string {
     return st.format === 'mixed' ? (stage.phases?.[st.progress.phase]?.format ?? 'mixed') : st.format;
   }
   private phasePrefix(st: StageStructureDoc): string {
     return st.format === 'mixed' ? `P${st.progress.phase + 1}:` : '';
   }
-  private phasePlan(st: StageStructureDoc, stage: StageDoc): Plan {
+  phasePlan(st: StageStructureDoc, stage: StageDoc): Plan {
     if (st.format !== 'mixed') return st.plan;
     const p = this.phasePrefix(st);
     return { ...st.plan, format: this.phaseFormat(st, stage) as FormatId, slots: st.plan.slots.filter((s) => s.key.startsWith(p)), meta: (st.plan.meta['phases'] as Record<string, Record<string, unknown>> | undefined)?.[p] ?? st.plan.meta };
   }
-  private phaseSeeds(st: StageStructureDoc): string[] {
+  phaseSeeds(st: StageStructureDoc): string[] {
     return st.format === 'mixed' ? ((st.plan.meta['phaseSeeds'] as Record<string, string[]> | undefined)?.[this.phasePrefix(st)] ?? st.seeds) : st.seeds;
   }
 
@@ -237,13 +237,16 @@ export class StructureService {
   }
 
   // ------------------------------------------------------------------ standings
-  private async computeStandings(st: StageStructureDoc, stage: StageDoc, matches: MatchDoc[]): Promise<{ rows: StandingRow[]; needsReview: string | null }> {
+  async computeStandings(st: StageStructureDoc, stage: StageDoc, matches: MatchDoc[]): Promise<{ rows: StandingRow[]; needsReview: string | null }> {
     const format = this.phaseFormat(st, stage);
     const prefix = this.phasePrefix(st);
     const finals = matches.filter((m) => m.state === 'final' && m.outcome && m.slot?.key.startsWith(prefix));
     const withdrawn = st.withdrawn.map((w) => w.participationId);
     const seeds = this.phaseSeeds(st);
     const seedOf = Object.fromEntries(seeds.map((id, i) => [id, i + 1]));
+    // REF-004: active point penalties of this stage (sanctions) reduce points before ranking
+    const penalties: Record<string, number> = {};
+    for (const s of await this.c.sanctions.find({ type: 'point_penalty', stageId: st._id, state: { $in: ['active', 'appealed'] }, 'subject.kind': 'participation' }).toArray()) penalties[s.subject.ref] = (penalties[s.subject.ref] ?? 0) + (s.points ?? 0);
     try {
       if (ELIM.has(format)) {
         const results: Record<string, SlotResult> = {};
@@ -255,15 +258,15 @@ export class StructureService {
         if (format === 'groups') {
           const rows: StandingRow[] = [];
           const groups = (st.format === 'mixed' ? (st.plan.meta['phaseGroups'] as Record<string, Record<string, string[]>> | undefined)?.[prefix] : undefined) ?? st.groups ?? {};
-          for (const [g, ids] of Object.entries(groups)) rows.push(...tableStandings(ids, played(finals.filter((m) => m.slot!.group === g)), st.ruleValues, { withdrawn, seedOf }).map((r) => ({ ...r, group: g })));
+          for (const [g, ids] of Object.entries(groups)) rows.push(...tableStandings(ids, played(finals.filter((m) => m.slot!.group === g)), st.ruleValues, { withdrawn, seedOf, penalties }).map((r) => ({ ...r, group: g })));
           return { rows, needsReview: null };
         }
         const byes: PlayedMatch[] = format === 'swiss' ? Object.values(st.progress.byes).map((id) => ({ a: id, b: 'BYE' as const, result: { kind: 'win', winner: 0 } as SlotResult })) : [];
-        return { rows: tableStandings(seeds, [...played(finals), ...byes], st.ruleValues, { withdrawn, seedOf }), needsReview: null };
+        return { rows: tableStandings(seeds, [...played(finals), ...byes], st.ruleValues, { withdrawn, seedOf, penalties }), needsReview: null };
       }
       if (format === 'multi_lobby') {
         const res = finals.filter((m) => m.outcome!.kind === 'placements').map((m) => ({ round: m.slot!.round, lobby: m.slot!.key, members: m.participantIds ?? [], placements: (m.outcome as Extract<MatchOutcome, { kind: 'placements' }>).placements }));
-        return { rows: lobbyStandings(seeds, res, st.ruleValues, seedOf), needsReview: null };
+        return { rows: lobbyStandings(seeds, res, st.ruleValues, seedOf, penalties), needsReview: null };
       }
       if (format === 'record' || format === 'time_trial') {
         const atts = finals.flatMap((m) => (m.outcome!.kind === 'attempts' ? m.outcome!.attempts.map((a) => ({ ...a, id: m.participantIds![0]! })) : []));

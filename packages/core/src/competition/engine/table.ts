@@ -63,7 +63,7 @@ export interface PlayedMatch {
  * keys (absent → an official decides). Ties are split by `tiebreak.order`; head-to-head is evaluated only among
  * the tied participants. Anything still equal shares the rank and is flagged.
  */
-export function tableStandings(ids: string[], matches: PlayedMatch[], rules: RuleValues, opts: { withdrawn?: string[]; seedOf?: Record<string, number> } = {}): StandingRow[] {
+export function tableStandings(ids: string[], matches: PlayedMatch[], rules: RuleValues, opts: { withdrawn?: string[]; seedOf?: Record<string, number>; penalties?: Record<string, number> } = {}): StandingRow[] {
   const withdrawn = new Set(opts.withdrawn ?? []);
   let ms = matches;
   if (withdrawn.size) {
@@ -126,6 +126,14 @@ export function tableStandings(ids: string[], matches: PlayedMatch[], rules: Rul
       L.points += res.forfeit ? ruleAtUse<number>(rules, 'points.forfeit_loss', 'a forfeit') : pts.loss;
       opponents.get(wid)!.push({ id: lid, outcome: 'w' });
       opponents.get(lid)!.push({ id: wid, outcome: 'l' });
+    }
+  }
+  // REF-004: point penalties (sanctions) come off the points before any ranking; recorded as a metric
+  for (const [id, p] of Object.entries(opts.penalties ?? {})) {
+    const r = t.get(id);
+    if (r) {
+      r.points -= p;
+      (r as Record<string, number>)['penalty'] = p;
     }
   }
   const metric = (id: string, k: Tiebreak, subset: Set<string>): number => {

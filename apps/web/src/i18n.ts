@@ -26,6 +26,9 @@ const faStates: Record<string, string> = {
   applied: 'اعمال‌شده', partially_applied: 'بخشی اعمال‌شده', conflict: 'متعارض', resolved: 'رسیدگی‌شده', acknowledged: 'دیده‌شده', closed: 'بسته',
   agreed: 'موافقت‌شده', healthy: 'سالم', degraded: 'کند', down: 'خارج از دسترس', unknown: 'نامشخص', in_use: 'در حال استفاده', faulty: 'معیوب',
   maintenance: 'آماده‌سازی', available: 'آزاد', loaned: 'تحویل‌شده', revoked: 'باطل', called: 'فراخوان', at_station: 'در ایستگاه', used: 'استفاده‌شده',
+  // ESP-05
+  previewed: 'پیش‌نمایش', blocked_dependency: 'متوقف (وابستگی شروع‌شده)', applying: 'در حال اعمال', appealed: 'در تجدیدنظر', expired: 'منقضی', triaged: 'غربال‌شده',
+  investigating: 'در بررسی', referred: 'ارجاع‌شده به پرونده', proposed: 'پیشنهادشده', retired: 'بازنشسته', verified: 'تأییدشده', corrected: 'اصلاح‌شده', running: 'در حال اجرا',
 };
 for (const m of allMachines) {
   for (const [k, v] of Object.entries(m.statesFa as Record<string, string>)) faStates[k] ??= v;
@@ -39,4 +42,10 @@ export function stateLabel(state: string): string {
 const approvalFa: Record<string, string> = { pending: 'در انتظار', approved: 'تأییدشده', rejected: 'ردشده', expired: 'منقضی', executed: 'اجراشده' };
 export function approvalLabel(state: string): string {
   return settings.locale === 'fa' ? (approvalFa[state] ?? state) : state.charAt(0).toUpperCase() + state.slice(1);
+}
+
+/** Honor label: known placements are translated; a special award keeps its own title (e.g. "MVP"). */
+export function honorLabel(label: string): string {
+  const key = `hon.label.${label}` as MessageKey;
+  return key in fa ? t(key) : label;
 }

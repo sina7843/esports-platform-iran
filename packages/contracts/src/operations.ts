@@ -31,7 +31,7 @@ export const MatchOutcomeSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('placements'), placements: z.array(z.object({ id: Id, placement: z.number().int().min(1), kills: z.number().int().min(0) })).min(2).max(200) }),
   z.object({ kind: z.literal('attempts'), attempts: z.array(z.object({ attempt: z.number().int().min(1), value: z.string().max(40).nullable(), timeMs: z.number().int().min(0).nullable(), penaltyMs: z.number().int().min(0), dnf: z.boolean(), at: Instant })).min(1).max(50) }),
 ]);
-export const ResultSubmitSchema = z.object({ outcome: MatchOutcomeSchema, evidenceFileIds: z.array(Id).max(10).default([]) });
+export const ResultSubmitSchema = z.object({ outcome: MatchOutcomeSchema, evidenceFileIds: z.array(Id).max(10).default([]), units: z.array(z.object({ order: z.number().int().min(1).max(50), kind: z.enum(['map', 'set', 'round', 'attempt', 'lobby_round']), label: z.string().min(1).max(60), values: z.record(z.string(), z.unknown()) })).max(20).default([]) });
 export const ResultFinalizeSchema = z.object({ outcome: MatchOutcomeSchema.nullable().default(null) });
 
 const Window = z.object({ from: Instant, to: Instant });

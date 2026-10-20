@@ -7,6 +7,9 @@ import type { ProfileDoc } from '../db/collections-esp02.js';
 import { canMessage, isBlockedEither } from '../social/social.js';
 import { activeBadges, publicBadge } from './badges.js';
 import { effectiveVerification } from './gameIdentities.js';
+import { CareerService } from '../ranking/career.js';
+import { RatingService } from '../ranking/ratings.js';
+import { HonorService } from '../honors/honors.js';
 
 export * from './gameIdentities.js';
 export * from './badges.js';
@@ -203,10 +206,22 @@ export class ProfileService {
       teams: { current: teamRows.filter((t) => t.to === null), past: teamRows.filter((t) => t.to !== null) },
       followerCount,
       viewer: { isSelf: rel === 'self', isFollowing: rel === 'follower', canMessage: viewerId && rel !== 'self' ? (await canMessage(c, viewerId, p._id)).allowed : false },
-      // ESP-03/05 will fill these; until then they are honest empty states, never fabricated numbers (USR-006)
-      competitiveRecord: { source: 'none_yet' as const, items: [] },
-      honors: { source: 'none_yet' as const, items: [] },
-      ratingChart: { source: 'none_yet' as const, points: [] },
+      // USR-006 / RANK-007: from final official results only; an empty history stays an honest empty state
+      ...(await this.career(p._id)),
+    };
+  }
+
+  private async career(principalId: string) {
+    const rec = await new CareerService(this.ct).player(principalId);
+    const hon = await new HonorService(this.ct).forPrincipal(principalId);
+    const trend = await new RatingService(this.ct).trend(principalId);
+    const first = trend[0];
+    return {
+      competitiveRecord: rec.played ? { source: 'computed' as const, items: rec.byGame, recent: rec.items.map(({ gameId: _g, ...x }) => x) } : { source: 'none_yet' as const, items: [] },
+      honors: hon.verified.length || hon.declared.length
+        ? { source: 'computed' as const, items: hon.verified.map((h) => ({ eventId: h.eventId, title: h.eventName, placement: h.place ?? 0, awardedAt: h.issuedAt, id: h.id, kind: h.kind, label: h.label, state: h.state, verifyCode: h.verifyCode })), declared: hon.declared }
+        : { source: 'none_yet' as const, items: [] },
+      ratingChart: first ? { source: 'computed' as const, points: first.points.map((x) => ({ at: x.at, gameId: first.system.gameId, rating: x.rating })), label: first.system.label.text as 'official' | 'internal_unapproved' } : { source: 'none_yet' as const, points: [] },
     };
   }
 

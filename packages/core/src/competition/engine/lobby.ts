@@ -50,7 +50,7 @@ export function validatePlacements(members: string[], placements: LobbyResult['p
 }
 
 /** AC-06: lobby standings from the rules' placement and kill points, tie-breaks partitioned in `lobby.tiebreak` order. */
-export function lobbyStandings(ids: string[], results: LobbyResult[], rules: RuleValues, seedOf: Record<string, number> = {}): StandingRow[] {
+export function lobbyStandings(ids: string[], results: LobbyResult[], rules: RuleValues, seedOf: Record<string, number> = {}, penalties: Record<string, number> = {}): StandingRow[] {
   const table = rules['lobby.placement_points'] as number[];
   const killPts = rules['lobby.kill_points'] as number;
   const m = new Map(ids.map((id) => [id, { total_points: 0, wins: 0, best_placement: Number.MAX_SAFE_INTEGER, kills: 0, last_round_placement: Number.MAX_SAFE_INTEGER, last_round: 0, lobbies: 0 }]));
@@ -70,6 +70,10 @@ export function lobbyStandings(ids: string[], results: LobbyResult[], rules: Rul
         row.last_round_placement = p.placement;
       }
     }
+  }
+  for (const [id, p] of Object.entries(penalties)) {
+    const row = m.get(id);
+    if (row) row.total_points -= p; // sanction point penalty
   }
   const criteria = ['total_points', ...((rules['lobby.tiebreak'] as string[]) ?? []).filter((k) => k !== 'total_points')];
   const ascending = new Set(['best_placement', 'last_round_placement']);

@@ -74,6 +74,11 @@ export class RoomService {
         run: m.run ?? null,
         lobbyAvailable: LOBBY_STATES.includes(m.state) && (!!m.lobby || !!(await this.c.serverAllocations.findOne({ matchId, state: 'active' }, { projection: { _id: 1 } }))),
         calls: await this.c.refereeCalls.find(official ? { matchId } : { matchId, by: viewer }).sort({ createdAt: -1 }).limit(20).toArray(),
+        // lineup (AWD-002 presence): own side for a member, every side for officials
+        lineup: m.sides.map((s, i) => (official || i === side ? s.roster.map((r) => ({ principalId: r.principalId, displayName: r.displayName, present: !!r.present })) : null)),
+        // RES-002: who submitted what and whether this viewer can confirm/contest
+        result: m.result ? { deadline: m.result.deadline, policy: m.result.policy, review: m.result.review ?? null, submissions: m.result.submissions.map((x) => ({ side: x.side, source: x.source, outcome: x.outcome, at: x.at })), confirmations: m.result.confirmations.map((x) => ({ side: x.side, at: x.at })) } : null,
+        openCaseId: (await this.c.disputes.findOne({ matchId, state: { $in: ['filed', 'assigned', 'defense_received', 'under_review', 'first_decision', 'appeal'] } }, { projection: { _id: 1 } }))?._id ?? null,
       },
     };
   }
@@ -91,7 +96,7 @@ export class RoomService {
     const side = this.sideOf(m, actor);
     if (side < 0) throw new DomainError('FORBIDDEN', 'only a side of this match can declare readiness');
     if (m.state !== 'awaiting_readiness') throw new DomainError('PRECONDITION_FAILED', `readiness is not open (match is ${m.state})`);
-    const r = await this.c.matches.findOneAndUpdate({ _id: m._id, state: 'awaiting_readiness', 'room.ready.side': { $ne: side } }, { $push: { 'room.ready': { side, by: actor, at: iso() } }, $inc: { version: 1 } }, { returnDocument: 'after' });
+    const r = await this.c.matches.findOneAndUpdate({ _id: m._id, state: 'awaiting_readiness', 'room.ready.side': { $ne: side } }, { $push: { 'room.ready': { side, by: actor, at: iso() } }, $set: { [`sides.${side}.roster.$[me].present`]: true }, $inc: { version: 1 } }, { returnDocument: 'after', arrayFilters: [{ 'me.principalId': actor }] }); // the declaring member is present
     if (!r) throw new DomainError('CONFLICT', 'this side is already ready');
     await this.c.matchEvents.insertOne(await this.event(r, 'ready', side, {}, actor, `side ${side + 1} ready`));
     let out = r;
@@ -102,6 +107,27 @@ export class RoomService {
     await this.ct.realtime.publish({ channel: `match:${m._id}`, type: 'room.ready', audience: { kind: 'public' }, payload: { matchId: m._id, state: out.state, readySides: (out.room?.ready ?? []).map((x) => x.side), countdownTo: out.room?.countdownTo ?? null } });
     void requestId;
     return out;
+  }
+
+  /**
+   * AWD-002: lineup presence. A side member sets their side's playing lineup; an official may set any side. Honors use
+   * these marks (presence condition), so the lineup is locked once the result is provisional.
+   */
+  async setLineup(matchId: string, side: number, principalIds: string[], actor: string, requestId: string): Promise<MatchDoc> {
+    const m = await this.match(matchId);
+    const s = m.sides[side];
+    if (!s) throw new DomainError('VALIDATION_FAILED', 'unknown side');
+    const official = await this.ct.acl.can(actor, 'match.result.verify', { type: 'match', id: m._id });
+    if (!official && this.sideOf(m, actor) !== side) throw new DomainError('FORBIDDEN', 'only that side or an official sets its lineup');
+    if (!['awaiting_readiness', 'ready', 'pre_game_selection', 'live', 'paused'].includes(m.state)) throw new DomainError('PRECONDITION_FAILED', `the lineup is locked (match is ${m.state})`);
+    const roster = new Set(s.roster.map((r) => r.principalId));
+    const unknown = principalIds.filter((p) => !roster.has(p));
+    if (unknown.length) throw new DomainError('VALIDATION_FAILED', `not on this side's registered roster: ${unknown.join(', ')}`);
+    const r = await this.c.matches.findOneAndUpdate({ _id: m._id, version: m.version }, { $set: { [`sides.${side}.roster`]: s.roster.map((x) => ({ ...x, present: principalIds.includes(x.principalId) })) }, $inc: { version: 1 } }, { returnDocument: 'after' });
+    if (!r) throw new DomainError('VERSION_CONFLICT', 'the match changed; reload');
+    await this.c.matchEvents.insertOne(await this.event(r, 'lineup', side, { principalIds }, actor, null));
+    await this.ct.audit.append({ actorPrincipalId: actor, action: 'competition.match.lineup', target: { type: 'match', id: m._id }, scope: { type: 'match', id: m._id }, outcome: 'success', details: { side, count: principalIds.length }, requestId });
+    return r;
   }
 
   async event(m: MatchDoc, type: string, side: number | null, detail: Record<string, unknown>, by: string, publicText: string | null) {

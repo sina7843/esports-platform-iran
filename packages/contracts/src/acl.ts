@@ -127,6 +127,10 @@ export const Permissions = [
   'venue.manage',
   'gate.admit',
   'server.manage',
+  'ranking.manage',
+  'ranking.approve',
+  'honor.manage',
+  'honor.revoke',
 ] as const;
 export type Permission = (typeof Permissions)[number];
 
@@ -161,6 +165,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     'file.upload_private',
     'file.upload_public',
     'file.read_private',
+    'honor.manage',
   ],
   event_operator: ['event.read_private', 'match.read_private', 'match.manage', 'match.lobby.read', 'file.upload_private', 'venue.manage', 'gate.admit', 'server.manage'],
   referee: ['event.read_private', 'event.evidence.read', 'match.read_private', 'match.lobby.read', 'match.result.verify', 'dispute.decide_first', 'file.read_private', 'file.upload_private'],
@@ -207,12 +212,15 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     'organizer.review',
     'server.manage',
     'rating.moderate',
+    'ranking.manage',
+    'ranking.approve',
+    'honor.revoke',
     'file.read_private',
     'file.upload_private',
     'file.upload_public',
   ],
-  rules_officer: ['catalog.manage', 'rules.manage', 'rules.review', 'rules.publish'],
-  disciplinary_admin: ['discipline.platform_wide', 'event.evidence.read'],
+  rules_officer: ['catalog.manage', 'rules.manage', 'rules.review', 'rules.publish', 'ranking.manage'],
+  disciplinary_admin: ['discipline.platform_wide', 'event.evidence.read', 'approval.request', 'approval.read', 'honor.revoke'],
 };
 
 /**
@@ -248,6 +256,8 @@ export const SensitiveActions = [
   'finance.prize.recipient_change',
   'event.cancel',
   'stage.start_exception',
+  'discipline.platform_extend',
+  'event.close',
 ] as const;
 export type SensitiveAction = (typeof SensitiveActions)[number];
 
@@ -261,6 +271,8 @@ export const sensitiveActionApproverPermission: Record<SensitiveAction, Permissi
   'finance.prize.recipient_change': 'approval.decide',
   'event.cancel': 'approval.decide',
   'stage.start_exception': 'approval.decide',
+  'discipline.platform_extend': 'discipline.platform_wide',
+  'event.close': 'approval.decide',
 };
 
 export const GrantSchema = z.object({

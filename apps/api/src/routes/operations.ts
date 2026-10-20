@@ -136,7 +136,7 @@ export function operationsRoutes(app: FastifyInstance, ct: Container): void {
   r.post('/stages/:id/transfer', { schema: { tags: ['competition-ops'], params: Id, body: TransferSchema, response: { 200: Out, ...errors } } }, async (req) => structure.transfer(req.body.fromStageId, req.params.id, me(req), req.id));
 
   // ------------------------------------------------------------------ result hook (full cycle in ESP-05)
-  r.post('/matches/:id/results', { schema: { tags: ['competition-ops'], params: Id, body: ResultSubmitSchema, response: { 200: Out, ...errors } } }, async (req) => publicMatch(await results.submit(req.params.id, req.body.outcome as MatchOutcome, req.body.evidenceFileIds, me(req), req.id)));
+  r.post('/matches/:id/results', { schema: { tags: ['competition-ops'], params: Id, body: ResultSubmitSchema, response: { 200: Out, ...errors } } }, async (req) => publicMatch(await results.submit(req.params.id, req.body.outcome as MatchOutcome, req.body.evidenceFileIds, me(req), req.id, req.body.units)));
   r.post('/matches/:id/finalize', { schema: { tags: ['competition-ops'], params: Id, body: ResultFinalizeSchema, response: { 200: Out, ...errors } } }, async (req) => publicMatch(await results.finalize(req.params.id, req.body.outcome as MatchOutcome | null, me(req), req.id)));
 
   // ------------------------------------------------------------------ schedule

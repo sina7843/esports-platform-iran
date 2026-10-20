@@ -257,6 +257,35 @@ export const migrations: Migration[] = [
       await c.offlineImports.createIndexes([{ key: { eventId: 1, createdAt: -1 } }]);
     },
   },
+  {
+    id: '0009_esp05_results_integrity_ranking_honors',
+    revision: 1,
+    description: 'ESP-05 indexes: one active appointment per official/role, dispute and sanction lookups, idempotent rating events, one active honor/certificate per entitlement, unique verification codes, one feedback per participant',
+    async up(db) {
+      const c = collections(db);
+      await c.officials.createIndexes([{ key: { eventId: 1, matchId: 1, principalId: 1, role: 1 }, unique: true, partialFilterExpression: { active: true }, name: 'uniq_active_official' }, { key: { principalId: 1, active: 1 } }]);
+      await c.disputes.createIndexes([{ key: { matchId: 1, state: 1 } }, { key: { eventId: 1, state: 1 } }, { key: { assignee: 1, state: 1 } }, { key: { parties: 1 } }]);
+      await c.sanctions.createIndexes([{ key: { 'subject.ref': 1, state: 1 } }, { key: { 'scope.kind': 1, 'scope.id': 1, state: 1 } }]);
+      await c.integrityReports.createIndexes([{ key: { state: 1, createdAt: -1 } }, { key: { reporter: 1 } }]);
+      await c.corrections.createIndexes([{ key: { matchId: 1, state: 1 } }, { key: { stageId: 1, state: 1 } }]);
+      await c.ratingSystems.createIndexes([{ key: { gameId: 1, mode: 1, subject: 1 } }]);
+      // RANK / AC-12: replaying a result can never add a second contribution
+      await c.ratingEvents.createIndexes([{ key: { systemId: 1, build: 1, matchId: 1, subjectId: 1 }, unique: true, name: 'uniq_rating_contribution' }, { key: { systemId: 1, build: 1, subjectId: 1, playedAt: 1 } }, { key: { matchId: 1 } }]);
+      await c.ratings.createIndexes([{ key: { systemId: 1, build: 1, rating: -1 } }, { key: { subjectId: 1 } }]);
+      await c.ratingJobs.createIndexes([{ key: { systemId: 1, startedAt: -1 } }]);
+      // END-004 / AC-12: an honor is issued once per entitlement; verification codes are unique
+      await c.honors.createIndexes([
+        { key: { eventId: 1, disciplineId: 1, kind: 1, place: 1, participationId: 1, label: 1 }, unique: true, partialFilterExpression: { state: 'active' }, name: 'uniq_active_honor' },
+        { key: { verifyCode: 1 }, unique: true },
+        { key: { 'recipients.principalId': 1 } },
+        { key: { 'team.teamId': 1 } },
+      ]);
+      await c.certificates.createIndexes([{ key: { code: 1 }, unique: true }, { key: { eventId: 1, principalId: 1, kind: 1 }, unique: true, partialFilterExpression: { state: 'active' }, name: 'uniq_active_certificate' }]);
+      await c.specialAwards.createIndexes([{ key: { eventId: 1, state: 1 } }]);
+      await c.feedback.createIndexes([{ key: { eventId: 1, principalId: 1 }, unique: true }]);
+      await c.declaredAchievements.createIndexes([{ key: { 'owner.ref': 1 } }, { key: { state: 1 } }]);
+    },
+  },
 ];
 
 // Deliberately independent of the compiled function text (tsx and tsc emit different source) — see `revision`.

@@ -14,3 +14,4 @@ export * from './rules.js';
 export * from './competition.js';
 export * from './finance.js';
 export * from './operations.js';
+export * from './integrity.js';

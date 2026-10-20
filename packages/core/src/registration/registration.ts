@@ -102,6 +102,9 @@ export class RegistrationService {
       const p = principals.find((x) => x._id === id);
       if (!p || p.status !== 'active') add('inactive_account', `${id} is not an active account`, null);
     }
+    // INT-003 / REG-002: an active suspension (platform-wide or for this event) bars the person
+    const suspended = await this.c.sanctions.find({ 'subject.kind': 'principal', 'subject.ref': { $in: ids }, type: { $in: ['suspension_temporary', 'suspension_permanent'] }, state: { $in: ['active', 'appealed'] }, $and: [{ $or: [{ 'scope.kind': 'platform' }, { 'scope.kind': 'event', 'scope.id': d.eventId }] }, { $or: [{ until: null }, { until: { $gt: iso() } }] }] }).toArray();
+    for (const s of suspended) add('suspended', `${s.subject.ref} is suspended (${s.type === 'suspension_permanent' ? 'permanent' : `until ${s.until}`}, sanction ${s._id})`, s.rulesRef.clauseKey);
     // REG-003: playing for several teams in the same competition is controlled by the rules package
     if (clauseValue(clauses, 'roster.multi_team_allowed') !== true) {
       const clash = await this.c.registrations.find({ disciplineId: d._id, state: { $in: ACTIVE }, 'roster.principalId': { $in: ids }, ...(excludeRegistrationId ? { _id: { $ne: excludeRegistrationId } } : {}) }).toArray();

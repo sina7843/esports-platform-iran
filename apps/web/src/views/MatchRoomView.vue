@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import type { ApiClientError } from '../api/client';
 import { esp03 } from '../api/esp03';
 import { esp04 as esp04Api, type RoomView, type SelectionView } from '../api/esp04';
+import { esp05 as esp05Api } from '../api/esp05';
 import DataState from '../components/DataState.vue';
 import ErrorNote from '../components/ErrorNote.vue';
 import FormField from '../components/FormField.vue';
@@ -111,6 +112,15 @@ const submit = () => act(async () => {
   await esp04.submitResult(id.value, { kind: 'win', winnerSide: result.winnerSide, maps: [result.a, result.b] }, ids);
   evidence.value = null;
 }, t('room.submitted'));
+// RES-002 confirmation / contest and AWD-002 lineup presence
+const esp05: typeof esp05Api = esp05Api;
+const contestClaim = ref('');
+const lineupSel = reactive<Record<number, string[]>>({});
+const mySubmitted = computed(() => !!priv.value?.result?.submissions.some((x) => x.side === priv.value?.side && x.source !== 'integration'));
+const otherSubmitted = computed(() => !!priv.value?.result?.submissions.some((x) => x.side !== priv.value?.side && x.source !== 'integration'));
+function lineupOf(side: number): string[] {
+  return (lineupSel[side] ??= (priv.value?.lineup?.[side] ?? []).filter((r) => r.present).map((r) => r.principalId));
+}
 </script>
 
 <template>
@@ -186,7 +196,34 @@ const submit = () => act(async () => {
         </form>
         <ul v-if="priv.calls.length" class="list"><li v-for="c in priv.calls" :key="c._id" dir="auto">{{ c.reason }} — <StatusBadge :state="c.state" /> <button v-if="official && c.state !== 'closed'" type="button" class="btn btn-sm" @click="act(() => esp04.updateCall(c._id, 'closed'))">{{ t('room.closeCall') }}</button></li></ul>
 
-        <form v-if="(isSide || official) && ['live', 'paused'].includes(pub.state) && pub.kind === 'head_to_head'" class="stack result" novalidate @submit.prevent="submit">
+        <section v-if="priv.lineup && ['awaiting_readiness', 'ready', 'pre_game_selection', 'live', 'paused'].includes(pub.state)" class="stack" aria-labelledby="lu-h">
+          <h3 id="lu-h">{{ t('room.lineup') }}</h3>
+          <template v-for="(roster, si) in priv.lineup" :key="si">
+            <form v-if="roster" class="row" novalidate @submit.prevent="act(() => esp05.lineup(id, si, lineupOf(si)), t('room.lineupSaved'))">
+              <fieldset class="row"><legend>{{ pub.sides[si]?.displayName }}</legend>
+                <label v-for="r in roster" :key="r.principalId"><input v-model="lineupSel[si]" type="checkbox" :value="r.principalId" @focus="lineupOf(si)" /> <bdi>{{ r.displayName }}</bdi></label>
+              </fieldset>
+              <button type="submit" class="btn btn-sm">{{ t('room.saveLineup') }}</button>
+            </form>
+          </template>
+          <p class="muted small">{{ t('room.lineupHint') }}</p>
+        </section>
+        <section v-if="priv.result && ['provisional', 'disputed'].includes(pub.state)" class="stack" aria-labelledby="rc-h">
+          <h3 id="rc-h">{{ t('room.confirmTitle') }}</h3>
+          <ul class="list"><li v-for="(x, i) in priv.result.submissions" :key="i">{{ x.side === null ? t('room.bySource', { s: x.source }) : pub.sides[x.side]?.displayName }} — {{ (x.outcome as { kind: string; winnerSide?: number }).kind === 'win' ? t('room.winner', { side: pub.sides[(x.outcome as { winnerSide: number }).winnerSide]?.displayName ?? '' }) : (x.outcome as { kind: string }).kind }} · <JalaliDate :iso="x.at" format="time" /></li></ul>
+          <p v-if="priv.result.deadline" class="muted small">{{ t('room.confirmBy') }} <JalaliDate :iso="priv.result.deadline" /> · {{ priv.result.policy === 'on_deadline' ? t('room.autoConfirm') : t('room.officialConfirms') }}</p>
+          <p v-if="priv.result.review" class="warn small">{{ t('room.integrationMismatch') }}</p>
+          <p v-if="priv.openCaseId" class="warn"><RouterLink :to="`/cases/${priv.openCaseId}`">{{ t('room.openCase') }}</RouterLink></p>
+          <div v-else-if="isSide && pub.state === 'provisional'" class="stack">
+            <button v-if="otherSubmitted" type="button" class="btn btn-primary" @click="act(() => esp05.confirm(id), t('room.confirmed'))">{{ t('room.confirm') }}</button>
+            <form class="row" novalidate @submit.prevent="act(async () => { const c = await esp05.contest(id, contestClaim); contestClaim = ''; return c; }, t('room.contested'))">
+              <label class="sr-only" for="rc-claim">{{ t('room.contestClaim') }}</label>
+              <input id="rc-claim" v-model="contestClaim" class="input grow" dir="auto" :placeholder="t('room.contestClaim')" />
+              <button type="submit" class="btn" :disabled="contestClaim.trim().length < 10">{{ t('room.contest') }}</button>
+            </form>
+          </div>
+        </section>
+        <form v-if="(isSide || official) && (['live', 'paused'].includes(pub.state) || (isSide && pub.state === 'provisional' && !mySubmitted && !priv.openCaseId)) && pub.kind === 'head_to_head'" class="stack result" novalidate @submit.prevent="submit">
           <h3>{{ t('room.submitResult') }}</h3>
           <div class="row">
             <FormField id="res-w" :label="t('room.winnerSide')"><template #default="{ id: fid }"><select :id="fid" v-model.number="result.winnerSide" class="input"><option v-for="(s, i) in pub.sides" :key="i" :value="i">{{ s.displayName }}</option></select></template></FormField>

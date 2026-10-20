@@ -126,8 +126,8 @@ describe('state transitions over HTTP (chapter 15)', () => {
     const org = await login(seedIds.organizer);
     const direct = await app.inject({ method: 'PATCH', url: `/api/v1/events/${seedIds.eventA}`, headers: { cookie: org, 'x-requested-with': 'fetch' }, payload: { state: 'closed', expectedVersion: 0 } });
     expect(direct.json().error.code).toBe('ILLEGAL_TRANSITION');
-    const bad = await app.inject({ method: 'POST', url: `/api/v1/events/${seedIds.eventA}/transitions`, headers: { cookie: org, 'x-requested-with': 'fetch' }, payload: { transition: 'finish', expectedVersion: 0 } });
-    expect(bad.statusCode).toBe(409); // published → finish is illegal
+    const bad = await app.inject({ method: 'POST', url: `/api/v1/events/${seedIds.eventA}/transitions`, headers: { cookie: org, 'x-requested-with': 'fetch' }, payload: { transition: 'activate', expectedVersion: 0 } });
+    expect(bad.statusCode).toBe(409); // published → activate is illegal
     expect(bad.json().error.code).toBe('ILLEGAL_TRANSITION');
     const ok = await app.inject({ method: 'POST', url: `/api/v1/events/${seedIds.eventA}/transitions`, headers: { cookie: org, 'x-requested-with': 'fetch' }, payload: { transition: 'open_registration', expectedVersion: 0 } });
     expect(ok.statusCode).toBe(200);

@@ -6,6 +6,8 @@ import type { Collections, GrantDoc, OrganizationDoc, TeamDoc, TeamMembershipDoc
 import type { OwnershipTransferDoc, TeamCalendarEventDoc, TeamInvitationDoc, TeamJoinRequestDoc } from '../db/collections-esp02.js';
 import { newId } from '../ids.js';
 import { isBlockedEither } from '../social/social.js';
+import { CareerService } from '../ranking/career.js';
+import { HonorService } from '../honors/honors.js';
 
 /** TEAM-001..007: organizations, teams, membership history, ownership transfer, calendar, public team page. */
 
@@ -228,9 +230,20 @@ export class TeamService {
       currentMembers: rows.filter((r) => r.to === null),
       // a past member appears once (latest stint); role changes of current members are not "past"
       pastMembers: [...new Map(rows.filter((r) => r.to !== null && !rows.some((x) => x.principalId === r.principalId && x.to === null)).map((r) => [r.principalId, r])).values()],
-      record: { source: 'none_yet' as const, played: 0, wins: 0, losses: 0, draws: 0 },
-      standings: { source: 'none_yet' as const, items: [] },
-      honors: { source: 'none_yet' as const, items: [] },
+      ...(await this.career(t._id)),
+    };
+  }
+
+  /** TEAM-006 / RANK-007: record, placements and honors from final official results (participation snapshots of the time). */
+  private async career(teamId: string) {
+    const rec = await new CareerService(this.ct).team(teamId);
+    const hon = await new HonorService(this.ct).forTeam(teamId);
+    return {
+      record: rec.played ? { source: 'computed' as const, played: rec.played, wins: rec.wins, losses: rec.losses, draws: rec.draws } : { source: 'none_yet' as const, played: 0, wins: 0, losses: 0, draws: 0 },
+      standings: rec.standings.length ? { source: 'computed' as const, items: rec.standings.map((x) => ({ eventId: x.eventId, title: x.eventName, rank: x.place, points: x.points })) } : { source: 'none_yet' as const, items: [] },
+      honors: hon.verified.length || hon.declared.length
+        ? { source: 'computed' as const, items: hon.verified.map((h) => ({ eventId: h.eventId, title: h.eventName, placement: h.place ?? 0, awardedAt: h.issuedAt, id: h.id, nameAtTime: h.team?.nameAtTime ?? null, state: h.state, verifyCode: h.verifyCode })), declared: hon.declared }
+        : { source: 'none_yet' as const, items: [] },
     };
   }
 

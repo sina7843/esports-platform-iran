@@ -213,12 +213,17 @@ export const RecordSources = ['none_yet', 'computed'] as const;
 export const CompetitiveRecordSchema = z.object({
   source: z.enum(RecordSources),
   items: z.array(z.object({ gameId: z.string(), played: z.number().int(), wins: z.number().int(), losses: z.number().int(), draws: z.number().int() })),
+  recent: z.array(z.object({ matchId: z.string(), eventId: z.string(), eventName: z.string(), opponent: z.string(), result: z.enum(['W', 'L', 'D']), forfeit: z.boolean(), at: z.string() })).optional(),
 });
+const HonorItem = z.object({ eventId: z.string(), title: z.string(), placement: z.number().int(), awardedAt: z.string(), id: z.string().optional(), kind: z.string().optional(), label: z.string().optional(), state: z.string().optional(), verifyCode: z.string().optional() });
+const DeclaredItem = z.object({ id: z.string(), title: z.string(), eventName: z.string(), year: z.number().int().nullable(), state: z.string(), label: z.string() });
 export const HonorsSchema = z.object({
   source: z.enum(RecordSources),
-  items: z.array(z.object({ eventId: z.string(), title: z.string(), placement: z.number().int(), awardedAt: z.string() })),
+  items: z.array(HonorItem),
+  declared: z.array(DeclaredItem).optional(),
 });
 export const RatingChartSchema = z.object({
   source: z.enum(RecordSources),
   points: z.array(z.object({ at: z.string(), gameId: z.string(), rating: z.number() })),
+  label: z.enum(['official', 'internal_unapproved']).optional(),
 });

@@ -196,7 +196,7 @@ const csvUrl = esp03.exportUrl;
     <template v-if="m && ev">
       <PageHeader :title="ev.name">
         <template #title><bdi>{{ ev.name }}</bdi></template>
-        <template #actions><StatusBadge :state="ev.state" /> <RouterLink class="btn btn-sm" :to="`/events/${ev.id}${ev.config.linkToken ? `?t=${ev.config.linkToken}` : ''}`">{{ t('evm.publicPage') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/operations`">{{ t('cops.title') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/lan`">{{ t('cops.lan') }}</RouterLink></template>
+        <template #actions><StatusBadge :state="ev.state" /> <RouterLink class="btn btn-sm" :to="`/events/${ev.id}${ev.config.linkToken ? `?t=${ev.config.linkToken}` : ''}`">{{ t('evm.publicPage') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/operations`">{{ t('cops.title') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/lan`">{{ t('cops.lan') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/results`">{{ t('res.title') }}</RouterLink></template>
       </PageHeader>
       <ErrorNote :error="failure" />
       <p v-if="notice" role="status" class="notice">{{ notice }}</p>

@@ -31,6 +31,7 @@ import { eventsAdminRoutes } from './routes/events-admin.js';
 import { registrationRoutes } from './routes/registrations.js';
 import { financeRoutes } from './routes/finance.js';
 import { operationsRoutes } from './routes/operations.js';
+import { integrityRoutes } from './routes/integrity.js';
 
 export const API_VERSION = '0.4.0-esp04';
 
@@ -93,6 +94,7 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       registrationRoutes(api, container);
       financeRoutes(api, container);
       operationsRoutes(api, container);
+      integrityRoutes(api, container);
     },
     { prefix: '/api/v1' },
   );

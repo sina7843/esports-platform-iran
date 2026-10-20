@@ -2,6 +2,7 @@ import type { Db, Collection } from 'mongodb';
 import { esp02CollectionNames, esp02Collections, type Esp02Collections } from './collections-esp02.js';
 import { esp03CollectionNames, esp03Collections, type Esp03Collections, type EventConfig, type DisciplineConfig, type StageLink } from './collections-esp03.js';
 import { esp04CollectionNames, esp04Collections, type Esp04Collections, type MatchEsp04Fields } from './collections-esp04.js';
+import { esp05CollectionNames, esp05Collections, type Esp05Collections, type MatchEsp05Fields } from './collections-esp05.js';
 import type { Grant, OutboxRecord, RealtimeEvent, Scope, Approval, FileRecord, AuditEntry, EventState, MatchState, RegistrationState } from '@esp/contracts';
 
 /**
@@ -150,7 +151,7 @@ export interface MatchSide {
   roster: Array<{ principalId: string; displayName: string; role: string; present: boolean }>;
 }
 
-export interface MatchDoc extends MatchEsp04Fields {
+export interface MatchDoc extends MatchEsp04Fields, MatchEsp05Fields {
   _id: string;
   eventId: string;
   disciplineId: string;
@@ -262,7 +263,7 @@ export interface ResultVersionDoc {
   createdAt: string;
 }
 
-export interface Collections extends Esp02Collections, Esp03Collections, Esp04Collections {
+export interface Collections extends Esp02Collections, Esp03Collections, Esp04Collections, Esp05Collections {
   principals: Collection<PrincipalDoc>;
   sessions: Collection<SessionDoc>;
   grants: Collection<GrantDoc>;
@@ -311,6 +312,7 @@ export const collectionNames = {
   ...esp02CollectionNames,
   ...esp03CollectionNames,
   ...esp04CollectionNames,
+  ...esp05CollectionNames,
 } as const satisfies Record<keyof Collections, string>;
 
 export function collections(db: Db): Collections {
@@ -339,6 +341,7 @@ export function collections(db: Db): Collections {
     ...esp02Collections(db),
     ...esp03Collections(db),
     ...esp04Collections(db),
+    ...esp05Collections(db),
   };
 }
 
