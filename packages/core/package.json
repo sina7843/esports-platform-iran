@@ -11,8 +11,8 @@
       "import": "./dist/index.js"
     },
     "./testing": {
-      "types": "./dist/test/esp03-fixture.d.ts",
-      "import": "./dist/test/esp03-fixture.js"
+      "types": "./dist/test/testing.d.ts",
+      "import": "./dist/test/testing.js"
     }
   },
   "scripts": {

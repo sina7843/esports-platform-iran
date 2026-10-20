@@ -220,6 +220,43 @@ export const migrations: Migration[] = [
       await collections(db).subscriptions.createIndex({ plan: 1, 'holder.ref': 1 }, { unique: true, partialFilterExpression: { state: { $in: ['active', 'pending_payment'] } }, name: 'uniq_open_subscription' });
     },
   },
+  {
+    id: '0008_esp04_competition_engine_operations',
+    revision: 1,
+    description: 'ESP-04 indexes: one match per bracket slot, one entry per stage/participation, draw numbering, schedule conflict lookups, one active server allocation per match, single-use admission tokens, run log order',
+    async up(db) {
+      const c = collections(db);
+      await c.matches.createIndexes([
+        // DRAW/STG-002: a bracket slot exists once per stage; advancement can never create a duplicate match
+        { key: { stageId: 1, 'slot.key': 1 }, unique: true, partialFilterExpression: { 'slot.key': { $type: 'string' } }, name: 'uniq_stage_slot' },
+        { key: { participantIds: 1, scheduledAt: 1 } },
+        { key: { principalIds: 1, scheduledAt: 1 } },
+        { key: { 'resources.stationId': 1, scheduledAt: 1 } },
+        { key: { 'resources.serverId': 1, scheduledAt: 1 } },
+        { key: { 'resources.refereeIds': 1, scheduledAt: 1 } },
+      ]);
+      await c.draws.createIndexes([{ key: { stageId: 1, number: 1 }, unique: true }, { key: { stageId: 1, state: 1 } }]);
+      await c.stageEntries.createIndexes([{ key: { stageId: 1, participationId: 1 }, unique: true }]);
+      await c.scheduleProposals.createIndexes([{ key: { eventId: 1, state: 1 } }]);
+      await c.rescheduleRequests.createIndexes([{ key: { matchId: 1 }, unique: true, partialFilterExpression: { state: { $in: ['open', 'agreed'] } }, name: 'uniq_open_reschedule' }]);
+      await c.matchMessages.createIndexes([{ key: { matchId: 1, at: 1 } }]);
+      await c.refereeCalls.createIndexes([{ key: { eventId: 1, state: 1 } }, { key: { matchId: 1 } }]);
+      await c.matchEvents.createIndexes([{ key: { matchId: 1, seq: 1 }, unique: true }]);
+      await c.gameServers.createIndexes([{ key: { eventId: 1, gameId: 1, enabled: 1 } }]);
+      await c.serverAllocations.createIndexes([{ key: { matchId: 1 }, unique: true, partialFilterExpression: { state: 'active' }, name: 'uniq_active_allocation' }, { key: { serverId: 1, state: 1 } }]);
+      await c.integrationRecords.createIndexes([{ key: { matchId: 1 } }, { key: { rawHash: 1 }, unique: true }]);
+      await c.reviewItems.createIndexes([{ key: { eventId: 1, state: 1 } }]);
+      await c.incidents.createIndexes([{ key: { eventId: 1, state: 1 } }]);
+      await c.venues.createIndexes([{ key: { eventId: 1 } }]);
+      await c.stations.createIndexes([{ key: { eventId: 1, venueId: 1 } }, { key: { matchId: 1 } }]);
+      await c.equipment.createIndexes([{ key: { eventId: 1, state: 1 } }]);
+      await c.personalEquipment.createIndexes([{ key: { eventId: 1, principalId: 1 } }]);
+      // LAN-002/006: a QR token is valid once; a principal holds one active credential per role and event
+      await c.accessCredentials.createIndexes([{ key: { token: 1 }, unique: true }, { key: { eventId: 1, principalId: 1, role: 1 }, unique: true, partialFilterExpression: { state: 'active' }, name: 'uniq_active_credential' }]);
+      await c.admissions.createIndexes([{ key: { token: 1 }, unique: true }, { key: { eventId: 1, at: -1 } }]);
+      await c.offlineImports.createIndexes([{ key: { eventId: 1, createdAt: -1 } }]);
+    },
+  },
 ];
 
 // Deliberately independent of the compiled function text (tsx and tsc emit different source) — see `revision`.

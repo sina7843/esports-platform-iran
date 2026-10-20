@@ -123,6 +123,10 @@ export const Permissions = [
   'rating.moderate',
   'rules.review',
   'rules.publish',
+  'schedule.override',
+  'venue.manage',
+  'gate.admit',
+  'server.manage',
 ] as const;
 export type Permission = (typeof Permissions)[number];
 
@@ -150,11 +154,15 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     'approval.read',
     'match.read_private',
     'match.manage',
+    'schedule.override',
+    'venue.manage',
+    'gate.admit',
+    'server.manage',
     'file.upload_private',
     'file.upload_public',
     'file.read_private',
   ],
-  event_operator: ['event.read_private', 'match.read_private', 'match.manage', 'match.lobby.read', 'file.upload_private'],
+  event_operator: ['event.read_private', 'match.read_private', 'match.manage', 'match.lobby.read', 'file.upload_private', 'venue.manage', 'gate.admit', 'server.manage'],
   referee: ['event.read_private', 'event.evidence.read', 'match.read_private', 'match.lobby.read', 'match.result.verify', 'dispute.decide_first', 'file.read_private', 'file.upload_private'],
   head_referee: [
     'event.read_private',
@@ -163,6 +171,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     'match.lobby.read',
     'match.result.verify',
     'match.result.correct',
+    'schedule.override',
     'dispute.decide_first',
     'acl.grant',
     'acl.revoke',
@@ -196,6 +205,7 @@ export const rolePermissions: Record<Role, readonly Permission[]> = {
     'account.review',
     'badge.issue',
     'organizer.review',
+    'server.manage',
     'rating.moderate',
     'file.read_private',
     'file.upload_private',

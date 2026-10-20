@@ -60,4 +60,13 @@ describe('upload pipeline (SEC-003/004, OPS-003)', () => {
     await expect(t.files.upload({ data: PNG, originalName: 'id.png', declaredMime: 'image/png', visibility: 'private', scope, retentionClass: 'identity_document' }, { principalId: seedIds.referee, requestId: rid() })).rejects.toMatchObject({ code: 'PRECONDITION_FAILED' });
     await expect(t.files.upload({ data: PNG, originalName: 'x.png', declaredMime: 'image/png', visibility: 'public', scope, retentionClass: 'media_public' }, { principalId: seedIds.player, requestId: rid() })).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
+
+  it('a participant can upload a private document tagged to an event or match (site-level grant), never a public one', async () => {
+    const doc = await t.files.upload({ data: PNG, originalName: 'consent.png', declaredMime: 'image/png', visibility: 'private', scope, retentionClass: 'dispute_evidence' }, { principalId: seedIds.player, requestId: rid() });
+    expect(doc).toMatchObject({ ownerPrincipalId: seedIds.player, visibility: 'private', scope });
+    const ev = await t.files.upload({ data: PNG, originalName: 'evidence.png', declaredMime: 'image/png', visibility: 'private', scope: { type: 'match', id: seedIds.matchA }, retentionClass: 'dispute_evidence' }, { principalId: seedIds.player, requestId: rid() });
+    expect(ev.visibility).toBe('private');
+    // another participant still cannot obtain a link to it
+    await expect(t.files.signPrivateLink(doc._id, { principalId: seedIds.captain, requestId: rid() })).rejects.toMatchObject({ code: 'FORBIDDEN' });
+  });
 });

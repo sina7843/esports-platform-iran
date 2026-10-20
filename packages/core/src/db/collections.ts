@@ -1,6 +1,7 @@
 import type { Db, Collection } from 'mongodb';
 import { esp02CollectionNames, esp02Collections, type Esp02Collections } from './collections-esp02.js';
 import { esp03CollectionNames, esp03Collections, type Esp03Collections, type EventConfig, type DisciplineConfig, type StageLink } from './collections-esp03.js';
+import { esp04CollectionNames, esp04Collections, type Esp04Collections, type MatchEsp04Fields } from './collections-esp04.js';
 import type { Grant, OutboxRecord, RealtimeEvent, Scope, Approval, FileRecord, AuditEntry, EventState, MatchState, RegistrationState } from '@esp/contracts';
 
 /**
@@ -131,6 +132,11 @@ export interface StageDoc {
   links: StageLink[];
   /** Starting before dependencies are final requires an approved, reasoned exception (STG-006). */
   startException: { approvalId: string; reason: string; by: string; at: string } | null;
+  /** FMT-002/CFG-005: organizer values for configurable clauses (inside clause bounds) and per-match overrides, e.g. BO5 final */
+  settings?: Record<string, unknown>;
+  overrides?: Array<{ label: string; match: { bracket?: string; round?: number; slotKey?: string }; values: Record<string, unknown> }>;
+  /** mixed format: ordered phases, each with its own adapter */
+  phases?: Array<{ key: string; format: string; advance: { perGroup?: number; bestRemaining?: number; top?: number } | null }>;
   createdAt: string;
   version: number;
 }
@@ -144,12 +150,12 @@ export interface MatchSide {
   roster: Array<{ principalId: string; displayName: string; role: string; present: boolean }>;
 }
 
-export interface MatchDoc {
+export interface MatchDoc extends MatchEsp04Fields {
   _id: string;
   eventId: string;
   disciplineId: string;
   stageId: string;
-  kind: 'head_to_head' | 'lobby';
+  kind: 'head_to_head' | 'lobby' | 'attempts';
   sides: MatchSide[];
   state: MatchState;
   scheduledAt: string | null;
@@ -256,7 +262,7 @@ export interface ResultVersionDoc {
   createdAt: string;
 }
 
-export interface Collections extends Esp02Collections, Esp03Collections {
+export interface Collections extends Esp02Collections, Esp03Collections, Esp04Collections {
   principals: Collection<PrincipalDoc>;
   sessions: Collection<SessionDoc>;
   grants: Collection<GrantDoc>;
@@ -304,6 +310,7 @@ export const collectionNames = {
   resultVersions: 'result_versions',
   ...esp02CollectionNames,
   ...esp03CollectionNames,
+  ...esp04CollectionNames,
 } as const satisfies Record<keyof Collections, string>;
 
 export function collections(db: Db): Collections {
@@ -331,6 +338,7 @@ export function collections(db: Db): Collections {
     resultVersions: db.collection(collectionNames.resultVersions),
     ...esp02Collections(db),
     ...esp03Collections(db),
+    ...esp04Collections(db),
   };
 }
 

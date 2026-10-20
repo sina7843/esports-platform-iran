@@ -56,7 +56,11 @@ export class Files {
     actor: { principalId: string; requestId: string },
   ): Promise<FileDoc> {
     const permission = input.visibility === 'public' ? 'file.upload_public' : 'file.upload_private';
-    await this.acl.require(actor.principalId, permission, input.scope, actor.requestId);
+    // A participant's private document/evidence is tagged to the event or match it belongs to, but players hold
+    // upload_private only at site level (no inheritance): a private upload may be authorized there. The file stays
+    // private (owner + staff with file.read_private in that scope). Public uploads need the permission in the scope.
+    const inScope = await this.acl.can(actor.principalId, permission, input.scope);
+    if (!inScope) await this.acl.require(actor.principalId, permission, input.visibility === 'private' ? { type: 'site', id: 'site' } : input.scope, actor.requestId);
     const retention = retentionClasses[input.retentionClass];
     if (!retention) throw new DomainError('VALIDATION_FAILED', 'unknown retention class');
     if (input.retentionClass === 'identity_document') throw new DomainError('PRECONDITION_FAILED', 'identity document retention policy not approved; collection blocked (OPS-002)');

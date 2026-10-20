@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { DomainError, ErrorResponse, EventStates, MatchStates, PageQuerySchema, decodeCursor, encodeCursor, pageOf, allMachines, eventMachine, matchMachine } from '@esp/contracts';
-import { applyTransition, CommerceService, EventsService, PrizeService, type Container, type EventDoc, type MatchDoc } from '@esp/core';
+import { applyTransition, CommerceService, EventsService, PrizeService, RoomService, type Container, type EventDoc, type MatchDoc } from '@esp/core';
 
 /**
  * Competition hierarchy read projections (DATA-001/002) and the status-transition endpoint.
@@ -122,13 +122,10 @@ export function competitionRoutes(app: FastifyInstance, container: Container): v
 
   /** Private lobby credentials: only `match.lobby.read` in THIS match's scope (ROOM-004, AC-17). */
   r.get('/matches/:id/lobby', { schema: { tags: ['competition'], params: z.object({ id: z.string() }), response: { 200: z.object({ host: z.string(), password: z.string(), releasedAt: z.string().nullable() }), 401: ErrorResponse, 403: ErrorResponse, 404: ErrorResponse } } }, async (req) => {
+    // ROOM-004: sides of the match (in the allowed states) and officials with match.lobby.read; every read audited
     const ctx = req.requireAuth();
-    const m = await container.c.matches.findOne({ _id: req.params.id });
-    if (!m) throw new DomainError('NOT_FOUND', 'match not found');
-    await req.requirePermission('match.lobby.read', { type: 'match', id: m._id });
-    await container.audit.append({ actorPrincipalId: ctx.principal._id, action: 'match.lobby.read', target: { type: 'match', id: m._id }, scope: { type: 'match', id: m._id }, outcome: 'success', requestId: req.id });
-    if (!m.lobby) throw new DomainError('NOT_FOUND', 'no lobby configured');
-    return m.lobby;
+    const l = await new RoomService(container).lobby(req.params.id, ctx.principal._id, req.id);
+    return { host: l.host, password: l.password, releasedAt: null };
   });
 
   /** Named transitions only. The actor's roles are the roles of their grants that cover this event's scope. */

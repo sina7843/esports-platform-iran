@@ -15,6 +15,7 @@ import { Files } from './files/files.js';
 import { createLogger } from './logging.js';
 import { registerCoreConsumers } from './outbox/consumers.js';
 import { registerEsp03Consumers } from './finance/consumers.js';
+import { registerEsp04Consumers } from './competition/consumers.js';
 
 /** Composition root shared by api, worker, CLIs and tests. */
 export interface Container {
@@ -75,5 +76,6 @@ export async function createContainer(opts: { serviceName: string; env?: NodeJS.
     },
   };
   registerEsp03Consumers(container);
+  registerEsp04Consumers(container);
   return container;
 }

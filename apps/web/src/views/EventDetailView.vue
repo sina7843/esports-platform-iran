@@ -127,6 +127,10 @@ function login() {
       </ul>
       <p v-if="data.badges.organizerVerified || data.badges.affiliation" class="muted small">{{ t('reg.badgeNote') }}</p>
       <p v-if="data.event.description" dir="auto" class="desc">{{ data.event.description }}</p>
+      <div v-if="data.event.presence !== 'online'" class="row links">
+        <RouterLink class="btn btn-sm" :to="`/events/${data.event.id}/hall${token ? `?t=${token}` : ''}`">{{ t('hall.title') }}</RouterLink>
+        <RouterLink v-if="session.me" class="btn btn-sm" :to="`/events/${data.event.id}/my-qr`">{{ t('qr.title') }}</RouterLink>
+      </div>
       <dl class="meta">
         <div><dt>{{ t('events.startsAt') }}</dt><dd><JalaliDate :iso="data.event.startsAt" :time-zone="data.event.timeZone" /></dd></div>
         <div><dt>{{ t('events.endsAt') }}</dt><dd><JalaliDate :iso="data.event.endsAt" :time-zone="data.event.timeZone" /></dd></div>
@@ -187,6 +191,8 @@ function login() {
         </details>
         <DataTable :caption="d.name" :columns="stageCols()" :rows="d.stages" row-key="id" row-header="name">
           <template #cell-state="{ row }"><StatusBadge :state="(row as { state: string }).state" /></template>
+          <template #cell-name="{ row }"><RouterLink :to="`/stages/${(row as { id: string }).id}${token ? `?t=${token}` : ''}`"><bdi>{{ (row as { name: string }).name }}</bdi></RouterLink></template>
+          <template #cell-format="{ row }">{{ t(`fmt.${(row as { format: string }).format}` as never) }}</template>
         </DataTable>
 
         <template v-if="isOpen(d)">
@@ -243,6 +249,7 @@ dt { color: var(--text-muted); font-size: var(--fs-sm); }
 dd { margin: 0; font-weight: 600; }
 .disc, .block { margin-block-end: var(--sp-4); }
 .desc { margin-block-end: var(--sp-4); }
+.links { gap: var(--sp-2); margin-block-end: var(--sp-4); }
 .poster { display: block; inline-size: 100%; max-inline-size: 40rem; max-block-size: 20rem; object-fit: cover; border-radius: var(--radius-lg); margin-block-end: var(--sp-4); }
 .badges { list-style: none; display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: 0; margin: 0 0 var(--sp-2); }
 .badges li { padding: 0 var(--sp-3); border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 600; }

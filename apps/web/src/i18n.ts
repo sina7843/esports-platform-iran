@@ -19,7 +19,14 @@ export function num(v: string | number): string {
   return toLocaleDigits(v, digitLocale());
 }
 
-const faStates: Record<string, string> = {};
+/** States of ESP-04 records that are not chapter-15 machines (draws, slots, stations, servers, reviews, imports …). */
+const faStates: Record<string, string> = {
+  planned: 'برنامه‌ریزی‌شده', drawn: 'قرعه‌خورده', finished: 'پایان‌یافته', preview: 'پیش‌نمایش', confirmed: 'تأییدشده', locked: 'قفل', superseded: 'جایگزین‌شده',
+  waiting: 'در انتظار', auto_advance: 'صعود خودکار', not_needed: 'لازم نشد', done: 'انجام‌شده', complete: 'کامل', waiting_referee: 'در انتظار داور',
+  applied: 'اعمال‌شده', partially_applied: 'بخشی اعمال‌شده', conflict: 'متعارض', resolved: 'رسیدگی‌شده', acknowledged: 'دیده‌شده', closed: 'بسته',
+  agreed: 'موافقت‌شده', healthy: 'سالم', degraded: 'کند', down: 'خارج از دسترس', unknown: 'نامشخص', in_use: 'در حال استفاده', faulty: 'معیوب',
+  maintenance: 'آماده‌سازی', available: 'آزاد', loaned: 'تحویل‌شده', revoked: 'باطل', called: 'فراخوان', at_station: 'در ایستگاه', used: 'استفاده‌شده',
+};
 for (const m of allMachines) {
   for (const [k, v] of Object.entries(m.statesFa as Record<string, string>)) faStates[k] ??= v;
 }
