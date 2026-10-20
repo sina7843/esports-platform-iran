@@ -44,6 +44,7 @@ const sections: Section[] = [
       { to: '/account/calendar', label: 'cal.title', auth: true },
       { to: '/account/certificates', label: 'cert.title', auth: true },
       { to: '/account/notifications', label: 'nav.notifications', auth: true },
+      { to: '/messages', label: 'msg.title', auth: true },
       { to: '/account/settings', label: 'nav.settings' },
     ],
   },

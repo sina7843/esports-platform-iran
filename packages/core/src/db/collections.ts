@@ -3,6 +3,7 @@ import { esp02CollectionNames, esp02Collections, type Esp02Collections } from '.
 import { esp03CollectionNames, esp03Collections, type Esp03Collections, type EventConfig, type DisciplineConfig, type StageLink } from './collections-esp03.js';
 import { esp04CollectionNames, esp04Collections, type Esp04Collections, type MatchEsp04Fields } from './collections-esp04.js';
 import { esp05CollectionNames, esp05Collections, type Esp05Collections, type MatchEsp05Fields } from './collections-esp05.js';
+import { esp06CollectionNames, esp06Collections, type Esp06Collections } from './collections-esp06.js';
 import type { Grant, OutboxRecord, RealtimeEvent, Scope, Approval, FileRecord, AuditEntry, EventState, MatchState, RegistrationState } from '@esp/contracts';
 
 /**
@@ -67,7 +68,7 @@ export interface CounterDoc {
 
 export type AuditDoc = Omit<AuditEntry, 'id'> & { _id: string };
 
-export type FileDoc = Omit<FileRecord, 'id'> & { _id: string; storageKey: string; version: number };
+export type FileDoc = Omit<FileRecord, 'id'> & { _id: string; storageKey: string; version: number; /** EDIT-007: a public display variant points at its private original */ derivedFrom?: string };
 
 export interface MigrationDoc {
   _id: string; // version id, e.g. '0001_initial_indexes'
@@ -263,7 +264,7 @@ export interface ResultVersionDoc {
   createdAt: string;
 }
 
-export interface Collections extends Esp02Collections, Esp03Collections, Esp04Collections, Esp05Collections {
+export interface Collections extends Esp02Collections, Esp03Collections, Esp04Collections, Esp05Collections, Esp06Collections {
   principals: Collection<PrincipalDoc>;
   sessions: Collection<SessionDoc>;
   grants: Collection<GrantDoc>;
@@ -313,6 +314,7 @@ export const collectionNames = {
   ...esp03CollectionNames,
   ...esp04CollectionNames,
   ...esp05CollectionNames,
+  ...esp06CollectionNames,
 } as const satisfies Record<keyof Collections, string>;
 
 export function collections(db: Db): Collections {
@@ -342,6 +344,7 @@ export function collections(db: Db): Collections {
     ...esp03Collections(db),
     ...esp04Collections(db),
     ...esp05Collections(db),
+    ...esp06Collections(db),
   };
 }
 

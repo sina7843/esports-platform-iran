@@ -77,4 +77,6 @@ export const RealtimePollResponseSchema = z.object({
   events: z.array(RealtimeEventSchema),
   cursor: z.number().int().nonnegative(),
   serverTime: z.string(),
+  /** LIVE-006: the cursor is older than the retention floor; the client must reload a snapshot */
+  resync: z.boolean().optional(),
 });

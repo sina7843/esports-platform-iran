@@ -129,7 +129,7 @@ function login() {
       <p v-if="data.badges.organizerVerified || data.badges.affiliation" class="muted small">{{ t('reg.badgeNote') }}</p>
       <p v-if="data.event.description" dir="auto" class="desc">{{ data.event.description }}</p>
       <div v-if="data.event.presence !== 'online'" class="row links">
-        <RouterLink class="btn btn-sm" :to="`/events/${data.event.id}/hall${token ? `?t=${token}` : ''}`">{{ t('hall.title') }}</RouterLink>
+        <RouterLink class="btn btn-sm btn-primary" :to="`/events/${data.event.id}/live${token ? `?t=${token}` : ''}`">{{ t('live.title') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/events/${data.event.id}/hall${token ? `?t=${token}` : ''}`">{{ t('hall.title') }}</RouterLink>
         <RouterLink v-if="session.me" class="btn btn-sm" :to="`/events/${data.event.id}/my-qr`">{{ t('qr.title') }}</RouterLink>
       </div>
       <dl class="meta">

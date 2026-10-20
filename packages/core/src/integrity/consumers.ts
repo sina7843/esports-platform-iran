@@ -10,15 +10,7 @@ import { SanctionService } from './sanctions.js';
  * ESP-06 consumes the same stream).
  */
 export function registerEsp05Consumers(ct: Container): void {
-  ct.consumer.register({
-    name: 'integrity-notifications',
-    matches: ['integrity.', 'competition.result.', 'competition.match.reopened', 'honors.'],
-    async handle(event, session) {
-      const principalIds = (event.payload['principals'] as string[] | undefined)?.filter(Boolean) ?? [];
-      if (!principalIds.length) return;
-      await ct.realtime.publish({ channel: 'notifications', type: event.type, audience: { kind: 'principals', principalIds }, payload: { ...event.payload, principals: undefined } }, session);
-    },
-  });
+  // ESP-06: notifications for these events are created by the persistent notification centre (notifications-center)
   ct.consumer.register({
     name: 'newsroom-results',
     matches: ['competition.match.finalized'],

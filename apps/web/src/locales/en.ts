@@ -4,6 +4,7 @@ import { enMgmt } from './esp02-mgmt';
 import { enEsp03 } from './esp03';
 import { enEsp04 } from './esp04';
 import { enEsp05 } from './esp05';
+import { enEsp06 } from './esp06';
 
 export const en: Record<MessageKey, string> = {
   'app.name': 'Esports Platform',
@@ -244,4 +245,5 @@ export const en: Record<MessageKey, string> = {
   ...enEsp03,
   ...enEsp04,
   ...enEsp05,
+  ...enEsp06,
 };

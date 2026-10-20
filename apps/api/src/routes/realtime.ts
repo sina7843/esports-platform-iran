@@ -15,8 +15,8 @@ export function realtimeRoutes(app: FastifyInstance, container: Container): void
   const channelsOf = (s: string | undefined) => (s ? s.split(',').map((x) => x.trim()).filter(Boolean).slice(0, 50) : null);
 
   r.get('/realtime/events', { schema: { tags: ['realtime'], querystring: RealtimePollQuerySchema, response: { 200: RealtimePollResponseSchema } } }, async (req) => {
-    const { events, cursor } = await container.realtime.poll(viewerOf(req.auth), req.query.after, channelsOf(req.query.channels), req.query.limit);
-    return { events, cursor, serverTime: new Date().toISOString() };
+    const { events, cursor, resync } = await container.realtime.poll(viewerOf(req.auth), req.query.after, channelsOf(req.query.channels), req.query.limit);
+    return { events, cursor, serverTime: new Date().toISOString(), ...(resync ? { resync } : {}) };
   });
 
   r.get('/realtime/stream', { schema: { tags: ['realtime'], querystring: RealtimePollQuerySchema, summary: 'Server-Sent Events stream; id = seq cursor' } }, async (req, reply) => {
@@ -52,7 +52,7 @@ export function realtimeRoutes(app: FastifyInstance, container: Container): void
       after,
       channels,
       onEvent: (e) => socket.send(JSON.stringify(e)),
-      onClose: (reason) => socket.close(reason === 'session_revoked' ? 4401 : 1000, reason),
+      onClose: (reason) => socket.close(reason === 'session_revoked' ? 4401 : reason === 'resync_required' ? 4409 : 1000, reason),
     });
     socket.on('close', unsubscribe);
     socket.on('error', unsubscribe);

@@ -11,10 +11,13 @@ interface Stored {
   locale: Locale;
   theme: ThemeSetting;
   digits: DigitsSetting;
+  /** AUD-003: low-data mode (no images until asked, no autoplay, slower live refresh) */
+  lowData: boolean;
 }
 
 function load(): Stored {
-  const base: Stored = { locale: 'fa', theme: 'system', digits: 'fa' };
+  const saveData = typeof navigator !== 'undefined' && !!(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+  const base: Stored = { locale: 'fa', theme: 'system', digits: 'fa', lowData: saveData };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return base;
@@ -23,6 +26,7 @@ function load(): Stored {
       locale: p.locale === 'en' ? 'en' : 'fa',
       theme: p.theme === 'light' || p.theme === 'dark' ? p.theme : 'system',
       digits: p.digits === 'latn' ? 'latn' : 'fa',
+      lowData: typeof p.lowData === 'boolean' ? p.lowData : saveData,
     };
   } catch {
     return base;
@@ -60,5 +64,9 @@ export function setTheme(t: ThemeSetting): void {
 }
 export function setDigits(d: DigitsSetting): void {
   settings.digits = d;
+  persist();
+}
+export function setLowData(v: boolean): void {
+  settings.lowData = v;
   persist();
 }

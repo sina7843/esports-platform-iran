@@ -74,8 +74,33 @@ export class Realtime {
     return this.acl.can(viewer.principalId, audience.permission as Permission, audience.scope as Scope);
   }
 
+  /** Highest seq handed out so far. A snapshot reads this BEFORE reading its data, so nothing between them is lost. */
+  async currentCursor(): Promise<number> {
+    return (await this.c.counters.findOne({ _id: 'realtime_seq' }))?.value ?? 0;
+  }
+  /** Highest seq removed by retention; a client whose cursor is below it missed events and must resync. */
+  async floor(): Promise<number> {
+    return (await this.c.counters.findOne({ _id: 'realtime_floor' }))?.value ?? 0;
+  }
+  /**
+   * LIVE-006 retention: removes events older than `maxAgeMs` and raises the floor to the highest removed seq.
+   * Delayed events not yet visible are kept. Returns the number removed.
+   */
+  async prune(maxAgeMs: number, now = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - maxAgeMs).toISOString();
+    const nowIso = now.toISOString();
+    const filter = { createdAt: { $lt: cutoff }, $or: [{ visibleAt: { $exists: false } }, { visibleAt: { $lte: nowIso } }] };
+    const top = await this.c.realtime.find(filter).sort({ seq: -1 }).limit(1).next();
+    if (!top) return 0;
+    // raise the floor first: a reader racing the delete is told to resync rather than silently skipping
+    await this.c.counters.updateOne({ _id: 'realtime_floor' }, { $max: { value: top.seq } }, { upsert: true });
+    const r = await this.c.realtime.deleteMany({ ...filter, seq: { $lte: top.seq } });
+    return r.deletedCount;
+  }
+
   /** Gap-free catch-up from the store; `after` is the last seq the client saw. */
-  async poll(viewer: Viewer, after: number, channels: string[] | null, limit: number): Promise<{ events: RealtimeEvent[]; cursor: number }> {
+  async poll(viewer: Viewer, after: number, channels: string[] | null, limit: number): Promise<{ events: RealtimeEvent[]; cursor: number; resync?: boolean }> {
+    if (after > 0 && after < (await this.floor())) return { events: [], cursor: after, resync: true };
     const now = new Date().toISOString();
     const filter: Record<string, unknown> = { seq: { $gt: after }, $or: [{ visibleAt: { $exists: false } }, { visibleAt: { $lte: now } }] };
     if (channels && channels.length) filter['channel'] = { $in: channels };
@@ -120,8 +145,12 @@ export class Realtime {
       this.emitter.off('event', deliver);
       opts.onClose(reason);
     };
-    // catch-up then live
-    void this.poll(viewer, opts.after, opts.channels, 500).then(({ events }) => {
+    // catch-up then live; an expired cursor closes with an explicit resync instruction
+    void this.poll(viewer, opts.after, opts.channels, 500).then(({ events, resync }) => {
+      if (resync) {
+        close('resync_required');
+        return;
+      }
       for (const e of events) {
         if (closed) return;
         last = Math.max(last, e.seq);

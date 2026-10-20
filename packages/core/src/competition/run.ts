@@ -47,6 +47,7 @@ export class RunService {
     if (m.config?.vetoSequence.length && sel?.state !== 'complete') throw new DomainError('PRECONDITION_FAILED', 'the pre-game selection is not complete');
     const { doc } = await applyTransition(matchMachine, this.c.matches, m._id, { transition: 'start', expectedVersion: m.version, actorRoles: ['event_operator'] }, { 'run.startedAt': iso() } as Partial<MatchDoc>);
     await this.log(doc, 'start', null, {}, actor, 'بازی آغاز شد');
+    await this.ct.outbox.append({ type: 'competition.match.started', aggregate: { type: 'match', id: doc._id }, aggregateVersion: doc.version, actor: { principalId: actor, kind: 'user' }, payload: { matchId: doc._id, eventId: doc.eventId, principals: doc.principalIds ?? [] }, correlationId: requestId });
     await this.c.stages.updateOne({ _id: m.stageId, state: 'drawn' }, { $set: { state: 'active' }, $inc: { version: 1 } });
     return doc;
   }

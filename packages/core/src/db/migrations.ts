@@ -286,6 +286,48 @@ export const migrations: Migration[] = [
       await c.declaredAchievements.createIndexes([{ key: { 'owner.ref': 1 } }, { key: { state: 1 } }]);
     },
   },
+  {
+    id: '0010_esp06_live_news_broadcast_community',
+    revision: 1,
+    description: 'ESP-06 indexes: one automatic post per official occurrence (dedupe key), unique post slugs, timeline/newsroom lookups, broadcast and overlay lookups, one reaction per user and post, chat history by room, notification inbox and dispatch queue, realtime retention by channel',
+    async up(db) {
+      const c = collections(db);
+      // NEWS-006 / AC-14: an official occurrence produces exactly one automatic post
+      await c.newsPosts.createIndexes([
+        { key: { dedupeKey: 1 }, unique: true, partialFilterExpression: { dedupeKey: { $type: 'string' } }, name: 'uniq_post_dedupe' },
+        { key: { slug: 1 }, unique: true },
+        { key: { eventId: 1, state: 1, occurredAt: -1 } },
+        { key: { 'relations.matchId': 1 } },
+        { key: { 'relations.teamIds': 1 } },
+        { key: { 'relations.principalIds': 1 } },
+        { key: { state: 1, publishAt: 1 } },
+        { key: { authorId: 1, createdAt: -1 } },
+        { key: { category: 1, publishedAt: -1 } },
+      ]);
+      await c.newsAssignments.createIndexes([{ key: { eventId: 1, state: 1 } }, { key: { principalId: 1, state: 1 } }]);
+      await c.broadcastStreams.createIndexes([{ key: { eventId: 1, role: 1 } }]);
+      await c.mediaItems.createIndexes([{ key: { eventId: 1, occurredAt: -1 } }, { key: { matchId: 1 } }]);
+      await c.crewAssignments.createIndexes([{ key: { eventId: 1, matchId: 1, principalId: 1, role: 1 }, unique: true, partialFilterExpression: { active: true }, name: 'uniq_active_crew' }]);
+      await c.overlayTokens.createIndexes([{ key: { tokenHash: 1 }, unique: true }, { key: { eventId: 1 } }]);
+      await c.reactions.createIndexes([{ key: { postId: 1 } }]);
+      await c.comments.createIndexes([{ key: { postId: 1, createdAt: -1 } }, { key: { principalId: 1, createdAt: -1 } }]);
+      await c.chatMessages.createIndexes([{ key: { roomId: 1, createdAt: -1 } }, { key: { principalId: 1, createdAt: -1 } }]);
+      await c.chatRooms.createIndexes([{ key: { members: 1 } }]);
+      await c.contentReports.createIndexes([{ key: { state: 1, createdAt: 1 } }, { key: { targetType: 1, targetId: 1, reporterId: 1 }, unique: true }]);
+      await c.notifications.createIndexes([
+        { key: { principalId: 1, deliverAt: -1 } },
+        { key: { principalId: 1, readAt: 1 } },
+        { key: { dedupeKey: 1 }, unique: true, partialFilterExpression: { dedupeKey: { $type: 'string' } }, name: 'uniq_notification_dedupe' },
+        { key: { 'channels.status': 1, 'channels.nextAttemptAt': 1 } },
+        { key: { principalId: 1, groupKey: 1, readAt: 1 } },
+      ]);
+      await c.officialMessages.createIndexes([{ key: { eventId: 1, createdAt: -1 } }]);
+      // LIVE-006: retention moves from a silent TTL to the prune job, which raises the resync floor before deleting
+      const ttl = (await c.realtime.indexes()).find((i) => i.name === 'createdAt_1' && i.expireAfterSeconds !== undefined);
+      if (ttl) await c.realtime.dropIndex('createdAt_1');
+      await c.realtime.createIndexes([{ key: { channel: 1, seq: 1 } }, { key: { createdAt: 1 }, name: 'createdAt_1' }]);
+    },
+  },
 ];
 
 // Deliberately independent of the compiled function text (tsx and tsc emit different source) — see `revision`.

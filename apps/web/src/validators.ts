@@ -1,3 +1,4 @@
+import { safeReturnPath } from '@esp/contracts';
 import { normalizeDigits } from '@esp/contracts';
 
 /** Persian/Arabic-Indic/Latin digits are processed identically (UX-004). */
@@ -24,6 +25,6 @@ export function isUtcInstant(value: string): boolean {
 
 /** UX-007: only same-origin relative paths are honored after login (no open redirect). */
 export function safeRedirect(value: unknown): string {
-  const v = Array.isArray(value) ? value[0] : value;
-  return typeof v === 'string' && v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/\\') ? v : '/';
+  // UX-007: one shared rule with the API (no scheme, no protocol-relative, no backslash, no control characters)
+  return safeReturnPath(Array.isArray(value) ? value[0] : value);
 }

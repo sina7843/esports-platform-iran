@@ -87,7 +87,10 @@ export class RoomService {
   async openReadiness(matchId: string, actor: string, requestId: string): Promise<MatchDoc> {
     const m = await this.match(matchId);
     await this.ct.acl.require(actor, 'match.manage', { type: 'match', id: m._id }, requestId);
-    return (await applyTransition(matchMachine, this.c.matches, m._id, { transition: 'open_checkin', expectedVersion: m.version, actorRoles: ['event_operator'] })).doc;
+    const doc = (await applyTransition(matchMachine, this.c.matches, m._id, { transition: 'open_checkin', expectedVersion: m.version, actorRoles: ['event_operator'] })).doc;
+    // COM-002: match check-in / readiness is open for the sides
+    await this.ct.outbox.append({ type: 'competition.match.readiness_open', aggregate: { type: 'match', id: doc._id }, aggregateVersion: doc.version, actor: { principalId: actor, kind: 'user' }, payload: { matchId: doc._id, eventId: doc.eventId, principals: doc.principalIds ?? [] }, correlationId: requestId });
+    return doc;
   }
 
   /** A side declares itself ready; when both are, the match becomes ready and the rules' countdown (if any) starts. */

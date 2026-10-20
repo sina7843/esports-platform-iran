@@ -32,6 +32,7 @@ import { registrationRoutes } from './routes/registrations.js';
 import { financeRoutes } from './routes/finance.js';
 import { operationsRoutes } from './routes/operations.js';
 import { integrityRoutes } from './routes/integrity.js';
+import { liveRoutes } from './routes/live.js';
 
 export const API_VERSION = '0.4.0-esp04';
 
@@ -95,6 +96,7 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       financeRoutes(api, container);
       operationsRoutes(api, container);
       integrityRoutes(api, container);
+      liveRoutes(api, container);
     },
     { prefix: '/api/v1' },
   );

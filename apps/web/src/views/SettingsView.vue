@@ -7,7 +7,7 @@ import JalaliDate from '../components/JalaliDate.vue';
 import MoneyLabel from '../components/MoneyLabel.vue';
 import PageHeader from '../components/PageHeader.vue';
 import { t } from '../i18n';
-import { setDigits, setLocale, setTheme, settings, TIME_ZONE, type DigitsSetting, type ThemeSetting } from '../settings';
+import { setDigits, setLocale, setLowData, setTheme, settings, TIME_ZONE, type DigitsSetting, type ThemeSetting } from '../settings';
 import { dateToIso, isIranMobile, isNonNegativeInt } from '../validators';
 import type { Locale } from '@esp/contracts';
 
@@ -53,6 +53,8 @@ const amountNum = computed(() => (amount.value && isNonNegativeInt(amount.value)
         </select>
       </template>
     </FormField>
+    <label class="row-check"><input type="checkbox" :checked="settings.lowData" @change="setLowData(($event.target as HTMLInputElement).checked)" /> {{ t('live.lowData') }}</label>
+    <p class="muted small">{{ t('live.lowDataHint') }}</p>
     <FormField id="s-tz" :label="t('ui.timeZone')">
       <template #default="{ id }">
         <input :id="id" class="input" :value="TIME_ZONE" readonly :aria-label="t('settings.tzValue')" dir="ltr" />

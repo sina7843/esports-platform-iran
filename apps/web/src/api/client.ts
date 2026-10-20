@@ -115,6 +115,7 @@ export interface RealtimePoll {
   events: RealtimeEvent[];
   cursor: number;
   serverTime: string;
+  resync?: boolean;
 }
 export interface GrantInput {
   principalId: string;

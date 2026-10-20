@@ -5,6 +5,7 @@ import { newId } from '../ids.js';
 import type { Acl } from '../acl/acl.js';
 import type { AuditLog } from '../audit/audit.js';
 import type { Adapters } from '../adapters/types.js';
+import { stripMetadata } from './strip.js';
 
 /**
  * Upload pipeline (SEC-003/004, OPS-003):
@@ -33,6 +34,7 @@ export const retentionClasses: Record<string, { noticeFa: string; days: number |
   dispute_evidence: { noticeFa: 'مدارک اعتراض تا ۱۲ ماه پس از بسته‌شدن پرونده نگهداری می‌شود (پیشنهاد OPS-001).', days: 365 },
   demo: { noticeFa: 'دمو تا ۹۰ روز پس از قطعی‌شدن نتیجه نگهداری می‌شود (پیشنهاد OPS-001).', days: 90 },
   media_public: { noticeFa: 'رسانه عمومی تا عمر سرویس یا تا درخواست حذف دارنده حق نگهداری می‌شود.', days: null },
+  media_original: { noticeFa: 'فایل اصلی رسانه خصوصی می‌ماند و فقط نسخه نمایش بدون فراداده منتشر می‌شود (EDIT-007).', days: null },
   profile_media: { noticeFa: 'تصویر پروفایل تا تغییر یا حذف حساب نگهداری می‌شود.', days: null },
   identity_document: { noticeFa: 'سیاست نگهداری اسناد هویتی هنوز مصوب نشده است؛ بارگذاری این دسته مسدود است (OPS-002).', days: null },
 };
@@ -99,6 +101,35 @@ export class Files {
     };
     await this.c.files.insertOne(doc);
     await this.audit.append({ actorPrincipalId: actor.principalId, action: quarantined ? 'file.quarantined' : 'file.uploaded', target: { type: 'file', id }, scope: input.scope, outcome: quarantined ? 'failed' : 'success', details: { mime: real, size: doc.sizeBytes, scan: scan.verdict, retentionClass: input.retentionClass }, requestId: actor.requestId });
+    return doc;
+  }
+
+  /**
+   * EDIT-007: derives the public display variant of an image the actor owns (metadata stripped, pixels untouched).
+   * The original keeps its own visibility; evidence files (dispute/demo retention) can never become public.
+   */
+  async deriveDisplay(originalId: string, scope: Scope, actor: { principalId: string; requestId: string }): Promise<FileDoc> {
+    const o = await this.c.files.findOne({ _id: originalId });
+    if (!o || o.quarantined) throw new DomainError('NOT_FOUND', 'file not found');
+    if (o.ownerPrincipalId !== actor.principalId) throw new DomainError('FORBIDDEN', 'only the uploader can publish a variant of this file');
+    if (['dispute_evidence', 'demo', 'identity_document'].includes(o.retentionClass)) throw new DomainError('FORBIDDEN', 'evidence and private documents can never be published');
+    if (!allowedByVisibility.public.includes(o.mimeType)) throw new DomainError('UNSUPPORTED_MEDIA_TYPE', 'only images get a public display variant');
+    const existing = await this.c.files.findOne({ derivedFrom: o._id, visibility: 'public', quarantined: false });
+    if (existing) return existing;
+    const raw = await this.adapters.storage.get(o.storageKey, o.visibility);
+    if (!raw) throw new DomainError('NOT_FOUND', 'file content missing');
+    const { data } = stripMetadata(raw, o.mimeType);
+    const id = newId('fil');
+    const ext = o.mimeType.split('/')[1] === 'jpeg' ? 'jpg' : o.mimeType.split('/')[1]!;
+    const storageKey = `${id.slice(-2)}/${id}.${ext}`;
+    await this.adapters.storage.put(storageKey, data, 'public', o.mimeType);
+    const doc: FileDoc = {
+      _id: id, visibility: 'public', scope, ownerPrincipalId: actor.principalId, originalName: o.originalName, mimeType: o.mimeType, sizeBytes: data.length,
+      sha256: createHash('sha256').update(data).digest('hex'), scanState: o.scanState, quarantined: false, retentionClass: 'media_public', retentionNoticeFa: retentionClasses['media_public']!.noticeFa,
+      createdAt: new Date().toISOString(), publicUrl: this.adapters.storage.publicUrl(storageKey), storageKey, version: 0, derivedFrom: o._id,
+    };
+    await this.c.files.insertOne(doc);
+    await this.audit.append({ actorPrincipalId: actor.principalId, action: 'file.display_variant', target: { type: 'file', id }, scope, outcome: 'success', details: { originalId }, requestId: actor.requestId });
     return doc;
   }
 

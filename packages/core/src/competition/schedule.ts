@@ -145,6 +145,10 @@ export class ScheduleService {
   }
 
   private async notify(ms: MatchDoc[], type: string) {
+    // COM-002 / NEWS-006: an official time change feeds notifications and the automatic "time changed" post
+    for (const m of ms) {
+      if (m.scheduledAt) await this.ct.outbox.append({ type: 'competition.match.rescheduled', aggregate: { type: 'match', id: m._id }, aggregateVersion: m.version, actor: { principalId: 'system', kind: 'system' }, payload: { matchId: m._id, eventId: m.eventId, scheduledAt: m.scheduledAt, estimated: m.estimated ?? false, principals: m.principalIds ?? [] }, correlationId: `schedule:${m._id}:${m.scheduledAt}` });
+    }
     const principals = [...new Set(ms.flatMap((m) => m.principalIds ?? []))];
     if (principals.length) await this.ct.realtime.publish({ channel: 'notifications', type, audience: { kind: 'principals', principalIds: principals }, payload: { matches: ms.map((m) => ({ id: m._id, scheduledAt: m.scheduledAt, estimated: m.estimated })) } });
     for (const eventId of new Set(ms.map((m) => m.eventId))) await this.ct.realtime.publish({ channel: `event:${eventId}:public`, type: 'schedule.updated', audience: { kind: 'public' }, payload: { matches: ms.filter((m) => m.eventId === eventId).map((m) => ({ id: m._id, scheduledAt: m.scheduledAt, estimated: m.estimated })) } });
