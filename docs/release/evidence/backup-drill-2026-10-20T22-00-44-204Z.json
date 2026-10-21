@@ -1,0 +1,59 @@
+{
+  "at": "2026-10-20T22:00:44.204Z",
+  "intervalMinutes": 10,
+  "backup": {
+    "id": "bak_20261020220007_96EMC0",
+    "ms": 6863,
+    "bytes": 8293264,
+    "collections": 118,
+    "documents": 244881,
+    "files": 0
+  },
+  "verify": {
+    "ok": true,
+    "problems": []
+  },
+  "restore": {
+    "ms": 23864,
+    "db": "esp_restore_mvh88dnd"
+  },
+  "checks": {
+    "audit": {
+      "ok": true,
+      "checked": 403
+    },
+    "finance": {
+      "unbalancedTransactions": 0,
+      "verifiedPayments": 0,
+      "missingPostings": []
+    },
+    "queue": {
+      "requeued": 0,
+      "drained": 368,
+      "stillDead": 0
+    },
+    "tombstones": {
+      "principals": 0,
+      "files": 0,
+      "imported": 0
+    },
+    "ok": true
+  },
+  "countsMatch": true,
+  "mismatches": [],
+  "rpo": {
+    "worstMinutes": 10.11,
+    "targetMinutes": 15,
+    "met": true
+  },
+  "rto": {
+    "minutes": 0.5,
+    "targetMinutes": 120,
+    "met": true,
+    "note": "measured restore + verification + checks on this machine; excludes provisioning a replacement host and operator reaction time"
+  },
+  "host": {
+    "platform": "win32",
+    "node": "v24.13.1"
+  }
+}

@@ -9,9 +9,12 @@ const migrations = await runMigrations(container.dbh.db, logger);
 if (migrations.applied.length) logger.info({ applied: migrations.applied }, 'migrations applied at startup');
 
 const app = await buildApp(container);
+// events published by the worker (consumers, ACL changes) must reach this process's live connections
+const stopBridge = container.realtime.startBridge(container.config.REALTIME_BRIDGE_MS);
 
 const shutdown = async (signal: string) => {
   logger.info({ signal }, 'shutting down');
+  stopBridge();
   try {
     await app.close();
     await container.close();

@@ -33,8 +33,12 @@ import { financeRoutes } from './routes/finance.js';
 import { operationsRoutes } from './routes/operations.js';
 import { integrityRoutes } from './routes/integrity.js';
 import { liveRoutes } from './routes/live.js';
+import { adminRoutes } from './routes/admin.js';
+import { partnerRoutes } from './routes/partner.js';
+import { registerAdmissionControl } from './plugins/microcache.js';
+import { registerMetrics } from './plugins/metrics.js';
 
-export const API_VERSION = '0.4.0-esp04';
+export const API_VERSION = '0.7.0-esp07';
 
 export async function buildApp(container: Container): Promise<FastifyInstance> {
   const { config } = container;
@@ -66,12 +70,15 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
   });
   if (!config.isProduction) await app.register(swaggerUi, { routePrefix: '/docs' });
 
+  registerAdmissionControl(app, config.MAX_INFLIGHT);
   registerErrorHandling(app);
   registerAuth(app, container);
 
   app.addHook('onSend', async (_req, reply) => {
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Referrer-Policy', 'no-referrer');
+    reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+    reply.header('X-Frame-Options', 'DENY');
   });
 
   await app.register(
@@ -97,9 +104,13 @@ export async function buildApp(container: Container): Promise<FastifyInstance> {
       operationsRoutes(api, container);
       integrityRoutes(api, container);
       liveRoutes(api, container);
+      adminRoutes(api, container);
     },
     { prefix: '/api/v1' },
   );
+
+  registerMetrics(app, container);
+  await app.register(async (p) => partnerRoutes(p, container), { prefix: '/partner/v1' });
 
   return app;
 }

@@ -106,6 +106,7 @@ const dlCols = () => [
 </template>
 
 <style scoped>
+section { min-block-size: 10rem; } /* reserve space while data loads (CLS) */
 .block { margin-block-end: var(--sp-6); }
 .stats { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--sp-3); }
 .stats .card { display: grid; padding: var(--sp-3) var(--sp-4); }

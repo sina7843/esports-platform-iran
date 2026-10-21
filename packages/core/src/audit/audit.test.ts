@@ -32,6 +32,24 @@ describe('append-only hash-chained audit (SEC-007)', () => {
   });
 });
 
+describe('concurrent appends keep one unbroken chain (SEC-007)', () => {
+  it('60 parallel session-less appends mixed with transactional ones leave a verifiable chain with no gaps', async () => {
+    const fresh = await testContainer();
+    try {
+      const input = (i: number) => ({ actorPrincipalId: 'usr_c', action: `race.${i}`, target: { type: 'x', id: String(i) }, scope: { type: 'site' as const, id: 'site' }, outcome: 'success' as const, requestId: `req_${i}` });
+      await Promise.all([
+        ...Array.from({ length: 40 }, (_, i) => fresh.audit.append(input(i))),
+        ...Array.from({ length: 20 }, (_, i) => fresh.dbh.withTransaction((s) => fresh.audit.append(input(100 + i), s))),
+      ]);
+      expect(await fresh.audit.verifyChain()).toMatchObject({ ok: true, checked: 60 });
+      const seqs = (await fresh.c.audit.find({}, { projection: { seq: 1 } }).sort({ seq: 1 }).toArray()).map((d) => d.seq);
+      expect(seqs).toEqual(Array.from({ length: 60 }, (_, i) => i + 1));
+    } finally {
+      await fresh.drop();
+    }
+  });
+});
+
 describe('configuration guards (SEC-005, OPS-005, D-004)', () => {
   it('production refuses development doubles, dev login and missing secrets', () => {
     expect(() => loadConfig({ NODE_ENV: 'production', MONGO_URL: 'mongodb://mongo:27017/esports?replicaSet=rs0' })).toThrow(/APP_SECRET is required/);

@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-20T21:43:58.600Z",
+  "target": {
+    "sessions": 10000,
+    "liveMatches": 300,
+    "operators": 100,
+    "rps": 500,
+    "writeRatio": 0.2,
+    "durationSeconds": 3600
+  },
+  "run": {
+    "sessions": 3000,
+    "liveMatches": 300,
+    "operators": 100,
+    "rps": 500,
+    "writeRatio": 0.2,
+    "durationSeconds": 120,
+    "wallSeconds": 120,
+    "requests": 59999,
+    "achievedRps": 499.9,
+    "maxInflight": 173
+  },
+  "errorRate": 0,
+  "rateLimited": 0,
+  "statuses": {
+    "200": 59999
+  },
+  "families": {
+    "news": {
+      "n": 11348,
+      "p50": 4,
+      "p95": 11,
+      "p99": 37
+    },
+    "home": {
+      "n": 11404,
+      "p50": 8,
+      "p95": 20,
+      "p99": 97
+    },
+    "live-tab": {
+      "n": 11435,
+      "p50": 4,
+      "p95": 15,
+      "p99": 48
+    },
+    "write:chat": {
+      "n": 12122,
+      "p50": 18,
+      "p95": 33,
+      "p99": 99
+    },
+    "operator": {
+      "n": 2373,
+      "p50": 19,
+      "p95": 40,
+      "p99": 156
+    },
+    "live": {
+      "n": 11317,
+      "p50": 4,
+      "p95": 13,
+      "p99": 69
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "node": "v24.13.1"
+  }
+}

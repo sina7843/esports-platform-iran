@@ -14,10 +14,17 @@ const EnvSchema = z.object({
   PUBLIC_API_ORIGIN: z.string().url().default('http://localhost:3000'),
   MONGO_URL: z.string().min(1).default('mongodb://127.0.0.1:27018/esports?directConnection=true'),
   DATA_DIR: z.string().min(1).default('./data'),
+  /** Backup target on an independent failure domain (OPS-004); the key comes from BACKUP_ENCRYPTION_KEY and is never stored with the data. */
+  BACKUP_TARGET_DIR: z.string().min(1).optional(),
+  BACKUP_ENCRYPTION_KEY: z.string().min(32).optional(),
+  BACKUP_KEEP: z.coerce.number().int().min(2).max(500).default(24),
+  BACKUP_INTERVAL_MINUTES: z.coerce.number().int().min(1).max(60).default(10),
   LOG_LEVEL: z.enum(['silent', 'fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   /** Session cookie signing and signed-link HMAC. Required in production. */
   APP_SECRET: z.string().min(32).optional(),
+  /** Comma-separated previous APP_SECRET values kept only while rotating (SEC-006); remove after `rotate-secrets` has run. */
+  APP_SECRET_PREVIOUS: z.string().optional(),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 90).default(24 * 14),
   SIGNED_LINK_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
   TRUST_PROXY: z.coerce.boolean().default(false),
@@ -56,6 +63,8 @@ const EnvSchema = z.object({
   UPLOAD_MAX_BYTES_PRIVATE: z.coerce.number().int().default(25 * 1024 * 1024),
   UPLOAD_MAX_BYTES_PUBLIC: z.coerce.number().int().default(8 * 1024 * 1024),
 
+  /** How often an API process tails the realtime store for events published by other processes (worker). */
+  REALTIME_BRIDGE_MS: z.coerce.number().int().min(50).max(5000).default(500),
   OUTBOX_POLL_MS: z.coerce.number().int().min(50).default(500),
   OUTBOX_LEASE_MS: z.coerce.number().int().min(1000).default(30_000),
   OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(50).default(8),
@@ -64,11 +73,13 @@ const EnvSchema = z.object({
   PAYMENT_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(20),
   REFUND_APPROVAL_THRESHOLD_RIAL: z.coerce.number().int().min(0).default(50_000_000),
 
+  /** Admission control: concurrent requests per API process before it answers 503 (protects memory under overload). */
+  MAX_INFLIGHT: z.coerce.number().int().min(10).default(1500),
   RATE_LIMIT_MAX: z.coerce.number().int().default(300),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().default(60_000),
 });
 
-export type AppConfig = z.infer<typeof EnvSchema> & { isProduction: boolean; appSecret: string; devLoginEnabled: boolean; mfaEnforced: boolean };
+export type AppConfig = z.infer<typeof EnvSchema> & { isProduction: boolean; appSecret: string; devLoginEnabled: boolean; mfaEnforced: boolean; previousSecrets: string[] };
 
 const DEV_SECRET = 'development-only-secret-do-not-use-in-production-0123456789';
 
@@ -97,10 +108,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       throw new Error(`Production configuration blocked: ${problems.join('; ')}`);
     }
   }
+  const previousSecrets = (c.APP_SECRET_PREVIOUS ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+  if (previousSecrets.some((x) => x.length < 32)) throw new Error('Invalid configuration: APP_SECRET_PREVIOUS entries must be at least 32 characters');
   return {
     ...c,
     isProduction,
     appSecret: c.APP_SECRET ?? DEV_SECRET,
+    previousSecrets,
     devLoginEnabled: !isProduction && c.AUTH_DEV_LOGIN_ENABLED && !!c.AUTH_DEV_CODE,
     mfaEnforced: c.MFA_ENFORCED ? c.MFA_ENFORCED === 'true' : isProduction,
   };

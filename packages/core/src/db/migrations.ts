@@ -328,6 +328,42 @@ export const migrations: Migration[] = [
       await c.realtime.createIndexes([{ key: { channel: 1, seq: 1 } }, { key: { createdAt: 1 }, name: 'createdAt_1' }]);
     },
   },
+  {
+    id: '0011_esp07_admin_privacy_integrations',
+    revision: 1,
+    description: 'ESP-07: admin tasks/tickets/bulk jobs, legal documents and consents, data requests, retention policies (OPS-001 proposals; identity/financial unapproved), legal holds, tombstones, backups, provider registry, partner clients with expiring nonces, webhooks with one delivery per event',
+    async up(db) {
+      const c = collections(db);
+      await c.adminTasks.createIndexes([{ key: { 'scope.type': 1, 'scope.id': 1, state: 1 } }, { key: { ownerId: 1, state: 1 } }]);
+      await c.supportTickets.createIndexes([{ key: { state: 1, priority: 1, createdAt: 1 } }, { key: { requesterId: 1, createdAt: -1 } }, { key: { assigneeId: 1, state: 1 } }, { key: { 'links.eventId': 1 } }]);
+      await c.bulkJobs.createIndexes([{ key: { 'scope.id': 1, createdAt: -1 } }]);
+      await c.consents.createIndexes([{ key: { principalId: 1, kind: 1 } }]);
+      await c.dataRequests.createIndexes([{ key: { state: 1, createdAt: 1 } }, { key: { principalId: 1 } }]);
+      await c.legalHolds.createIndexes([{ key: { 'scope.kind': 1, 'scope.id': 1, releasedAt: 1 } }]);
+      await c.backups.createIndexes([{ key: { startedAt: -1 } }]);
+      await c.providers.createIndexes([{ key: { category: 1, state: 1 } }]);
+      await c.partnerClients.createIndexes([{ key: { keyId: 1 }, unique: true }]);
+      await c.partnerNonces.createIndexes([{ key: { at: 1 }, expireAfterSeconds: 900 }]);
+      await c.webhookDeliveries.createIndexes([{ key: { state: 1, nextAttemptAt: 1 } }]);
+      const now = new Date().toISOString();
+      // OPS-001 proposals as editable policies; OPS-002 sensitive classes stay unapproved (collection blocked)
+      const defaults: Array<[string, number | null, string, boolean, string]> = [
+        ['results_rosters_rules_honors', null, 'created', true, 'OPS-001: for the life of the service'],
+        ['dispute_evidence', 365, 'case_closed', true, 'OPS-001: 12 months after the case is closed'],
+        ['demo', 90, 'result_final', true, 'OPS-001: 90 days after the result is final'],
+        ['operational_logs', 90, 'created', true, 'OPS-001: 90 days'],
+        ['sensitive_audit', 730, 'created', true, 'OPS-001: 24 months (archived, chain checkpoint kept)'],
+        ['realtime_events', 7, 'created', true, 'D-048: 7 days with resync floor'],
+        ['notifications', 365, 'created', true, 'proposal: 12 months'],
+        ['chat_messages', 365, 'created', true, 'proposal: 12 months'],
+        ['identity_document', null, 'created', false, 'OPS-002: needs an approved policy before collection'],
+        ['financial_document', null, 'created', false, 'OPS-002: needs an approved policy before collection'],
+      ];
+      for (const [id, days, basis, approved, note] of defaults) {
+        await c.retentionPolicies.updateOne({ _id: id }, { $setOnInsert: { _id: id, days, basis: basis as never, approved, approvedBy: approved ? 'migration:OPS-001-proposal' : null, note, version: 0, updatedAt: now } }, { upsert: true });
+      }
+    },
+  },
 ];
 
 // Deliberately independent of the compiled function text (tsx and tsc emit different source) — see `revision`.

@@ -45,6 +45,8 @@ const sections: Section[] = [
       { to: '/account/certificates', label: 'cert.title', auth: true },
       { to: '/account/notifications', label: 'nav.notifications', auth: true },
       { to: '/messages', label: 'msg.title', auth: true },
+      { to: '/support', label: 'a7.nav.support', auth: true },
+      { to: '/account/privacy', label: 'a7.nav.myPrivacy', auth: true },
       { to: '/account/settings', label: 'nav.settings' },
     ],
   },
@@ -62,6 +64,13 @@ const sections: Section[] = [
       { to: '/admin/ops', label: 'nav.ops', permission: 'outbox.read' },
       { to: '/admin/reviews', label: 'nav.accountReviews', permission: 'account.review' },
       { to: '/admin/ratings', label: 'rsys.title', permission: 'ranking.manage' },
+      { to: '/admin/users', label: 'a7.nav.users', permission: 'admin.users' },
+      { to: '/admin/tasks', label: 'a7.nav.tasks', permission: 'admin.tasks' },
+      { to: '/admin/tickets', label: 'a7.nav.tickets', permission: 'support.tickets' },
+      { to: '/admin/settings', label: 'a7.nav.settings', permission: 'platform.settings' },
+      { to: '/admin/privacy', label: 'a7.nav.privacy', permission: 'privacy.manage' },
+      { to: '/admin/integrations', label: 'a7.nav.integrations', permission: 'providers.manage' },
+      { to: '/admin/reports', label: 'a7.nav.reports', permission: 'admin.reports' },
     ],
   },
 ];
@@ -99,8 +108,10 @@ a.router-link-exact-active, a.router-link-active:not([href='/']) { background: v
 .backdrop { display: none; }
 @media (max-width: 900px) {
   .sidenav, .sidenav.collapsed { display: block; position: fixed; z-index: 50; top: 0; inset-inline-start: 0; block-size: 100vh; transform: translateX(-105%); transition: transform 0.2s; box-shadow: var(--shadow); }
-  :global([dir='rtl']) .sidenav { transform: translateX(105%); }
-  .sidenav.open, :global([dir='rtl']) .sidenav.open { transform: none; }
+  :global([dir='rtl'] .sidenav) { transform: translateX(105%); }
+  .sidenav.open, :global([dir='rtl'] .sidenav.open) { transform: none; }
+  /* a closed drawer must not take part in layout: parked off-screen it widened the mobile layout viewport in RTL (page offset and clipped) and kept its links in the tab order */
+  .sidenav:not(.open) { display: none; }
   .backdrop { display: block; position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / 45%); }
 }
 </style>

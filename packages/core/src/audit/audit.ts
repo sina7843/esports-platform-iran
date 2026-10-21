@@ -26,9 +26,22 @@ function canonical(e: Omit<AuditDoc, 'hash'>): string {
 }
 
 export class AuditLog {
-  constructor(private readonly c: Collections) {}
+  /**
+   * `runTx` makes appends without a caller session atomic. Without it two concurrent appends could both allocate a
+   * sequence number before either inserted its row, and the second would read a missing predecessor and fork the hash
+   * chain (found by the ESP-07 backup drill on a smoke database). With it the counter's write lock serialises them.
+   */
+  constructor(
+    private readonly c: Collections,
+    private readonly runTx?: <T>(fn: (session: ClientSession) => Promise<T>) => Promise<T>,
+  ) {}
 
   async append(input: AuditInput, session?: ClientSession): Promise<AuditDoc> {
+    if (!session && this.runTx) return this.runTx((s) => this.appendIn(input, s));
+    return this.appendIn(input, session);
+  }
+
+  private async appendIn(input: AuditInput, session?: ClientSession): Promise<AuditDoc> {
     const counter = await this.c.counters.findOneAndUpdate(
       { _id: 'audit_seq' },
       { $inc: { value: 1 } },

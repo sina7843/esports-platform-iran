@@ -9,6 +9,8 @@ import { Acl } from './acl/acl.js';
 import { Sessions } from './identity/sessions.js';
 import { Approvals } from './approvals/approvals.js';
 import { Realtime } from './realtime/realtime.js';
+import { registerPartnerConsumers } from './integrations/partner.js';
+import { setPreviousSecrets } from './identity/crypto.js';
 import { buildAdapters } from './adapters/registry.js';
 import type { Adapters } from './adapters/types.js';
 import { Files } from './files/files.js';
@@ -39,10 +41,11 @@ export interface Container {
 
 export async function createContainer(opts: { serviceName: string; env?: NodeJS.ProcessEnv; workerId?: string } = { serviceName: 'esp' }): Promise<Container> {
   const config = loadConfig(opts.env ?? process.env);
+  setPreviousSecrets(config.previousSecrets);
   const logger = createLogger(config.LOG_LEVEL, opts.serviceName);
   const dbh = await connectDb(config.MONGO_URL, logger);
   const c = collections(dbh.db);
-  const audit = new AuditLog(c);
+  const audit = new AuditLog(c, (fn) => dbh.withTransaction(fn));
   const outbox = new OutboxWriter(c, config.OUTBOX_MAX_ATTEMPTS);
   const acl = new Acl(c, audit, outbox);
   const sessions = new Sessions(c, config.SESSION_TTL_HOURS);
@@ -81,5 +84,6 @@ export async function createContainer(opts: { serviceName: string; env?: NodeJS.
   registerEsp04Consumers(container);
   registerEsp05Consumers(container);
   registerEsp06Consumers(container);
+  registerPartnerConsumers(container);
   return container;
 }

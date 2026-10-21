@@ -1,3 +1,4 @@
+import { appendTombstoneLog } from '../ops/backup.js';
 import { randomBytes } from 'node:crypto';
 import { DomainError } from '@esp/contracts';
 import type { Container } from '../container.js';
@@ -59,6 +60,18 @@ export class AccountService {
   /** Requires a fresh OTP/TOTP re-verification on the calling session. */
   async deleteAccount(principalId: string, sessionId: string, ctx: AuthCtx): Promise<void> {
     await new AuthService(this.ct).requireRecentReauth(sessionId);
+    const { LegalHoldService } = await import('../admin/privacy.js');
+    if (await new LegalHoldService(this.ct).isHeld('principal', principalId)) throw new DomainError('PRECONDITION_FAILED', 'a legal hold or open case prevents deletion now; a request was recorded (OPS-002)');
+    await this.anonymize(principalId, principalId, ctx.requestId);
+  }
+
+  /**
+   * DATA-006 / ADM-012 anonymising deletion. Identity, contact and profile data are removed; historical competition
+   * records (results, rosters of the time, honors, ratings) keep their integrity but show an anonymous name. A
+   * tombstone is recorded so a restored backup re-applies the deletion.
+   */
+  async anonymize(principalId: string, actor: string, requestId: string): Promise<void> {
+    const ctx = { requestId };
     const { c, config } = this.ct;
     const now = new Date().toISOString();
     const cred = await c.credentials.findOne({ _id: principalId });
@@ -105,8 +118,17 @@ export class AccountService {
       await c.badges.updateMany({ principalId, revokedAt: null }, { $set: { revokedAt: now } }, o);
       await c.gameIdentities.updateMany({ principalId, active: true }, { $set: { active: false, updatedAt: now } }, o);
       await c.otpChallenges.deleteMany({ $or: [{ principalId }, ...(cred?.phone ? [{ target: cred.phone }] : []), ...(cred?.email ? [{ target: cred.email }] : [])] }, o);
-      await this.ct.audit.append({ actorPrincipalId: principalId, action: 'account.delete', target: { type: 'principal', id: principalId }, scope: SITE, outcome: 'success', requestId: ctx.requestId }, session);
-      await this.ct.outbox.append({ type: 'identity.account.deleted', aggregate: { type: 'principal', id: principalId }, aggregateVersion: principal.version + 1, actor: { principalId, kind: 'user' }, payload: {}, correlationId: ctx.requestId }, session);
+      // historical records: keep the facts, drop the name
+      await c.participations.updateMany({ 'snapshot.roster.principalId': principalId }, { $set: { 'snapshot.roster.$[r].displayName': DELETED_DISPLAY_NAME } }, { ...o, arrayFilters: [{ 'r.principalId': principalId }] });
+      await c.matches.updateMany({ 'sides.roster.principalId': principalId }, { $set: { 'sides.$[].roster.$[r].displayName': DELETED_DISPLAY_NAME } }, { ...o, arrayFilters: [{ 'r.principalId': principalId }] });
+      await c.honors.updateMany({ 'recipients.principalId': principalId }, { $set: { 'recipients.$[r].displayName': DELETED_DISPLAY_NAME } }, { ...o, arrayFilters: [{ 'r.principalId': principalId }] });
+      await c.certificates.updateMany({ principalId }, { $set: { displayName: DELETED_DISPLAY_NAME } }, o);
+      await c.ratings.updateMany({ subjectId: principalId }, { $set: { displayName: DELETED_DISPLAY_NAME } }, o);
+      await c.notifications.deleteMany({ principalId }, o);
+      await appendTombstoneLog(this.ct, { kind: 'principal', ref: principalId, at: now, reason: 'deletion' });
+      await c.tombstones.updateOne({ _id: `principal:${principalId}` }, { $setOnInsert: { _id: `principal:${principalId}`, kind: 'principal', ref: principalId, at: now, reason: actor === principalId ? 'self deletion' : 'data request' } }, { ...o, upsert: true });
+      await this.ct.audit.append({ actorPrincipalId: actor, action: 'account.delete', target: { type: 'principal', id: principalId }, scope: SITE, outcome: 'success', requestId: ctx.requestId }, session);
+      await this.ct.outbox.append({ type: 'identity.account.deleted', aggregate: { type: 'principal', id: principalId }, aggregateVersion: principal.version + 1, actor: { principalId: actor, kind: 'user' }, payload: {}, correlationId: ctx.requestId }, session);
     });
   }
 }

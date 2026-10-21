@@ -91,11 +91,36 @@ export function seal(appSecret: string, plain: string): string {
   const ct = Buffer.concat([c.update(plain, 'utf8'), c.final()]);
   return [iv, c.getAuthTag(), ct].map((b) => b.toString('base64url')).join('.');
 }
-export function unseal(appSecret: string, boxed: string): string {
+/** Previous secrets still accepted for decryption during a rotation window (SEC-006); new data is always sealed with the current one. */
+let previousSecrets: string[] = [];
+export const setPreviousSecrets = (list: string[]): void => {
+  previousSecrets = list;
+};
+const unsealWith = (secret: string, boxed: string): string => {
   const [iv, tag, ct] = boxed.split('.').map((p) => Buffer.from(p, 'base64url')) as [Buffer, Buffer, Buffer];
-  const d = createDecipheriv('aes-256-gcm', boxKey(appSecret), iv);
+  const d = createDecipheriv('aes-256-gcm', boxKey(secret), iv);
   d.setAuthTag(tag);
   return Buffer.concat([d.update(ct), d.final()]).toString('utf8');
+};
+export function unseal(appSecret: string, boxed: string): string {
+  let last: unknown;
+  for (const k of [appSecret, ...previousSecrets]) {
+    try {
+      return unsealWith(k, boxed);
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+}
+/** True when the box opens with the current secret (false = still sealed under an older one). */
+export function sealedWithCurrent(appSecret: string, boxed: string): boolean {
+  try {
+    unsealWith(appSecret, boxed);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export function newRecoveryCodes(n = 10): string[] {

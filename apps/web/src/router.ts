@@ -74,6 +74,18 @@ export const routes: RouteRecordRaw[] = [
   { path: '/admin/reviews', name: 'admin-reviews', component: () => import('./views/AdminReviewsView.vue'), meta: { requiresAuth: true, permission: 'account.review', title: 'nav.accountReviews' } },
   { path: '/admin/ops', name: 'admin-ops', component: () => import('./views/AdminOpsView.vue'), meta: { requiresAuth: true, permission: 'outbox.read', title: 'nav.ops' } },
 
+  { path: '/support', name: 'support', component: () => import('./views/SupportView.vue'), meta: { requiresAuth: true, title: 'a7.nav.support' } },
+  { path: '/account/privacy', name: 'my-privacy', component: () => import('./views/PrivacyView.vue'), meta: { requiresAuth: true, title: 'a7.nav.myPrivacy' } },
+  { path: '/legal/:kind', name: 'legal', component: () => import('./views/LegalView.vue'), meta: { title: 'a7.nav.myPrivacy' } },
+  { path: '/organizer/events/:id/ops', name: 'event-ops', component: () => import('./views/EventOpsView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'a7.nav.eventOps' } },
+  { path: '/admin/users', name: 'admin-users', component: () => import('./views/AdminUsersView.vue'), meta: { requiresAuth: true, permission: 'admin.users', title: 'a7.nav.users' } },
+  { path: '/admin/tasks', name: 'admin-tasks', component: () => import('./views/AdminTasksView.vue'), meta: { requiresAuth: true, permission: 'admin.tasks', title: 'a7.nav.tasks' } },
+  { path: '/admin/tickets', name: 'admin-tickets', component: () => import('./views/AdminTicketsView.vue'), meta: { requiresAuth: true, permission: 'support.tickets', title: 'a7.nav.tickets' } },
+  { path: '/admin/settings', name: 'admin-settings', component: () => import('./views/AdminSettingsView.vue'), meta: { requiresAuth: true, permission: 'platform.settings', title: 'a7.nav.settings' } },
+  { path: '/admin/privacy', name: 'admin-privacy', component: () => import('./views/AdminPrivacyView.vue'), meta: { requiresAuth: true, permission: 'privacy.manage', title: 'a7.nav.privacy' } },
+  { path: '/admin/integrations', name: 'admin-integrations', component: () => import('./views/AdminIntegrationsView.vue'), meta: { requiresAuth: true, permission: 'providers.manage', title: 'a7.nav.integrations' } },
+  { path: '/admin/reports', name: 'admin-reports', component: () => import('./views/AdminReportsView.vue'), meta: { requiresAuth: true, permission: 'admin.reports', title: 'a7.nav.reports' } },
+
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue'), meta: { title: 'nav.notFound' } },
 ];
 

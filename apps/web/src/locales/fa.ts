@@ -4,6 +4,7 @@ import { faEsp03 } from './esp03';
 import { faEsp04 } from './esp04';
 import { faEsp05 } from './esp05';
 import { faEsp06 } from './esp06';
+import { faEsp07 } from './esp07';
 
 export const fa = {
   'app.name': 'پلتفرم ورزش‌های الکترونیکی',
@@ -245,6 +246,7 @@ export const fa = {
   ...faEsp04,
   ...faEsp05,
   ...faEsp06,
+  ...faEsp07,
 } as const;
 
 export type MessageKey = keyof typeof fa;

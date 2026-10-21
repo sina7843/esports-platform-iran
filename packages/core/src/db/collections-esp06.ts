@@ -183,6 +183,8 @@ export interface ContentReportDoc {
   decidedBy: string | null;
   note: string | null;
   createdAt: string;
+  /** ADM-009: the content owner may appeal a moderation decision; another moderator decides */
+  appeal?: { by: string; text: string; at: string; decidedBy: string | null; outcome: 'upheld' | 'reversed' | null; decidedAt: string | null } | null;
 }
 
 export type NotificationChannel = 'in_app' | 'sms' | 'email' | 'push';

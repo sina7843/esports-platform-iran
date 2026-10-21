@@ -30,6 +30,13 @@ const faStates: Record<string, string> = {
   previewed: 'پیش‌نمایش', blocked_dependency: 'متوقف (وابستگی شروع‌شده)', applying: 'در حال اعمال', appealed: 'در تجدیدنظر', expired: 'منقضی', triaged: 'غربال‌شده',
   investigating: 'در بررسی', referred: 'ارجاع‌شده به پرونده', proposed: 'پیشنهادشده', retired: 'بازنشسته', verified: 'تأییدشده', corrected: 'اصلاح‌شده', running: 'در حال اجرا',
 };
+// ESP-07 (administration, support, privacy, providers); entries already defined above or by a machine win
+const faStates07: Record<string, string> = {
+  suspended: 'معلق', open: 'باز', pending: 'در انتظار', in_progress: 'در حال انجام', resolved: 'حل‌شده', closed: 'بسته', selected: 'انتخاب‌شده', candidate: 'نامزد', rejected: 'ردشده',
+  on_hold: 'معلق (توقیف)', in_review: 'در بررسی', completed: 'تکمیل‌شده', not_tested: 'آزمون‌نشده', passed: 'قبول', failed: 'ناموفق', dead: 'صف مرده', skipped: 'ردشده', ok: 'موفق', approved: 'تأییدشده',
+  active: 'فعال', revoked: 'باطل', delivered: 'تحویل‌شده',
+};
+for (const [k, v] of Object.entries(faStates07)) faStates[k] ??= v;
 for (const m of allMachines) {
   for (const [k, v] of Object.entries(m.statesFa as Record<string, string>)) faStates[k] ??= v;
 }

@@ -29,5 +29,5 @@ function onInput(e: { target: unknown }) {
 </template>
 
 <style scoped>
-:global([dir='rtl']) .digit-input { text-align: right; }
+:global([dir='rtl'] .digit-input) { text-align: right; }
 </style>

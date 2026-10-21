@@ -17,6 +17,10 @@ ul { padding-inline-start: var(--sp-5); }
 code, .mono { font-family: var(--font-mono); direction: ltr; unicode-bidi: isolate; font-size: 0.9em; }
 
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+/* date/time inputs focus an inner field; keep a visible ring on the control (WCAG 2.4.7) */
+input[type="date"]:focus-within, input[type="datetime-local"]:focus-within, input[type="time"]:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* minimum target size 24x24 for native checkboxes and radios (WCAG 2.2 SC 2.5.8) */
+input[type="checkbox"], input[type="radio"] { inline-size: 1.5rem; block-size: 1.5rem; accent-color: var(--accent); vertical-align: middle; }
 
 /* BiDi helpers: keep Latin names, scores, URLs and brackets in their own run inside RTL text */
 .bidi, bdi { unicode-bidi: isolate; }

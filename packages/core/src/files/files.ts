@@ -36,8 +36,11 @@ export const retentionClasses: Record<string, { noticeFa: string; days: number |
   media_public: { noticeFa: 'رسانه عمومی تا عمر سرویس یا تا درخواست حذف دارنده حق نگهداری می‌شود.', days: null },
   media_original: { noticeFa: 'فایل اصلی رسانه خصوصی می‌ماند و فقط نسخه نمایش بدون فراداده منتشر می‌شود (EDIT-007).', days: null },
   profile_media: { noticeFa: 'تصویر پروفایل تا تغییر یا حذف حساب نگهداری می‌شود.', days: null },
-  identity_document: { noticeFa: 'سیاست نگهداری اسناد هویتی هنوز مصوب نشده است؛ بارگذاری این دسته مسدود است (OPS-002).', days: null },
+  identity_document: { noticeFa: 'اسناد هویتی فقط پس از تصویب سیاست نگهداری دریافت می‌شوند (OPS-002).', days: null },
+  financial_document: { noticeFa: 'اسناد مالی فقط پس از تصویب سیاست نگهداری دریافت می‌شوند (OPS-002).', days: null },
 };
+/** Classes whose collection stays blocked until an approved retention policy exists (OPS-002). */
+const POLICY_GATED = ['identity_document', 'financial_document'];
 
 export function sniffMime(buf: Buffer): string | null {
   for (const m of MAGIC) if (buf.length >= 12 && m.test(buf)) return m.mime;
@@ -65,7 +68,7 @@ export class Files {
     if (!inScope) await this.acl.require(actor.principalId, permission, input.visibility === 'private' ? { type: 'site', id: 'site' } : input.scope, actor.requestId);
     const retention = retentionClasses[input.retentionClass];
     if (!retention) throw new DomainError('VALIDATION_FAILED', 'unknown retention class');
-    if (input.retentionClass === 'identity_document') throw new DomainError('PRECONDITION_FAILED', 'identity document retention policy not approved; collection blocked (OPS-002)');
+    if (POLICY_GATED.includes(input.retentionClass) && !(await this.c.retentionPolicies.findOne({ _id: input.retentionClass, approved: true }))) throw new DomainError('PRECONDITION_FAILED', `${input.retentionClass} retention policy not approved; collection blocked (OPS-002)`);
     const max = input.visibility === 'public' ? this.opts.maxPublic : this.opts.maxPrivate;
     if (input.data.length === 0) throw new DomainError('VALIDATION_FAILED', 'empty file');
     if (input.data.length > max) throw new DomainError('PAYLOAD_TOO_LARGE', `file exceeds ${max} bytes`);
@@ -112,7 +115,7 @@ export class Files {
     const o = await this.c.files.findOne({ _id: originalId });
     if (!o || o.quarantined) throw new DomainError('NOT_FOUND', 'file not found');
     if (o.ownerPrincipalId !== actor.principalId) throw new DomainError('FORBIDDEN', 'only the uploader can publish a variant of this file');
-    if (['dispute_evidence', 'demo', 'identity_document'].includes(o.retentionClass)) throw new DomainError('FORBIDDEN', 'evidence and private documents can never be published');
+    if (['dispute_evidence', 'demo', ...POLICY_GATED].includes(o.retentionClass)) throw new DomainError('FORBIDDEN', 'evidence and private documents can never be published');
     if (!allowedByVisibility.public.includes(o.mimeType)) throw new DomainError('UNSUPPORTED_MEDIA_TYPE', 'only images get a public display variant');
     const existing = await this.c.files.findOne({ derivedFrom: o._id, visibility: 'public', quarantined: false });
     if (existing) return existing;
@@ -138,6 +141,7 @@ export class Files {
     const f = await this.c.files.findOne({ _id: fileId });
     if (!f) throw new DomainError('NOT_FOUND', 'file not found');
     if (f.quarantined) throw new DomainError('PRECONDITION_FAILED', 'file is quarantined');
+    if (f.deletedAt) throw new DomainError('NOT_FOUND', 'file was deleted under the retention policy');
     if (f.ownerPrincipalId !== actor.principalId) await this.acl.require(actor.principalId, 'file.read_private', f.scope, actor.requestId);
     const exp = Math.floor(Date.now() / 1000) + this.opts.linkTtlSeconds;
     const sig = this.signature(fileId, exp, actor.principalId);
@@ -156,14 +160,14 @@ export class Files {
     const given = Buffer.from(sig);
     if (expected.length !== given.length || !timingSafeEqual(expected, given)) throw new DomainError('FORBIDDEN', 'invalid signature');
     const f = await this.c.files.findOne({ _id: fileId });
-    if (!f || f.quarantined) throw new DomainError('NOT_FOUND', 'file not found');
+    if (!f || f.quarantined || f.deletedAt) throw new DomainError('NOT_FOUND', 'file not found');
     const data = await this.adapters.storage.get(f.storageKey, f.visibility);
     if (!data) throw new DomainError('NOT_FOUND', 'file content missing');
     return { data, mime: f.mimeType, name: f.originalName };
   }
 
   async readPublic(storageKey: string): Promise<{ data: Buffer; mime: string } | null> {
-    const f = await this.c.files.findOne({ storageKey, visibility: 'public', quarantined: false });
+    const f = await this.c.files.findOne({ storageKey, visibility: 'public', quarantined: false, deletedAt: { $exists: false } });
     if (!f) return null;
     const data = await this.adapters.storage.get(storageKey, 'public');
     return data ? { data, mime: f.mimeType } : null;

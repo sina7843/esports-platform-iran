@@ -244,6 +244,26 @@ describe('sanctions (REF-004, INT-003/004)', () => {
   });
 });
 
+describe('sanction appeal (INT-005, REF-005)', () => {
+  it('only the sanctioned subject appeals; the issuer cannot decide; an independent appeal authority revokes and standings recompute', async () => {
+    const fx = await competition(t, { clauses: RULES(), stages: [{ name: 'RR', format: 'round_robin' }], n: 3 });
+    await drawAndGenerate(t, fx.stageIds[0]!);
+    const head = await person('appeal-authority');
+    await t.acl.grant({ principalId: head, role: 'appeal_authority', scope: { type: 'event', id: fx.eventId }, expiresAt: null, reason: 'TEST ONLY independent appeal authority' }, { principalId: seedIds.organizer, requestId: rid() });
+    const s = await sanctions.issue({ subject: { kind: 'participation', ref: fx.participants[0]!, displayName: 'P1' }, scope: { kind: 'event', id: fx.eventId }, type: 'point_penalty', points: 2, stageId: fx.stageIds[0]!, until: null, reason: 'TEST ONLY misconduct', caseId: null, clauseKey: 'conduct.penalty' }, seedIds.referee, rid());
+    const points = async () => (await t.c.stageStructures.findOne({ _id: fx.stageIds[0]! }))!.standings!.rows.find((r) => r.id === fx.participants[0])!.metrics['points'];
+    expect(await points()).toBe(-2);
+    await expect(sanctions.appeal(s._id, 'short', fx.principals[0]!)).rejects.toMatchObject({ code: 'VALIDATION_FAILED' });
+    await expect(sanctions.appeal(s._id, 'I was not the one who did this, see the evidence', fx.principals[1]!)).rejects.toMatchObject({ code: 'FORBIDDEN' });
+    await sanctions.appeal(s._id, 'I was not the one who did this, see the evidence', fx.principals[0]!);
+    await expect(sanctions.appeal(s._id, 'a second appeal of the same sanction', fx.principals[0]!)).rejects.toMatchObject({ code: 'ILLEGAL_TRANSITION' });
+    await expect(sanctions.decideAppeal(s._id, 'revoked', seedIds.referee, rid())).rejects.toMatchObject({ code: 'SEPARATION_OF_DUTIES' });
+    const done = await sanctions.decideAppeal(s._id, 'revoked', head, rid());
+    expect(done.state).toBe('revoked');
+    expect(await points()).toBe(0); // the penalty no longer counts
+  });
+});
+
 describe('corrections (RES-006..008, AC-11)', () => {
   async function approval(matchId: string, head: string) {
     const a = await t.approvals.request({ action: 'match.result.correct', scope: { type: 'match', id: matchId }, payload: {}, reason: 'TEST ONLY correction' }, { principalId: head, requestId: rid() });

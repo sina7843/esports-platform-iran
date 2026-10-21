@@ -49,6 +49,8 @@ const retryable = computed(() => kind.value === 'error' || kind.value === 'offli
 <style scoped>
 .state { display: grid; justify-items: center; gap: var(--sp-2); text-align: center; padding: var(--sp-7) var(--sp-4); color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius-lg); }
 .msg { margin: 0; font-weight: 600; color: var(--text); }
+/* reserve space while loading so content arriving later does not push the page down (CLS) */
+[data-state='loading'] { min-block-size: 24rem; align-content: start; }
 [data-state='error'] { color: var(--danger); }
 [data-state='forbidden'] { color: var(--warn); }
 [data-state='offline'] { color: var(--info); }

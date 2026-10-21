@@ -23,6 +23,8 @@ export interface Viewer {
 export class Realtime {
   private readonly emitter = new EventEmitter();
   private readonly timers = new Set<NodeJS.Timeout>();
+  /** seqs this process published itself (the bridge must not announce them a second time) */
+  private readonly local = new Set<number>();
 
   constructor(
     private readonly c: Collections,
@@ -50,6 +52,8 @@ export class Realtime {
     };
     await this.c.realtime.insertOne(doc, opts);
     const ev = toEvent(doc);
+    this.local.add(ev.seq);
+    if (this.local.size > 5000) this.local.delete(this.local.values().next().value as number);
     const announce = () => this.emitter.emit('event', ev);
     // announce only after the surrounding transaction commits; the poller covers the gap if the process dies
     if (session) afterCommit(session, announce);
@@ -159,6 +163,53 @@ export class Realtime {
       if (!closed) this.emitter.on('event', deliver);
     });
     return () => close('client_closed');
+  }
+
+  /**
+   * Cross-process bridge (NFR-011, AC-23): the worker publishes realtime events (consumer output, ACL changes) from
+   * another process, so the API process tails the store and announces what it did not publish itself. Subscribers
+   * already ignore a seq they have seen, so a double announcement is harmless. A short look-back catches rows whose
+   * transaction committed after a higher seq. Delayed events get their re-announcement timer here too.
+   * ponytail: polling (default 500 ms) works on any MongoDB; a change stream would cut latency on replica sets.
+   */
+  startBridge(intervalMs = 500): () => void {
+    const seen = new Set<number>();
+    let after = -1;
+    let busy = false;
+    const timer = setInterval(() => {
+      if (busy) return;
+      busy = true;
+      void (async () => {
+        if (after < 0) {
+          after = await this.currentCursor();
+          return;
+        }
+        const docs = await this.c.realtime.find({ seq: { $gt: after - 200 } }).sort({ seq: 1 }).limit(1000).toArray();
+        for (const d of docs) {
+          after = Math.max(after, d.seq);
+          if (seen.has(d.seq) || this.local.has(d.seq)) continue;
+          seen.add(d.seq);
+          if (seen.size > 5000) seen.delete(seen.values().next().value as number);
+          const ev = toEvent(d);
+          this.emitter.emit('event', ev);
+          this.scheduleReveal(ev);
+        }
+      })()
+        .catch(() => undefined)
+        .finally(() => {
+          busy = false;
+        });
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }
+
+  private scheduleReveal(ev: RealtimeEvent): void {
+    if (!ev.visibleAt || Date.parse(ev.visibleAt) <= Date.now()) return;
+    const t = setTimeout(() => {
+      this.timers.delete(t);
+      this.emitter.emit('event', ev);
+    }, Math.min(2 ** 31 - 1, Date.parse(ev.visibleAt) - Date.now()));
+    this.timers.add(t);
   }
 
   /** Forces re-evaluation for a principal (called by the ACL consumer after a grant change). */

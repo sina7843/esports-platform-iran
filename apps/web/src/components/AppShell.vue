@@ -64,6 +64,7 @@ onUnmounted(() => stop?.());
 .inner { max-inline-size: var(--content-max); margin-inline: auto; }
 .crumbs ol { display: flex; flex-wrap: wrap; gap: var(--sp-2); list-style: none; margin: 0 0 var(--sp-4); padding: 0; font-size: var(--fs-sm); color: var(--text-muted); }
 .crumbs li { display: inline-flex; align-items: center; gap: var(--sp-1); }
-:global([dir='rtl']) .sep { transform: scaleX(-1); }
+/* the whole selector must sit inside :global(); with a scoped tail the build emitted a bare [dir=rtl] rule that mirrored the entire page */
+:global([dir='rtl'] .crumbs .sep) { transform: scaleX(-1); }
 @media (max-width: 900px) { .content { padding: var(--sp-4); } }
 </style>

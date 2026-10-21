@@ -384,8 +384,9 @@ describe('export and deletion (ADM-012, DATA-006)', () => {
     expect(await t.c.grants.countDocuments({ principalId: pid, revokedAt: null })).toBe(0);
     expect(await t.c.follows.countDocuments({ followerId: pid })).toBe(0);
     const part = (await t.c.participations.findOne({ _id: seedIds.participationA2 }))!;
-    expect(part.snapshot.roster[0]?.displayName).toBe('بازیکن (seed)');
-    expect((await t.c.matches.findOne({ _id: seedIds.matchA }))!.sides[1]!.roster[0]!.displayName).toBe('بازیکن (seed)');
+    // history keeps the record and its integrity but shows the anonymous name (ESP-07 anonymised history)
+    expect(part.snapshot.roster[0]).toMatchObject({ principalId: pid, displayName: 'کاربر حذف‌شده' });
+    expect((await t.c.matches.findOne({ _id: seedIds.matchA }))!.sides[1]!.roster[0]!.displayName).toBe('کاربر حذف‌شده');
     expect(await t.c.audit.countDocuments({ action: 'account.delete', actorPrincipalId: pid })).toBe(1);
     // the number can sign up again as a brand-new account
     const again = await login(normalizeIranMobile('+989000000007')!);

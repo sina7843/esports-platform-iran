@@ -31,7 +31,7 @@ const chip = computed(() => {
     <button type="button" class="btn btn-sm menu-btn" :aria-expanded="menuOpen" aria-controls="side-nav" :aria-label="menuOpen ? t('app.closeMenu') : t('app.menu')" @click="emit('menu')">
       <Icon :name="menuOpen ? 'close' : 'menu'" />
     </button>
-    <RouterLink to="/" class="brand"><Icon name="trophy" /> <span>{{ t('app.name') }}</span></RouterLink>
+    <RouterLink to="/" class="brand" :aria-label="t('app.name')"><Icon name="trophy" /> <span>{{ t('app.name') }}</span></RouterLink>
 
     <div class="spacer" />
 
@@ -55,14 +55,14 @@ const chip = computed(() => {
       <Icon name="hash" /> <span class="num">{{ settings.digits === 'fa' ? '۱۲۳' : '123' }}</span>
     </button>
 
-    <RouterLink v-if="session.me" to="/account" class="btn btn-sm user"><Icon name="user" /> <bdi>{{ session.me.principal.displayName }}</bdi></RouterLink>
+    <RouterLink v-if="session.me" to="/account" class="btn btn-sm user" :aria-label="session.me.principal.displayName"><Icon name="user" /> <bdi>{{ session.me.principal.displayName }}</bdi></RouterLink>
     <RouterLink v-else to="/login" class="btn btn-sm btn-primary">{{ t('nav.login') }}</RouterLink>
   </header>
 </template>
 
 <style scoped>
 .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: var(--sp-2); min-block-size: var(--topbar-h); padding: var(--sp-2) var(--sp-4); background: var(--surface); border-block-end: 1px solid var(--border); }
-.brand { display: inline-flex; align-items: center; gap: var(--sp-2); font-weight: 800; font-size: var(--fs-lg); color: var(--text); text-decoration: none; }
+.brand { min-inline-size: 2.5rem; min-block-size: 2.5rem; justify-content: center; display: inline-flex; align-items: center; gap: var(--sp-2); font-weight: 800; font-size: var(--fs-lg); color: var(--text); text-decoration: none; }
 .brand :deep(svg) { color: var(--accent); }
 .spacer { flex: 1; }
 .menu-btn { display: none; }
@@ -72,6 +72,8 @@ const chip = computed(() => {
 [data-tone='warn'] .dot { background: var(--warn); }
 [data-tone='down'] .dot { background: var(--danger); }
 @media (max-width: 900px) {
+  /* seven controls do not fit one 390px row; wrapping beats pushing the page sideways (it shifted the whole RTL layout) */
+  .topbar { flex-wrap: wrap; row-gap: var(--sp-1); }
   .menu-btn { display: inline-flex; }
   .last { display: none; }
   .brand span, .user bdi { display: none; }

@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-21T00:17:36.098Z",
+  "target": {
+    "sessions": 10000,
+    "liveMatches": 300,
+    "operators": 100,
+    "rps": 500,
+    "writeRatio": 0.2,
+    "durationSeconds": 3600
+  },
+  "run": {
+    "sessions": 10000,
+    "liveMatches": 300,
+    "operators": 100,
+    "rps": 500,
+    "writeRatio": 0.2,
+    "durationSeconds": 3600,
+    "wallSeconds": 3600,
+    "requests": 1799999,
+    "achievedRps": 500,
+    "maxInflight": 778
+  },
+  "errorRate": 0,
+  "rateLimited": 0,
+  "statuses": {
+    "200": 1799999
+  },
+  "families": {
+    "news": {
+      "n": 340569,
+      "p50": 5,
+      "p95": 42,
+      "p99": 198
+    },
+    "home": {
+      "n": 341915,
+      "p50": 10,
+      "p95": 78,
+      "p99": 379
+    },
+    "write:chat": {
+      "n": 360692,
+      "p50": 56,
+      "p95": 150,
+      "p99": 484
+    },
+    "live-tab": {
+      "n": 342391,
+      "p50": 6,
+      "p95": 49,
+      "p99": 243
+    },
+    "operator": {
+      "n": 71969,
+      "p50": 22,
+      "p95": 136,
+      "p99": 713
+    },
+    "live": {
+      "n": 342463,
+      "p50": 5,
+      "p95": 59,
+      "p99": 297
+    }
+  },
+  "host": {
+    "platform": "win32",
+    "node": "v24.13.1"
+  }
+}

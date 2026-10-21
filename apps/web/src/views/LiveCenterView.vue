@@ -179,7 +179,7 @@ const tabs = ['timeline', 'schedule', 'results', 'bracket', 'stats', 'gallery', 
           <button type="button" class="btn btn-sm" :aria-pressed="!latest" @click="setView('synced')">{{ t('live.synced') }}<span v-if="!latest && snap.view.delaySeconds"> ({{ t('live.delay', { n: num(snap.view.delaySeconds) }) }})</span></button>
           <button type="button" class="btn btn-sm" :aria-pressed="latest" @click="setView('latest')">{{ t('live.latest') }}</button>
         </div>
-        <p class="muted small" role="status" aria-live="polite">
+        <p class="muted small conn-status" role="status" aria-live="polite">
           <span class="dot" :data-state="conn.state" aria-hidden="true" /> {{ t(`live.conn.${conn.state}` as never) }} · {{ t('live.lastUpdate') }} <JalaliDate :iso="conn.lastUpdate" format="time" />
         </p>
         <label class="small"><input type="checkbox" :checked="settings.lowData" @change="setLowData(($event.target as HTMLInputElement).checked)" /> {{ t('live.lowData') }}</label>
@@ -298,6 +298,8 @@ const tabs = ['timeline', 'schedule', 'results', 'bracket', 'stats', 'gallery', 
 </template>
 
 <style scoped>
+/* reserve two lines: the connection text changes length (connecting → live → last update) and must not reflow the page (CLS) */
+.conn-status { min-block-size: 2.8em; margin: 0; }
 .row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .between { justify-content: space-between; }
 .block-sm { margin-block-start: var(--sp-3); }

@@ -6,6 +6,7 @@ import {
   NotificationPrefsUpdateSchema, OfficialMessageSchema, OverlaySchema, PageBeforeSchema, PostCreateSchema, PostEditSchema, PostFlagSchema, PostMediaSchema, PostNoteSchema, PostReturnSchema, PostScheduleSchema,
   PostVersionSchema, PostWithdrawSchema, ReactSchema, ReportSchema, SearchQuerySchema, StreamSchema, StreamUpdateSchema,
 } from '@esp/contracts';
+import { shared } from '../plugins/microcache.js';
 import { BroadcastService, CommunityService, HomeService, LiveService, NewsService, NotificationService, SearchService, type Container } from '@esp/core';
 
 /**
@@ -37,12 +38,20 @@ export function liveRoutes(app: FastifyInstance, ct: Container): void {
     if (v === 'latest') throw new DomainError('VALIDATION_FAILED', 'the latest-result view has its own endpoint (/latest)');
     return v;
   };
+  const microTtl = ct.config.NODE_ENV === 'test' ? 0 : 2000; // tests assert state changes between identical requests
+  /** True when the synced view of this event is the same for every viewer, so one computation can be shared. */
+  const publicSynced = async (eventId: string, v: string | null, token: string | null) => {
+    const e = await live.event(eventId, v, token);
+    return e.visibility === 'public' && !['draft', 'in_review'].includes(e.state);
+  };
   const Tab = z.object({ id: z.string().max(64), tab: z.enum(LiveTabs) });
 
   // ------------------------------------------------------------------ live centre (LIVE-001..006, CAST-005/006)
   r.get('/live/events/:id', { schema: { tags: ['live'], summary: 'Live centre, stream-synced view (delayed)', params: Id, querystring: LiveQuerySchema, response: { 200: Out, ...errors } } }, async (req, reply) => {
     void reply.header('cache-control', 'public, max-age=5');
-    return plain(await live.snapshot(req.params.id, syncedView(req.query.view), filters(req.query), viewer(req), req.query.t ?? null));
+    const view = syncedView(req.query.view);
+    const run = () => live.snapshot(req.params.id, view, filters(req.query), viewer(req), req.query.t ?? null);
+    return plain(await ((await publicSynced(req.params.id, viewer(req), req.query.t ?? null)) ? shared(`snap:${req.url}`, microTtl, run) : run()));
   });
   r.get('/live/events/:id/latest', { schema: { tags: ['live'], summary: 'Live centre, explicit latest-result view', params: Id, querystring: LiveQuerySchema, response: { 200: Out, ...errors } } }, async (req, reply) => {
     void reply.header('cache-control', 'no-store');
@@ -50,7 +59,9 @@ export function liveRoutes(app: FastifyInstance, ct: Container): void {
   });
   r.get('/live/events/:id/tabs/:tab', { schema: { tags: ['live'], params: Tab, querystring: LiveQuerySchema, response: { 200: Out, ...errors } } }, async (req, reply) => {
     void reply.header('cache-control', 'public, max-age=5');
-    return plain(await live.section(req.params.id, syncedView(req.query.view), req.params.tab, filters(req.query), viewer(req), req.query.t ?? null));
+    const view = syncedView(req.query.view);
+    const run = () => live.section(req.params.id, view, req.params.tab, filters(req.query), viewer(req), req.query.t ?? null);
+    return plain(await ((await publicSynced(req.params.id, viewer(req), req.query.t ?? null)) ? shared(`tab:${req.url}`, microTtl, run) : run()));
   });
   r.get('/live/events/:id/latest/tabs/:tab', { schema: { tags: ['live'], params: Tab, querystring: LiveQuerySchema, response: { 200: Out, ...errors } } }, async (req, reply) => {
     void reply.header('cache-control', 'no-store');

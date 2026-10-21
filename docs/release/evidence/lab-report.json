@@ -1,0 +1,1791 @@
+{
+  "at": "2026-10-20T23:52:22.898Z",
+  "browser": "Chrome/155.0.8059.85",
+  "note": "LAB data from a local headless browser with throttling emulation; no field (real-user) data exists. Automated axe rules cover only part of WCAG; manual screen-reader and real-device checks are separate.",
+  "totals": {
+    "pages": 50,
+    "axeViolations": 0,
+    "pagesWithOverflow": 0,
+    "pagesRedirected": 0,
+    "pagesEmpty": 0,
+    "pagesNotRtl": 0,
+    "pagesWithConsoleErrors": 0
+  },
+  "results": [
+    {
+      "profile": "mobile-slow4g",
+      "route": "/",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "خانه — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/",
+      "finalPath": "/",
+      "contentChars": 329,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 700,
+        "lcp": 1260,
+        "cls": 0.001,
+        "tbt": 257,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 3,
+        "offenders": [
+          "A تقویم مسابقه‌های من | small 108x20",
+          "A پروفایل من |  55x20",
+          "A همه اخبار | small 49x20"
+        ]
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/events",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "رویدادها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/events",
+      "finalPath": "/events",
+      "contentChars": 94,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 772,
+        "lcp": 1920,
+        "cls": 0,
+        "tbt": 343,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/events/evt_seed_a",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "رویدادها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/events/evt_seed_a",
+      "finalPath": "/events/evt_seed_a",
+      "contentChars": 541,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 708,
+        "lcp": 2368,
+        "cls": 0,
+        "tbt": 275,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/events/evt_seed_a/live",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "مرکز زنده — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/events/evt_seed_a/live",
+      "finalPath": "/events/evt_seed_a/live",
+      "contentChars": 393,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.132,
+            "at": 2485,
+            "src": [
+              "SECTION.grid3 block-sm 424->386",
+              "FORM.row filters block-sm 800->762"
+            ]
+          },
+          {
+            "v": 0.132,
+            "at": 2356,
+            "src": [
+              "SECTION.grid3 block-sm 424->386",
+              "FORM.row filters block-sm 800->762"
+            ]
+          },
+          {
+            "v": 0.132,
+            "at": 2470,
+            "src": [
+              "SECTION.grid3 block-sm 424->386",
+              "FORM.row filters block-sm 800->762"
+            ]
+          }
+        ],
+        "fcp": 684,
+        "lcp": 2312,
+        "cls": 0.133,
+        "tbt": 261,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/news",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "اخبار — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/news",
+      "finalPath": "/news",
+      "contentChars": 179,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 904,
+        "lcp": 2676,
+        "cls": 0,
+        "tbt": 284,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/rankings",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "رده‌بندی — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/rankings",
+      "finalPath": "/rankings",
+      "contentChars": 125,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 976,
+        "lcp": 976,
+        "cls": 0,
+        "tbt": 312,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 22,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/rules",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "بسته‌های قوانین — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/rules",
+      "finalPath": "/rules",
+      "contentChars": 448,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 944,
+        "lcp": 944,
+        "cls": 0,
+        "tbt": 258,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/games",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "بازی‌ها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/games",
+      "finalPath": "/games",
+      "contentChars": 250,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 872,
+        "lcp": 872,
+        "cls": 0,
+        "tbt": 223,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/search",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "جستجو — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/search",
+      "finalPath": "/search",
+      "contentChars": 201,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 812,
+        "lcp": 2392,
+        "cls": 0,
+        "tbt": 260,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/login",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "ورود — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/login",
+      "finalPath": "/login",
+      "contentChars": 146,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 908,
+        "lcp": 908,
+        "cls": 0,
+        "tbt": 470,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/account",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "حساب من — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/account",
+      "finalPath": "/account",
+      "contentChars": 195,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 1044,
+        "lcp": 1044,
+        "cls": 0,
+        "tbt": 274,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/account/settings",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "تنظیمات — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/account/settings",
+      "finalPath": "/account/settings",
+      "contentChars": 461,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 852,
+        "lcp": 852,
+        "cls": 0,
+        "tbt": 325,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/account/privacy",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "حریم خصوصی من — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/account/privacy",
+      "finalPath": "/account/privacy",
+      "contentChars": 762,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.085,
+            "at": 2643,
+            "src": [
+              "SECTION.card stack block 779->563",
+              "SECTION.card stack block 0->725"
+            ]
+          }
+        ],
+        "fcp": 1000,
+        "lcp": 1000,
+        "cls": 0.085,
+        "tbt": 297,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/legal/terms",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "حریم خصوصی من — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/legal/terms",
+      "finalPath": "/legal/terms",
+      "contentChars": 62,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 924,
+        "lcp": 2664,
+        "cls": 0,
+        "tbt": 354,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 22,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/support",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "پشتیبانی — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/support",
+      "finalPath": "/support",
+      "contentChars": 341,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 940,
+        "lcp": 940,
+        "cls": 0,
+        "tbt": 283,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/users",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "کاربران — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/users",
+      "finalPath": "/admin/users",
+      "contentChars": 175,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 948,
+        "lcp": 948,
+        "cls": 0,
+        "tbt": 345,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 22,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/tasks",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "وظایف — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/tasks",
+      "finalPath": "/admin/tasks",
+      "contentChars": 236,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 940,
+        "lcp": 940,
+        "cls": 0,
+        "tbt": 343,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/tickets",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "پشتیبانی (صف) — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/tickets",
+      "finalPath": "/admin/tickets",
+      "contentChars": 341,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 932,
+        "lcp": 932,
+        "cls": 0,
+        "tbt": 333,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/settings",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "تنظیمات و سلامت — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/settings",
+      "finalPath": "/admin/settings",
+      "contentChars": 348,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 964,
+        "lcp": 964,
+        "cls": 0,
+        "tbt": 343,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/privacy",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "حریم خصوصی و نگهداری — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/privacy",
+      "finalPath": "/admin/privacy",
+      "contentChars": 1248,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 1052,
+        "lcp": 1072,
+        "cls": 0,
+        "tbt": 373,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/integrations",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "اتصال‌ها و API شریک — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/integrations",
+      "finalPath": "/admin/integrations",
+      "contentChars": 2124,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.057,
+            "at": 2706,
+            "src": [
+              "SECTION.card stack block 784->0"
+            ]
+          }
+        ],
+        "fcp": 852,
+        "lcp": 1088,
+        "cls": 0.057,
+        "tbt": 356,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/reports",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "گزارش‌ها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/reports",
+      "finalPath": "/admin/reports",
+      "contentChars": 253,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 924,
+        "lcp": 2000,
+        "cls": 0,
+        "tbt": 336,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/admin/ops",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "عملیات و سلامت — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/ops",
+      "finalPath": "/admin/ops",
+      "contentChars": 1263,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.187,
+            "at": 2508,
+            "src": [
+              "SECTION.block 679->0"
+            ]
+          }
+        ],
+        "fcp": 960,
+        "lcp": 1088,
+        "cls": 0.188,
+        "tbt": 336,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/organizer",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "پنل برگزارکننده — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/organizer",
+      "finalPath": "/organizer",
+      "contentChars": 567,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.128,
+            "at": 2756,
+            "src": [
+              "FORM.card stack block 731->481"
+            ]
+          },
+          {
+            "v": 0.128,
+            "at": 2357,
+            "src": [
+              "FORM.card stack block 731->481"
+            ]
+          }
+        ],
+        "fcp": 888,
+        "lcp": 2244,
+        "cls": 0.128,
+        "tbt": 291,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "mobile-slow4g",
+      "route": "/organizer/events/evt_seed_a/ops",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 390,
+      "innerWidth": 390,
+      "title": "داشبورد عملیات — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/organizer/events/evt_seed_a/ops",
+      "finalPath": "/organizer/events/evt_seed_a/ops",
+      "contentChars": 727,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.084,
+            "at": 2677,
+            "src": [
+              "SECTION.card stack block 718->0"
+            ]
+          },
+          {
+            "v": 0.084,
+            "at": 2479,
+            "src": [
+              "SECTION.card stack block 718->0"
+            ]
+          }
+        ],
+        "fcp": 868,
+        "lcp": 2316,
+        "cls": 0.084,
+        "tbt": 264,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 23,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "خانه — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/",
+      "finalPath": "/",
+      "contentChars": 329,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 64,
+        "lcp": 112,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/events",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "رویدادها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/events",
+      "finalPath": "/events",
+      "contentChars": 94,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 68,
+        "lcp": 68,
+        "cls": 0.007,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/events/evt_seed_a",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "رویدادها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/events/evt_seed_a",
+      "finalPath": "/events/evt_seed_a",
+      "contentChars": 541,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 76,
+        "lcp": 156,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/events/evt_seed_a/live",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "مرکز زنده — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/events/evt_seed_a/live",
+      "finalPath": "/events/evt_seed_a/live",
+      "contentChars": 393,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 68,
+        "lcp": 136,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/news",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "اخبار — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/news",
+      "finalPath": "/news",
+      "contentChars": 179,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 84,
+        "lcp": 136,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/rankings",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "رده‌بندی — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/rankings",
+      "finalPath": "/rankings",
+      "contentChars": 137,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 92,
+        "lcp": 132,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/rules",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "بسته‌های قوانین — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/rules",
+      "finalPath": "/rules",
+      "contentChars": 471,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.056,
+            "at": 129,
+            "src": [
+              "FORM.card stack block 629->424"
+            ]
+          },
+          {
+            "v": 0.056,
+            "at": 131,
+            "src": [
+              "FORM.card stack block 629->424"
+            ]
+          }
+        ],
+        "fcp": 80,
+        "lcp": 124,
+        "cls": 0.064,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/games",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "بازی‌ها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/games",
+      "finalPath": "/games",
+      "contentChars": 551,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.098,
+            "at": 160,
+            "src": [
+              "FORM.card stack block 595->320",
+              "BUTTON.btn btn-primary 0->618"
+            ]
+          },
+          {
+            "v": 0.098,
+            "at": 134,
+            "src": [
+              "FORM.card stack block 595->320",
+              "BUTTON.btn btn-primary 0->618"
+            ]
+          },
+          {
+            "v": 0.098,
+            "at": 139,
+            "src": [
+              "FORM.card stack block 595->320",
+              "BUTTON.btn btn-primary 0->618"
+            ]
+          }
+        ],
+        "fcp": 84,
+        "lcp": 148,
+        "cls": 0.105,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/search",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "جستجو — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/search",
+      "finalPath": "/search",
+      "contentChars": 201,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 72,
+        "lcp": 132,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/login",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "ورود — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/login",
+      "finalPath": "/login",
+      "contentChars": 146,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 68,
+        "lcp": 132,
+        "cls": 0.007,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/account",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "حساب من — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/account",
+      "finalPath": "/account",
+      "contentChars": 6600,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 92,
+        "lcp": 92,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/account/settings",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "تنظیمات — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/account/settings",
+      "finalPath": "/account/settings",
+      "contentChars": 461,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 68,
+        "lcp": 120,
+        "cls": 0.007,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/account/privacy",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "حریم خصوصی من — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/account/privacy",
+      "finalPath": "/account/privacy",
+      "contentChars": 762,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.048,
+            "at": 138,
+            "src": [
+              "SECTION.card stack block 706->489",
+              "SECTION.card stack block 0->628"
+            ]
+          },
+          {
+            "v": 0.048,
+            "at": 129,
+            "src": [
+              "SECTION.card stack block 706->489",
+              "SECTION.card stack block 0->628"
+            ]
+          },
+          {
+            "v": 0.048,
+            "at": 150,
+            "src": [
+              "SECTION.card stack block 706->489",
+              "SECTION.card stack block 0->628"
+            ]
+          }
+        ],
+        "fcp": 72,
+        "lcp": 136,
+        "cls": 0.055,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/legal/terms",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "حریم خصوصی من — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/legal/terms",
+      "finalPath": "/legal/terms",
+      "contentChars": 62,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 80,
+        "lcp": 80,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/support",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "پشتیبانی — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/support",
+      "finalPath": "/support",
+      "contentChars": 353,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 92,
+        "lcp": 144,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/users",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "کاربران — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/users",
+      "finalPath": "/admin/users",
+      "contentChars": 175,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 88,
+        "lcp": 140,
+        "cls": 0.008,
+        "tbt": 4,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/tasks",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "وظایف — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/tasks",
+      "finalPath": "/admin/tasks",
+      "contentChars": 248,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 84,
+        "lcp": 128,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/tickets",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "پشتیبانی (صف) — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/tickets",
+      "finalPath": "/admin/tickets",
+      "contentChars": 365,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.046,
+            "at": 836,
+            "src": [
+              "SECTION.block 704->488",
+              "svg.[object SVGAnimatedString] 0->590"
+            ]
+          },
+          {
+            "v": 0.046,
+            "at": 116,
+            "src": [
+              "SECTION.block 704->488",
+              "svg.[object SVGAnimatedString] 0->590"
+            ]
+          }
+        ],
+        "fcp": 72,
+        "lcp": 132,
+        "cls": 0.053,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/settings",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "تنظیمات و سلامت — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/settings",
+      "finalPath": "/admin/settings",
+      "contentChars": 1350,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.033,
+            "at": 152,
+            "src": [
+              "SECTION.block 662->0"
+            ]
+          },
+          {
+            "v": 0.033,
+            "at": 151,
+            "src": [
+              "SECTION.block 662->0"
+            ]
+          },
+          {
+            "v": 0.033,
+            "at": 142,
+            "src": [
+              "SECTION.block 662->0"
+            ]
+          }
+        ],
+        "fcp": 76,
+        "lcp": 160,
+        "cls": 0.041,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/privacy",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "حریم خصوصی و نگهداری — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/privacy",
+      "finalPath": "/admin/privacy",
+      "contentChars": 1260,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 76,
+        "lcp": 152,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/integrations",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "اتصال‌ها و API شریک — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/integrations",
+      "finalPath": "/admin/integrations",
+      "contentChars": 2148,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 68,
+        "lcp": 132,
+        "cls": 0.019,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/reports",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "گزارش‌ها — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/reports",
+      "finalPath": "/admin/reports",
+      "contentChars": 253,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 72,
+        "lcp": 128,
+        "cls": 0.008,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/admin/ops",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "عملیات و سلامت — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/admin/ops",
+      "finalPath": "/admin/ops",
+      "contentChars": 1255,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.035,
+            "at": 140,
+            "src": [
+              "SECTION.block 651->0"
+            ]
+          },
+          {
+            "v": 0.035,
+            "at": 128,
+            "src": [
+              "SECTION.block 651->0"
+            ]
+          },
+          {
+            "v": 0.035,
+            "at": 126,
+            "src": [
+              "SECTION.block 651->0"
+            ]
+          }
+        ],
+        "fcp": 68,
+        "lcp": 140,
+        "cls": 0.043,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 24,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/organizer",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "پنل برگزارکننده — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/organizer",
+      "finalPath": "/organizer",
+      "contentChars": 567,
+      "redirected": false,
+      "vitals": {
+        "shifts": [
+          {
+            "v": 0.081,
+            "at": 32664,
+            "src": [
+              "FORM.card stack block 703->415"
+            ]
+          },
+          {
+            "v": 0.081,
+            "at": 147,
+            "src": [
+              "FORM.card stack block 703->415"
+            ]
+          }
+        ],
+        "fcp": 100,
+        "lcp": 152,
+        "cls": 0.088,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    },
+    {
+      "profile": "desktop",
+      "route": "/organizer/events/evt_seed_a/ops",
+      "lang": "fa",
+      "dir": "rtl",
+      "overflow": false,
+      "scrollWidth": 1351,
+      "innerWidth": 1366,
+      "title": "داشبورد عملیات — پلتفرم ورزش‌های الکترونیکی",
+      "hasMain": true,
+      "path": "/organizer/events/evt_seed_a/ops",
+      "finalPath": "/organizer/events/evt_seed_a/ops",
+      "contentChars": 727,
+      "redirected": false,
+      "vitals": {
+        "shifts": [],
+        "fcp": 96,
+        "lcp": 132,
+        "cls": 0.014,
+        "tbt": 0,
+        "runs": 3
+      },
+      "axe": [],
+      "keyboard": {
+        "stops": 25,
+        "noIndicator": 0,
+        "tiny": 0,
+        "offenders": []
+      },
+      "consoleErrors": []
+    }
+  ]
+}

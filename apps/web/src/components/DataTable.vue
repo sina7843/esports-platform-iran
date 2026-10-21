@@ -10,7 +10,7 @@ function cell(row: object, key: string): unknown {
 </script>
 
 <template>
-  <div class="table-wrap">
+  <div class="table-wrap" role="region" tabindex="0" :aria-label="caption">
     <table class="data-table">
       <caption>{{ caption }}</caption>
       <thead>

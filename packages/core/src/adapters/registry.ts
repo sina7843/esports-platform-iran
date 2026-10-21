@@ -3,6 +3,8 @@ import type { AppConfig } from '../config.js';
 import type { AdapterBase, Adapters } from './types.js';
 import type { Db } from 'mongodb';
 import { DevGatewayAdapter } from './devGateway.js';
+import { ClamAvAdapter } from './clamav.js';
+import { resilient } from '../integrations/providers.js';
 import { DevEmailAdapter, DevMapAdapter, DevScannerAdapter, DevSmsAdapter, DevVideoAdapter, LocalStorageAdapter, NoPublisherAdapter } from './dev.js';
 
 /**
@@ -29,7 +31,7 @@ function unconfigured<T extends AdapterBase>(kind: ProviderHealth['kind'], metho
 
 export function buildAdapters(config: AppConfig, db: Db): Adapters {
   const storageMode = config.isProduction ? 'production' : 'development_double';
-  return {
+  return resilient({
     payment: config.PAYMENT_ADAPTER === 'dev' ? new DevGatewayAdapter(db, config.appSecret, config.PUBLIC_API_ORIGIN) : unconfigured('payment', ['createPayment', 'verify', 'refund', 'verifyCallback']),
     sms: config.SMS_ADAPTER === 'dev' ? new DevSmsAdapter(config.DATA_DIR) : unconfigured('sms', ['send']),
     email: config.EMAIL_ADAPTER === 'dev' ? new DevEmailAdapter(config.DATA_DIR) : unconfigured('email', ['send']),
@@ -37,8 +39,8 @@ export function buildAdapters(config: AppConfig, db: Db): Adapters {
     video: config.VIDEO_ADAPTER === 'dev' ? new DevVideoAdapter() : unconfigured('video', ['streamInfo']),
     map: config.MAP_ADAPTER === 'dev' ? new DevMapAdapter() : unconfigured('map', ['geocode', 'staticMapUrl']),
     publisher: new NoPublisherAdapter(),
-    scanner: config.SCANNER_ADAPTER === 'dev' ? new DevScannerAdapter() : unconfigured('scanner', ['scan']),
-  };
+    scanner: config.SCANNER_ADAPTER === 'dev' ? new DevScannerAdapter() : config.SCANNER_ADAPTER === 'clamav' && config.CLAMAV_HOST ? new ClamAvAdapter(config.CLAMAV_HOST, config.CLAMAV_PORT ?? 3310) : unconfigured('scanner', ['scan']),
+  });
 }
 
 export async function adaptersHealth(adapters: Adapters): Promise<ProviderHealth[]> {
