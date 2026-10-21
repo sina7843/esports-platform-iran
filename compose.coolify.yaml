@@ -102,8 +102,10 @@ services:
       <<: *app-env
     volumes:
       - esports_app_data:/data
+    # API and worker both run the migration runner at startup. Start the worker
+    # only after API is healthy so a first deploy cannot race on migration records.
     depends_on:
-      mongo:
+      api:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
