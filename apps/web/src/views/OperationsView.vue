@@ -81,6 +81,7 @@ async function saveSettings() {
   }
   const st = (await esp03.manage(eventId.value)).stages.find((s) => s.id === stageId.value) as unknown as { version: number } | undefined;
   await act(() => esp04.stageSettings(stageId.value, { settings, expectedVersion: st?.version ?? 0 }));
+  if (failure.value) return;
   await loadRules();
 }
 
@@ -101,17 +102,20 @@ const nameOf = (pid: string) => latest.value?.input.find((x) => x.participationI
 const cleanAttrs = () => Object.fromEntries(Object.entries(attrs).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).filter(([, x]) => x !== null && x !== undefined && x !== ''))]));
 async function preview() {
   await act(() => esp04.drawPreview(stageId.value, { method: method.value, attributes: cleanAttrs() }));
+  if (failure.value) return;
   await loadDraws();
 }
 async function step(s: 'confirm' | 'lock' | 'publish') {
   if (!latest.value) return;
   await act(() => esp04.drawStep(latest.value!._id, s));
+  if (failure.value) return;
   await loadDraws();
   await load();
 }
 async function redraw() {
   const r = await act(() => esp04.redraw(stageId.value, { method: method.value, attributes: cleanAttrs(), reason: redrawReason.value }), t('cops.redrawDone'));
   if (r) notice.value = t('cops.discarded', { n: num(r.discardedMatches) });
+  if (failure.value) return;
   await loadDraws();
   await load();
 }
@@ -192,6 +196,7 @@ watch(stageId, () => {
         </template>
       </PageHeader>
       <ErrorNote :error="failure" />
+      <p v-if="failure?.code === 'PRECONDITION_FAILED'" class="muted" role="status">{{ failure.message }}</p>
       <p v-if="notice" role="status" class="ok">{{ notice }}</p>
 
       <FormField id="ops-stage" :label="t('cops.stage')">
