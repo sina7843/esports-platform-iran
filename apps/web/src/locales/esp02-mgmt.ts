@@ -95,6 +95,7 @@ export const faMgmt = {
 } as const;
 
 export const enMgmt: Record<keyof typeof faMgmt, string> = {
+  'rules.trialHelp': 'Synthetic rules can be used for private, free, unrated exercises without prizes in development. Trial publication does not mean publisher rights have been reviewed or the game is ready for real competitions.',
   'mgmt.roleChange': 'Change role',
   'mgmt.transfer': 'Transfer ownership',
   'mgmt.transferTo': 'New owner id (must be a member)',
