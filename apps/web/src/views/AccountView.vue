@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Grant, Session } from '@esp/contracts';
 import { api, type ApiClientError } from '../api/client';
+import Icon from '../components/Icon.vue';
 import DataState from '../components/DataState.vue';
 import DataTable from '../components/DataTable.vue';
 import ErrorNote from '../components/ErrorNote.vue';
@@ -61,6 +62,7 @@ const sessionCols = () => [
   <ErrorNote :error="actionError" />
 
   <template v-if="session.me">
+    <nav class="account-shortcuts" :aria-label="t('home.discover')"><RouterLink to="/account/registrations" class="card"><Icon name="trophy" :size="24" />{{ t('reg.mine') }}<Icon name="forward" :size="16" /></RouterLink><RouterLink to="/teams" class="card"><Icon name="users" :size="24" />{{ t('nav.myTeams') }}<Icon name="forward" :size="16" /></RouterLink><RouterLink to="/account/calendar" class="card"><Icon name="calendar" :size="24" />{{ t('cal.title') }}<Icon name="forward" :size="16" /></RouterLink></nav>
     <section class="card" aria-labelledby="who-h">
       <h2 id="who-h">{{ t('account.principal') }}</h2>
       <dl class="meta">
@@ -105,6 +107,10 @@ const sessionCols = () => [
 </template>
 
 <style scoped>
+.account-shortcuts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--sp-4); margin-block-end: var(--sp-5); }
+.account-shortcuts a { display: flex; align-items: center; gap: var(--sp-3); text-decoration: none; color: var(--text); font-weight: 600; }
+.account-shortcuts svg { color: var(--accent); }
+.account-shortcuts svg:last-child { margin-inline-start: auto; }
 .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--sp-4); margin: 0; }
 dt { color: var(--text-muted); font-size: var(--fs-sm); }
 dd { margin: 0; font-weight: 600; }

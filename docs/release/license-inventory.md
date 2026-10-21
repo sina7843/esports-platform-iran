@@ -10,7 +10,7 @@
 | BSD-2-Clause | 2 | 9 |
 | BSD-3-Clause | 4 | 5 |
 | BlueOak-1.0.0 | 5 | 5 |
-| ISC | 9 | 18 |
+| ISC | 10 | 19 |
 | MIT | 111 | 223 |
 | MPL-2.0 | 0 | 2 |
 | OFL | 1 | 1 |
@@ -47,6 +47,7 @@
 | @fastify/swagger-ui | 6.1.2 | MIT |
 | @fastify/websocket | 11.3.4 | MIT |
 | @jridgewell/sourcemap-codec | 1.6.0 | MIT |
+| @lucide/vue | 1.60.0 | ISC |
 | @lukeed/ms | 2.0.2 | MIT |
 | @mongodb-js/saslprep | 1.6.1 | MIT |
 | @pinojs/redact | 0.4.0 | MIT |

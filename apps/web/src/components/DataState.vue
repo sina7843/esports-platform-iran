@@ -33,7 +33,8 @@ const retryable = computed(() => kind.value === 'error' || kind.value === 'offli
 <template>
   <slot v-if="kind === 'content'" />
   <div v-else class="state" :data-state="kind" :role="kind === 'loading' ? 'status' : kind === 'empty' ? undefined : 'alert'" :aria-busy="kind === 'loading'">
-    <Icon :name="icons[kind]" :size="32" />
+    <div v-if="kind === 'loading'" class="loading-skeleton" aria-hidden="true"><div v-for="n in 3" :key="n" class="skeleton-card"><span /><span /><span /></div></div>
+    <Icon v-else :name="icons[kind]" :size="32" />
     <slot v-if="kind === 'empty'" name="empty"><p class="msg">{{ message }}</p></slot>
     <p v-else class="msg">{{ message }}</p>
     <p v-if="detail" class="muted">{{ detail }}</p>
@@ -48,6 +49,12 @@ const retryable = computed(() => kind.value === 'error' || kind.value === 'offli
 
 <style scoped>
 .state { display: grid; justify-items: center; gap: var(--sp-2); text-align: center; padding: var(--sp-7) var(--sp-4); color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius-lg); }
+.loading-skeleton { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); inline-size: 100%; }
+.skeleton-card { display: grid; gap: var(--sp-4); padding: var(--sp-5); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.skeleton-card span { display: block; background: var(--surface-2); block-size: 16px; border-radius: var(--radius-sm); }
+.skeleton-card span:first-child { block-size: 96px; }
+.skeleton-card span:last-child { inline-size: 60%; }
+@media (max-width: 640px) { .loading-skeleton { grid-template-columns: 1fr; } .skeleton-card:not(:first-child) { display: none; } }
 .msg { margin: 0; font-weight: 600; color: var(--text); }
 /* reserve space while loading so content arriving later does not push the page down (CLS) */
 [data-state='loading'] { min-block-size: 24rem; align-content: start; }

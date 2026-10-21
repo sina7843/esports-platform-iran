@@ -17,7 +17,7 @@ interface Stored {
 
 function load(): Stored {
   const saveData = typeof navigator !== 'undefined' && !!(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-  const base: Stored = { locale: 'fa', theme: 'system', digits: 'fa', lowData: saveData };
+  const base: Stored = { locale: 'fa', theme: 'dark', digits: 'fa', lowData: saveData };
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return base;

@@ -3,6 +3,7 @@ import { reactive, ref } from 'vue';
 import { CompetitionFamilies } from '@esp/contracts';
 import type { ApiClientError } from '../api/client';
 import { esp02 } from '../api/esp02';
+import Icon from '../components/Icon.vue';
 import ErrorNote from '../components/ErrorNote.vue';
 import FormField from '../components/FormField.vue';
 import { toClientError } from '../errors';
@@ -32,11 +33,12 @@ async function create() {
 </script>
 
 <template>
-  <PageHeader :title="t('games.title')" />
+  <PageHeader :title="t('games.title')" :lead="t('games.leadNew')" />
   <DataState :loading="games.loading.value" :error="games.error.value" :empty="!!games.data.value && games.data.value.items.length === 0" @retry="games.load">
     <ul v-if="games.data.value" class="cards">
       <li v-for="game in games.data.value.items" :key="game.id" class="card stack">
-        <RouterLink :to="`/games/${game.id}`"><bdi>{{ game.title }}</bdi></RouterLink>
+        <span class="game-symbol" aria-hidden="true"><Icon name="game" :size="36" /></span>
+        <RouterLink class="game-name" :to="`/games/${game.id}`"><bdi>{{ game.title }}</bdi></RouterLink>
         <span class="muted">{{ t('games.publisher') }}: <bdi>{{ game.publisher }}</bdi></span>
         <span class="state" :data-state="game.state">{{ t(`gstate.${game.state}` as MessageKey) }}</span>
       </li>
@@ -61,6 +63,8 @@ async function create() {
 
 <style scoped>
 .cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--sp-4); }
+.game-symbol { display: grid; place-items: center; min-block-size: 7rem; border-radius: var(--radius-md); color: var(--accent); background: var(--accent-soft); }
+.game-name { color: var(--text); font-weight: 700; font-size: var(--fs-lg); text-decoration: none; }
 .state { font-size: var(--fs-sm); font-weight: 600; }
 .block { margin-block-start: var(--sp-6); }
 .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--sp-3); }

@@ -312,14 +312,14 @@ const tabs = ['timeline', 'schedule', 'results', 'bracket', 'stats', 'gallery', 
 .table { inline-size: 100%; border-collapse: collapse; }
 .table th, .table td { text-align: start; padding: var(--sp-2); border-block-end: 1px solid var(--border); }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: var(--sp-2); margin: 0; }
-.facts dt { color: var(--muted); font-size: var(--fs-sm); }
+.facts dt { color: var(--text-muted); font-size: var(--fs-sm); }
 .facts dd { margin: 0; font-weight: 600; }
 .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--sp-2); }
 .gallery img { inline-size: 100%; block-size: auto; border-radius: var(--radius, 6px); }
 .gallery figure { margin: 0; }
 .player { inline-size: 100%; max-block-size: 60vh; background: #000; border-radius: var(--radius, 6px); }
 .stream { border-block-end: 1px solid var(--border); padding-block: var(--sp-2); }
-.dot { display: inline-block; inline-size: 0.6rem; block-size: 0.6rem; border-radius: 50%; background: var(--muted); }
+.dot { display: inline-block; inline-size: 0.6rem; block-size: 0.6rem; border-radius: 50%; background: var(--text-muted); }
 .dot[data-state='live'] { background: var(--ok); }
 .dot[data-state='retrying'] { background: var(--warn); }
 .dot[data-state='offline'] { background: var(--danger); }

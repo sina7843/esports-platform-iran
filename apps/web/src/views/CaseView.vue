@@ -155,7 +155,7 @@ const requests = computed(() => c.value?.requests ?? c.value?.evidenceRequests ?
 .block { margin-block-start: var(--sp-4); }
 .list { margin: 0; padding-inline-start: var(--sp-5); }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--sp-2); margin: 0; }
-.facts dt { color: var(--muted); font-size: var(--fs-sm); }
+.facts dt { color: var(--text-muted); font-size: var(--fs-sm); }
 .facts dd { margin: 0; }
 .claim { white-space: pre-wrap; margin: 0; }
 .decision { border-inline-start: 3px solid var(--border); padding-inline-start: var(--sp-3); }

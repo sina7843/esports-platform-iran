@@ -2,9 +2,10 @@
 import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { t, type MessageKey } from '../i18n';
+import Icon, { type IconName } from './Icon.vue';
 import { can, session } from '../session';
 
-defineProps<{ open: boolean; collapsed: boolean }>();
+const props = defineProps<{ open: boolean; collapsed: boolean; publicOnly?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 
 interface Item {
@@ -17,6 +18,7 @@ interface Section {
   title: MessageKey;
   items: Item[];
 }
+const navIcons: Record<string, IconName> = { '/': 'home', '/events': 'trophy', '/news': 'news', '/rankings': 'chart', '/recruitment': 'users', '/organizers': 'shield', '/games': 'game', '/rules': 'inbox', '/verify': 'shield', '/search': 'search', '/account/settings': 'settings', '/account/calendar': 'calendar', '/messages': 'inbox', '/account/notifications': 'bell' };
 const sections: Section[] = [
   {
     title: 'nav.section.public',
@@ -78,6 +80,7 @@ const sections: Section[] = [
 // Client-side hint only: items the user's grants cannot use are hidden; the server enforces access.
 const visible = computed(() =>
   sections
+    .filter((s) => !props.publicOnly || s.title === 'nav.section.public' || s.title === 'nav.section.account')
     .map((s) => ({ ...s, items: s.items.filter((i) => (i.auth ? !!session.me : true) && (i.permission ? can(i.permission) : true)) }))
     .filter((s) => s.items.length > 0),
 );
@@ -86,11 +89,13 @@ const visible = computed(() =>
 <template>
   <div v-if="open" class="backdrop" @click="emit('close')" />
   <nav id="side-nav" class="sidenav" :class="{ open, collapsed }" :aria-label="t('app.mainNav')" @keydown.esc="emit('close')">
+    <button type="button" class="btn drawer-close" :aria-label="t('app.closeMenu')" @click="emit('close')"><Icon name="close" /></button>
+    <div class="nav-heading"><Icon name="swords" :size="24" /><span>{{ t('app.arena') }}</span></div>
     <section v-for="s in visible" :key="s.title">
       <h2 class="sec">{{ t(s.title) }}</h2>
       <ul>
         <li v-for="i in s.items" :key="i.to">
-          <RouterLink :to="i.to" @click="emit('close')">{{ t(i.label) }}</RouterLink>
+          <RouterLink :to="i.to" @click="emit('close')"><Icon :name="navIcons[i.to] ?? 'dashboard'" :size="18" /><span>{{ t(i.label) }}</span><span v-if="i.to === '/events'" class="nav-label">{{ t('app.explore') }}</span></RouterLink>
         </li>
       </ul>
     </section>
@@ -100,13 +105,19 @@ const visible = computed(() =>
 <style scoped>
 .sidenav { inline-size: var(--sidebar-w); flex: none; padding: var(--sp-4); background: var(--surface); border-inline-end: 1px solid var(--border); overflow-y: auto; position: sticky; top: var(--topbar-h); align-self: flex-start; block-size: calc(100vh - var(--topbar-h)); }
 .sidenav.collapsed { display: none; }
-.sec { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin: var(--sp-4) 0 var(--sp-2); }
+.sec { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0; color: var(--text-muted); margin: var(--sp-4) 0 var(--sp-2); }
 ul { list-style: none; margin: 0; padding: 0; }
-a { display: block; padding: var(--sp-1) var(--sp-3); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; border-inline-start: 3px solid transparent; }
+a { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); padding: var(--sp-2) var(--sp-3); min-block-size: 44px; border-radius: var(--radius-sm); color: var(--text); text-decoration: none; border-inline-start: 3px solid transparent; }
 a:hover { background: var(--surface-2); }
 a.router-link-exact-active, a.router-link-active:not([href='/']) { background: var(--accent-soft); color: var(--accent-strong); font-weight: 700; border-inline-start-color: var(--accent); }
+.drawer-close { display: none; }
+.nav-heading { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-4) var(--sp-3) var(--sp-5); border-block-end: 1px solid var(--border); font-weight: 800; }
+.nav-heading svg { color: var(--accent); }
+.nav-label { margin-inline-start: auto; color: var(--text-muted); font-size: var(--fs-xs); }
+section + section { margin-block-start: var(--sp-5); padding-block-start: var(--sp-2); border-block-start: 1px solid var(--border); }
 .backdrop { display: none; }
 @media (max-width: 900px) {
+  .drawer-close { display: flex; margin-inline-start: auto; }
   .sidenav, .sidenav.collapsed { display: block; position: fixed; z-index: 50; top: 0; inset-inline-start: 0; block-size: 100vh; transform: translateX(-105%); transition: transform 0.2s; box-shadow: var(--shadow); }
   :global([dir='rtl'] .sidenav) { transform: translateX(105%); }
   .sidenav.open, :global([dir='rtl'] .sidenav.open) { transform: none; }
