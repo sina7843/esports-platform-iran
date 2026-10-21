@@ -1,0 +1,144 @@
+# Coolify deployment for the current low-traffic/test server.
+# Architecture stays simple: web -> api -> mongo, plus the background worker.
+# Only web receives a public domain in Coolify; no host ports are published.
+name: esports-coolify
+
+x-app-env: &app-env
+  # Current Coolify profile is intentionally a public TEST profile because the repository
+  # does not yet contain real production SMS/payment/email/video/map adapters.
+  NODE_ENV: ${NODE_ENV:-development}
+  APP_ENV: ${APP_ENV:-local}
+  HOST: 0.0.0.0
+  PORT: "3000"
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+  PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:?set the public https origin}
+  PUBLIC_API_ORIGIN: ${PUBLIC_API_ORIGIN:?set the same public https origin}
+  TRUST_PROXY: "true"
+
+  MONGO_URL: mongodb://mongo:27017/esports?replicaSet=rs0
+  DATA_DIR: /data
+
+  # Use a unique random value even on a public test deployment.
+  APP_SECRET: ${APP_SECRET:?set a random secret of at least 32 characters}
+  SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-336}
+  SIGNED_LINK_TTL_SECONDS: ${SIGNED_LINK_TTL_SECONDS:-300}
+
+  # Public test login. Production must disable this and use a real OTP adapter.
+  AUTH_DEV_LOGIN_ENABLED: ${AUTH_DEV_LOGIN_ENABLED:-true}
+  AUTH_DEV_CODE: ${AUTH_DEV_CODE:?set a private test login code of at least 8 characters}
+
+  # The current codebase only ships development doubles or "none" for these providers.
+  PAYMENT_ADAPTER: ${PAYMENT_ADAPTER:-dev}
+  SMS_ADAPTER: ${SMS_ADAPTER:-dev}
+  EMAIL_ADAPTER: ${EMAIL_ADAPTER:-dev}
+  STORAGE_ADAPTER: ${STORAGE_ADAPTER:-local}
+  VIDEO_ADAPTER: ${VIDEO_ADAPTER:-dev}
+  MAP_ADAPTER: ${MAP_ADAPTER:-dev}
+  PUBLISHER_ADAPTER: ${PUBLISHER_ADAPTER:-none}
+  SCANNER_ADAPTER: ${SCANNER_ADAPTER:-dev}
+
+  RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-300}
+  RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+  OUTBOX_POLL_MS: ${OUTBOX_POLL_MS:-500}
+  OUTBOX_LEASE_MS: ${OUTBOX_LEASE_MS:-30000}
+  OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-8}
+
+x-hardening: &hardening
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  restart: unless-stopped
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.5"]
+    volumes:
+      - esports_mongo_data:/data/db
+      - esports_mongo_config:/data/configdb
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --eval "
+          try { const s = rs.status(); if (s.myState === 1) { quit(0) } quit(1) }
+          catch (e) { rs.initiate({_id:'rs0', members:[{_id:0, host:'mongo:27017'}]}); quit(1) }"
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    <<: *hardening
+    environment:
+      <<: *app-env
+    volumes:
+      - esports_app_data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    <<: *hardening
+    environment:
+      <<: *app-env
+    volumes:
+      - esports_app_data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    expose:
+      - "8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  esports_mongo_data:
+    name: esports_mongo_data
+  esports_mongo_config:
+    name: esports_mongo_config
+  esports_app_data:
+    name: esports_app_data
