@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import type { ApiClientError } from '../api/client';
-import { esp02, type MyTeam } from '../api/esp02';
+import { esp02, type MyTeam, type TeamMemberRow } from '../api/esp02';
 import { esp03, type PublicDiscipline } from '../api/esp03';
 import DataState from '../components/DataState.vue';
 import DataTable from '../components/DataTable.vue';
@@ -46,6 +46,50 @@ const stageCols = () => [
 
 const teams = ref<MyTeam[]>([]);
 const form = reactive<{ open: string | null; teamId: string; entryCode: string; accept: boolean; answers: Record<string, string | number | boolean>; files: Record<string, string> }>({ open: null, teamId: '', entryCode: '', accept: false, answers: {}, files: {} });
+type RosterRole = 'starter' | 'substitute' | 'coach' | 'manager';
+const rosterMembers = ref<TeamMemberRow[]>([]);
+const rosterRoles = reactive<Record<string, RosterRole | ''>>({});
+const rosterLoading = ref(false);
+const loadedTeamId = ref('');
+let rosterRequest = 0;
+watch(() => form.teamId, async (teamId) => {
+  const request = ++rosterRequest;
+  loadedTeamId.value = '';
+  rosterMembers.value = [];
+  for (const key of Object.keys(rosterRoles)) delete rosterRoles[key];
+  rosterLoading.value = !!teamId;
+  if (!teamId) return;
+  try {
+    const team = await esp02.team(teamId);
+    if (request !== rosterRequest) return;
+    rosterMembers.value = team.currentMembers;
+    for (const member of team.currentMembers) rosterRoles[member.principalId] = member.role === 'player' || member.role === 'captain' ? 'starter' : member.role === 'substitute' ? 'substitute' : '';
+    loadedTeamId.value = teamId;
+  } catch (e) {
+    if (request === rosterRequest) failure.value = toClientError(e);
+  } finally {
+    if (request === rosterRequest) rosterLoading.value = false;
+  }
+});
+const selectedRoster = computed(() => rosterMembers.value.flatMap((m) => {
+  const role = rosterRoles[m.principalId];
+  return role ? [{ principalId: m.principalId, role }] : [];
+}));
+function rosterLimit(d: PublicDiscipline, key: string, fallback: number): number {
+  const value = d.rules?.clauses.find((c) => c.key === key)?.value;
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : fallback;
+}
+function rosterReady(d: PublicDiscipline): boolean {
+  if (d.participantKind !== 'team') return true;
+  const starters = selectedRoster.value.filter((m) => m.role === 'starter').length;
+  const subs = selectedRoster.value.filter((m) => m.role === 'substitute').length;
+  return !rosterLoading.value && !!form.teamId && loadedTeamId.value === form.teamId && selectedRoster.value.length > 0 && selectedRoster.value.length <= 30 && starters >= rosterLimit(d, 'roster.min', 1) && starters <= rosterLimit(d, 'roster.max', 30) && subs <= rosterLimit(d, 'roster.substitutes', 30);
+}
+const eligibilityMessages = computed(() => {
+  const details = failure.value?.details as { issues?: Array<{ message?: unknown }> } | undefined;
+  return Array.isArray(details?.issues) ? details.issues.flatMap((x) => typeof x.message === 'string' ? [x.message] : []) : [];
+});
+
 const uploading = ref('');
 // REG-001/008: documents are uploaded private to this event's scope, scanned, and readable only by authorized staff
 async function uploadDocument(key: string, retentionClass: string, e: Event) {
@@ -71,7 +115,7 @@ async function openForm(d: PublicDiscipline) {
   Object.assign(form, { open: d.id, teamId: '', entryCode: '', accept: false, files: {}, answers: Object.fromEntries(d.formFields.map((f) => [f.key, f.type === 'checkbox' ? false : ''])) });
   if (d.participantKind === 'team' && session.me) {
     try {
-      teams.value = (await esp02.myTeams()).items.filter((x) => ['owner', 'captain', 'manager'].includes(x.role));
+      teams.value = (await esp02.myTeams()).items.filter((x) => ['owner', 'captain', 'manager'].includes(x.role) && (!x.gameId || x.gameId === d.gameId || x.gameId === 'unassigned'));
     } catch (e) {
       failure.value = toClientError(e);
     }
@@ -79,11 +123,11 @@ async function openForm(d: PublicDiscipline) {
 }
 
 async function register(d: PublicDiscipline) {
-  if (!d.rules || !form.accept) return;
+  if (!d.rules || !form.accept || !rosterReady(d)) return;
   busy.value = true;
   failure.value = null;
   try {
-    const reg = await esp03.register(d.id, { teamId: d.participantKind === 'team' ? form.teamId || null : null, entryCode: form.entryCode.trim() || null, formAnswers: form.answers, documentFileIds: form.files, acceptRulesHash: d.rules.hash });
+    const reg = await esp03.register(d.id, { teamId: d.participantKind === 'team' ? form.teamId || null : null, roster: d.participantKind === 'team' ? selectedRoster.value : [], entryCode: form.entryCode.trim() || null, formAnswers: form.answers, documentFileIds: form.files, acceptRulesHash: d.rules.hash });
     done.value = { trackingCode: reg.trackingCode, state: reg.state, regId: reg.id };
     form.open = null;
     // paid entry: go straight to the gateway; capacity is held only until the payment window ends (REG-008)
@@ -169,6 +213,7 @@ function login() {
       </section>
 
       <ErrorNote :error="failure" />
+      <ul v-if="eligibilityMessages.length" class="list" role="alert"><li v-for="message in eligibilityMessages" :key="message">{{ message }}</li></ul>
       <p v-if="done" class="card ok" role="status">{{ t('reg.created', { code: done.trackingCode }) }} — <strong>{{ t(`reg.next.${done.state}` as never) }}</strong> <RouterLink to="/account/registrations">{{ t('reg.mine') }}</RouterLink></p>
 
       <h2>{{ t('events.disciplines') }}</h2>
@@ -208,6 +253,26 @@ function login() {
                 </select>
               </template>
             </FormField>
+            <fieldset v-if="d.participantKind === 'team' && form.teamId" class="stack" :aria-busy="rosterLoading">
+              <legend>{{ t('reg.rosterTitle') }}</legend>
+              <p class="muted">{{ t('reg.rosterHelp') }}</p>
+              <p v-if="rosterLoading" role="status">{{ t('reg.rosterLoading') }}</p>
+              <template v-else-if="loadedTeamId === form.teamId">
+                <p v-if="!rosterMembers.length" class="muted">{{ t('reg.rosterEmpty') }}</p>
+                <FormField v-for="member in rosterMembers" :id="`rg-member-${d.id}-${member.principalId}`" :key="member.principalId" :label="member.nickname || member.principalId">
+                  <template #default="{ id: fid }"><select :id="fid" v-model="rosterRoles[member.principalId]" class="input">
+                    <option value="">{{ t('reg.rosterExcluded') }}</option>
+                    <option value="starter">{{ t('reg.rosterStarter') }}</option>
+                    <option value="substitute">{{ t('reg.rosterSubstitute') }}</option>
+                    <option value="coach">{{ t('reg.rosterCoach') }}</option>
+                    <option value="manager">{{ t('reg.rosterManager') }}</option>
+                  </select></template>
+                </FormField>
+                <p role="status">{{ t('reg.rosterCount', { n: num(selectedRoster.filter((m) => m.role === 'starter').length), min: num(rosterLimit(d, 'roster.min', 1)), max: num(rosterLimit(d, 'roster.max', 30)), sub: num(selectedRoster.filter((m) => m.role === 'substitute').length), maxSub: num(rosterLimit(d, 'roster.substitutes', 30)) }) }}</p>
+                <p v-if="!rosterReady(d)" class="muted">{{ t('reg.rosterIncomplete') }}</p>
+              </template>
+              <RouterLink :to="`/teams/${form.teamId}`">{{ t('reg.manageRoster') }}</RouterLink>
+            </fieldset>
             <FormField v-for="f in d.formFields" :id="`rg-${d.id}-${f.key}`" :key="f.key" :label="f.label" :required="f.required">
               <template #default="{ id: fid }">
                 <select v-if="f.type === 'select'" :id="fid" v-model="form.answers[f.key]" class="input" :required="f.required"><option v-for="o in f.options ?? []" :key="o" :value="o">{{ o }}</option></select>
@@ -225,7 +290,7 @@ function login() {
             <label class="row"><input v-model="form.accept" type="checkbox" required /> {{ t('reg.accept', { v: d.rules!.version }) }}</label>
             <p v-if="d.feeRial > 0" class="muted">{{ t('reg.payNote') }}</p>
             <div class="row">
-              <button type="submit" class="btn btn-primary" :disabled="busy || !!uploading || !form.accept || (d.participantKind === 'team' && !form.teamId) || d.requiredDocuments.some((x) => !form.files[x.key])">{{ d.feeRial > 0 ? t('reg.registerAndPay') : t('reg.register') }}</button>
+              <button type="submit" class="btn btn-primary" :disabled="busy || !!uploading || !form.accept || !rosterReady(d) || d.requiredDocuments.some((x) => !form.files[x.key])">{{ d.feeRial > 0 ? t('reg.registerAndPay') : t('reg.register') }}</button>
               <button type="button" class="btn" @click="form.open = null">{{ t('mgmt.close') }}</button>
             </div>
           </form>
