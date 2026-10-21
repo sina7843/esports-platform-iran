@@ -5,7 +5,7 @@ name: esports-coolify
 
 x-app-env: &app-env
   # Current Coolify profile is intentionally a public TEST profile because the repository
-  # does not yet contain real production SMS/payment/email/video/map adapters.
+  # does not yet contain all required production provider adapters.
   NODE_ENV: ${NODE_ENV:-development}
   APP_ENV: ${APP_ENV:-local}
   HOST: 0.0.0.0
@@ -28,9 +28,12 @@ x-app-env: &app-env
   AUTH_DEV_LOGIN_ENABLED: ${AUTH_DEV_LOGIN_ENABLED:-true}
   AUTH_DEV_CODE: ${AUTH_DEV_CODE:?set a private test login code of at least 8 characters}
 
-  # The current codebase only ships development doubles or "none" for these providers.
+  # Kavenegar is available for SMS; other providers still require their own adapters.
   PAYMENT_ADAPTER: ${PAYMENT_ADAPTER:-dev}
   SMS_ADAPTER: ${SMS_ADAPTER:-dev}
+  KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
+  KAVENEGAR_OTP_TEMPLATE: ${KAVENEGAR_OTP_TEMPLATE:-}
+  KAVENEGAR_SENDER: ${KAVENEGAR_SENDER:-}
   EMAIL_ADAPTER: ${EMAIL_ADAPTER:-dev}
   STORAGE_ADAPTER: ${STORAGE_ADAPTER:-local}
   VIDEO_ADAPTER: ${VIDEO_ADAPTER:-dev}

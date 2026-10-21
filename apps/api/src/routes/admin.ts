@@ -120,6 +120,16 @@ export function adminRoutes(app: FastifyInstance, ct: Container): void {
 
   // ---- providers (INTG-001..004/006/009)
   r.get('/admin/providers', { schema: sch({ response: { 200: Items, ...errors } }) }, async (req) => list(await providers.list(me(req), req.id)));
+  r.get('/admin/providers/sms', { schema: sch({ response: { 200: z.object({
+    adapter: z.string(), apiKeyConfigured: z.boolean(), template: z.string().nullable(), sender: z.string().nullable(),
+    health: z.object({ status: z.enum(['ok', 'degraded', 'down', 'unconfigured']), detail: z.string().optional() }),
+  }), ...errors } }) }, async (req) => {
+    await req.requirePermission('providers.manage', SITE_SCOPE);
+    const h = await ct.adapters.sms.health();
+    return { adapter: ct.adapters.sms.name, apiKeyConfigured: !!ct.config.KAVENEGAR_API_KEY,
+      template: ct.config.KAVENEGAR_OTP_TEMPLATE ?? null, sender: ct.config.KAVENEGAR_SENDER ?? null,
+      health: { status: h.status, ...(h.detail ? { detail: h.detail } : {}) } };
+  });
   r.get('/admin/providers/readiness', { schema: sch() }, async (req) => plain(await providers.readiness(me(req), req.id)));
   r.get('/admin/providers/allowlist', { schema: sch({ response: { 200: z.object({ origins: z.array(z.string()) }), ...errors } }) }, async (req) => {
     await req.requirePermission('providers.manage', SITE_SCOPE);

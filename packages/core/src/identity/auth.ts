@@ -142,7 +142,7 @@ export class AuthService {
   }
 
   private sms(to: string, text: (code: string) => string) {
-    return (code: string, challengeId: string) => this.ct.adapters.sms.send({ to, text: text(code), kind: 'otp', idempotencyKey: challengeId });
+    return (code: string, challengeId: string) => this.ct.adapters.sms.send({ to, text: text(code), kind: 'otp', otpCode: code, idempotencyKey: challengeId });
   }
 
   // ------------------------------------------------------------------ mobile OTP login / signup (USR-001/002)

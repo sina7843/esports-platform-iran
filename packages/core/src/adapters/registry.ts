@@ -3,6 +3,7 @@ import type { AppConfig } from '../config.js';
 import type { AdapterBase, Adapters } from './types.js';
 import type { Db } from 'mongodb';
 import { DevGatewayAdapter } from './devGateway.js';
+import { KavenegarSmsAdapter, KAVENEGAR_ORIGIN } from './kavenegar.js';
 import { ClamAvAdapter } from './clamav.js';
 import { resilient } from '../integrations/providers.js';
 import { DevEmailAdapter, DevMapAdapter, DevScannerAdapter, DevSmsAdapter, DevVideoAdapter, LocalStorageAdapter, NoPublisherAdapter } from './dev.js';
@@ -33,7 +34,11 @@ export function buildAdapters(config: AppConfig, db: Db): Adapters {
   const storageMode = config.isProduction ? 'production' : 'development_double';
   return resilient({
     payment: config.PAYMENT_ADAPTER === 'dev' ? new DevGatewayAdapter(db, config.appSecret, config.PUBLIC_API_ORIGIN) : unconfigured('payment', ['createPayment', 'verify', 'refund', 'verifyCallback']),
-    sms: config.SMS_ADAPTER === 'dev' ? new DevSmsAdapter(config.DATA_DIR) : unconfigured('sms', ['send']),
+    sms: config.SMS_ADAPTER === 'dev' ? new DevSmsAdapter(config.DATA_DIR) : config.SMS_ADAPTER === 'kavenegar' ? new KavenegarSmsAdapter({
+      apiKey: config.KAVENEGAR_API_KEY!, template: config.KAVENEGAR_OTP_TEMPLATE!, sender: config.KAVENEGAR_SENDER,
+      timeoutMs: Math.max(1, config.AUTH_SMS_TIMEOUT_MS - 250),
+      allowed: async () => !!await db.collection('provider_registry').findOne({ category: 'sms', state: 'selected', origins: KAVENEGAR_ORIGIN }),
+    }) : unconfigured('sms', ['send']),
     email: config.EMAIL_ADAPTER === 'dev' ? new DevEmailAdapter(config.DATA_DIR) : unconfigured('email', ['send']),
     storage: config.STORAGE_ADAPTER === 'local' ? new LocalStorageAdapter(config.DATA_DIR, config.PUBLIC_API_ORIGIN, storageMode) : unconfigured('storage', ['put', 'get', 'delete', 'publicUrl']),
     video: config.VIDEO_ADAPTER === 'dev' ? new DevVideoAdapter() : unconfigured('video', ['streamInfo']),

@@ -5,6 +5,7 @@ import type { ApiClientError } from '../api/client';
 import { esp02 } from '../api/esp02';
 import { toClientError } from '../errors';
 import { num, t } from '../i18n';
+import OtpField from './OtpField.vue';
 import DigitInput from './DigitInput.vue';
 import ErrorNote from './ErrorNote.vue';
 import FormField from './FormField.vue';
@@ -22,6 +23,8 @@ const wait = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 
 const normalized = computed(() => normalizeIranMobile(phone.value));
+const codeTouched = ref(false);
+const codeError = computed(() => codeTouched.value && !/^\d{6}$/.test(code.value) ? t('otp.codeInvalid') : '');
 const phoneError = computed(() => (touched.value && !normalized.value ? t('otp.phoneInvalid') : ''));
 
 function countdown(seconds: number) {
@@ -41,6 +44,8 @@ async function send() {
   failure.value = null;
   try {
     const r = await esp02.otpRequest(normalized.value);
+    code.value = '';
+    codeTouched.value = false;
     message.value = r.message; // identical for known and unknown numbers (no enumeration)
     step.value = 'code';
     countdown(r.resendAfterSeconds);
@@ -52,7 +57,8 @@ async function send() {
 }
 
 async function verify() {
-  if (!normalized.value || code.value.length < 4) return;
+  codeTouched.value = true;
+  if (!normalized.value || !/^\d{6}$/.test(code.value)) return;
   busy.value = true;
   failure.value = null;
   try {
@@ -70,7 +76,7 @@ async function verify() {
   <form v-if="step === 'phone'" class="stack" novalidate @submit.prevent="send">
     <FormField id="otp-phone" :label="t('otp.phone')" :hint="t('otp.phoneHint')" :error="phoneError" required>
       <template #default="{ id, describedBy, invalid }">
-        <DigitInput :id="id" v-model="phone" inputmode="tel" :described-by="describedBy" :invalid="invalid" />
+        <DigitInput :id="id" v-model="phone" inputmode="tel" autocomplete="tel" :disabled="busy" :described-by="describedBy" :invalid="invalid" />
       </template>
     </FormField>
     <ErrorNote :error="failure" />
@@ -78,16 +84,16 @@ async function verify() {
   </form>
   <form v-else class="stack" novalidate @submit.prevent="verify">
     <p class="notice" role="status">{{ message }}</p>
-    <FormField id="otp-code" :label="t('otp.code')" required>
+    <FormField id="otp-code" :label="t('otp.code')" :error="codeError" required>
       <template #default="{ id, describedBy, invalid }">
-        <DigitInput :id="id" v-model="code" inputmode="numeric" :described-by="describedBy" :invalid="invalid" />
+        <OtpField :id="id" v-model="code" :disabled="busy" :described-by="describedBy" :invalid="invalid" />
       </template>
     </FormField>
     <ErrorNote :error="failure" />
     <div class="row">
       <button type="submit" class="btn btn-primary" :disabled="busy">{{ t('otp.verify') }}</button>
       <button type="button" class="btn" :disabled="wait > 0 || busy" @click="send">{{ wait > 0 ? t('otp.resendIn', { s: num(wait) }) : t('otp.send') }}</button>
-      <button type="button" class="btn" @click="step = 'phone'; code = ''">{{ t('otp.changePhone') }}</button>
+      <button type="button" class="btn" :disabled="busy" @click="step = 'phone'; code = ''; codeTouched = false">{{ t('otp.changePhone') }}</button>
     </div>
   </form>
 </template>

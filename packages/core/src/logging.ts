@@ -16,6 +16,8 @@ export const REDACT_PATHS = [
   '*.token',
   '*.secret',
   '*.apiKey',
+  '*.otpCode',
+  '*.KAVENEGAR_API_KEY',
   '*.devCode',
   '*.sessionToken',
   'password',
@@ -23,6 +25,8 @@ export const REDACT_PATHS = [
   'token',
   'secret',
   'apiKey',
+  'otpCode',
+  'KAVENEGAR_API_KEY',
   'devCode',
 ];
 

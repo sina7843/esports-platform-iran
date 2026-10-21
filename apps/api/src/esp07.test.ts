@@ -22,7 +22,7 @@ async function as(principalId: string): Promise<Record<string, string>> {
 beforeAll(async () => {
   const base = new URL(process.env['MONGO_URL'] ?? 'mongodb://127.0.0.1:27018/esports?directConnection=true');
   base.pathname = `/apitest07_${Date.now().toString(36)}`;
-  container = await createContainer({ serviceName: 'api-esp07-test', env: { ...process.env, NODE_ENV: 'test', APP_ENV: 'ci', MONGO_URL: base.toString(), DATA_DIR: mkdtempSync(join(tmpdir(), 'esp-api07-')), LOG_LEVEL: 'silent', AUTH_DEV_LOGIN_ENABLED: 'true', AUTH_DEV_CODE: DEV_CODE, RATE_LIMIT_MAX: '5000', PUBLIC_WEB_ORIGIN: 'http://localhost:5173' } });
+  container = await createContainer({ serviceName: 'api-esp07-test', env: { ...process.env, NODE_ENV: 'test', APP_ENV: 'ci', MONGO_URL: base.toString(), DATA_DIR: mkdtempSync(join(tmpdir(), 'esp-api07-')), LOG_LEVEL: 'silent', AUTH_DEV_LOGIN_ENABLED: 'true', AUTH_DEV_CODE: DEV_CODE, RATE_LIMIT_MAX: '5000', KAVENEGAR_API_KEY: 'FAKEKEYFORAPITEST', PUBLIC_WEB_ORIGIN: 'http://localhost:5173' } });
   await runMigrations(container.dbh.db);
   await seedDatabase(container.c, container.acl);
   app = await buildApp(container);
@@ -38,11 +38,16 @@ describe('ESP-07 over HTTP', () => {
   it('admin endpoints refuse anonymous callers and callers without the permission; security headers are present', async () => {
     expect((await app.inject('/api/v1/admin/health')).statusCode).toBe(401);
     const player = await as(seedIds.player);
-    for (const url of ['/api/v1/admin/health', '/api/v1/admin/providers', '/api/v1/admin/partners', '/api/v1/admin/retention', '/api/v1/admin/holds', '/api/v1/ops/metrics']) {
+    for (const url of ['/api/v1/admin/health', '/api/v1/admin/providers', '/api/v1/admin/providers/sms', '/api/v1/admin/partners', '/api/v1/admin/retention', '/api/v1/admin/holds', '/api/v1/ops/metrics']) {
       expect((await app.inject({ url, headers: player })).statusCode, url).toBe(403);
     }
     const res = await app.inject({ url: '/api/v1/admin/health', headers: await as(seedIds.admin) });
     expect(res.statusCode).toBe(200);
+    const sms = await app.inject({ url: '/api/v1/admin/providers/sms', headers: await as(seedIds.admin) });
+    expect(sms.statusCode).toBe(200);
+    expect(sms.json()).toMatchObject({ adapter: 'dev-sms', apiKeyConfigured: true, template: null });
+    expect(sms.body).not.toContain('FAKEKEYFORAPITEST');
+    expect((await app.inject('/api/v1/admin/providers/sms')).statusCode).toBe(401);
     expect(res.headers['x-frame-options']).toBe('DENY');
     expect(res.headers['permissions-policy']).toContain('camera=()');
     expect(res.headers['x-content-type-options']).toBe('nosniff');

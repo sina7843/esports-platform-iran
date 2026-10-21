@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { normalizeDigits } from '@esp/contracts';
 import { num } from '../i18n';
 
-const props = defineProps<{ modelValue: string; id: string; describedBy?: string | undefined; invalid?: boolean; disabled?: boolean; inputmode?: 'numeric' | 'tel' | 'decimal' | 'text' }>();
+const props = defineProps<{ modelValue: string; id: string; describedBy?: string | undefined; invalid?: boolean; disabled?: boolean; autocomplete?: 'off' | 'tel' | 'one-time-code'; inputmode?: 'numeric' | 'tel' | 'decimal' | 'text' }>();
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 /** The model always holds ASCII digits; the display follows the user's digits setting. */
@@ -25,7 +25,7 @@ function onInput(e: { target: unknown }) {
 
 <template>
   <!-- dir="ltr" keeps digit runs in logical order; alignment follows the page direction -->
-  <input :id="id" class="input num digit-input" type="text" dir="ltr" autocomplete="off" :inputmode="inputmode ?? 'numeric'" :value="display" :disabled="disabled" :aria-invalid="invalid ? 'true' : undefined" :aria-describedby="describedBy" @input="onInput" />
+  <input :id="id" class="input num digit-input" type="text" dir="ltr" :autocomplete="autocomplete ?? 'off'" :inputmode="inputmode ?? 'numeric'" :value="display" :disabled="disabled" :aria-invalid="invalid ? 'true' : undefined" :aria-describedby="describedBy" @input="onInput" />
 </template>
 
 <style scoped>
