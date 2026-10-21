@@ -198,7 +198,7 @@ const sanctionBody = () => ({
 .block { margin-block-start: var(--sp-4); }
 .list { margin: 0; padding-inline-start: var(--sp-5); }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: var(--sp-2); margin: 0; }
-.facts dt { color: var(--muted); font-size: var(--fs-sm); }
+.facts dt { color: var(--text-muted); font-size: var(--fs-sm); }
 .facts dd { margin: 0; font-weight: 600; }
 .impact { border: 1px dashed var(--border); padding: var(--sp-3); border-radius: var(--radius, 6px); }
 .narrow { inline-size: 6rem; }

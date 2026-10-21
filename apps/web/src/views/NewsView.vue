@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import { esp06 as esp06Api, type PublicPost } from '../api/esp06';
+import Icon from '../components/Icon.vue';
 import DataState from '../components/DataState.vue';
 import JalaliDate from '../components/JalaliDate.vue';
 import PageHeader from '../components/PageHeader.vue';
 import { t } from '../i18n';
+import { settings } from '../settings';
 import { useLoad } from '../useLoad';
 
 /** EDIT-005 news, articles, reports, interviews and galleries with category, format and search. */
@@ -35,7 +37,8 @@ async function older() {
   </form>
   <DataState :loading="loading" :error="error" :empty="!!data && !data.length" @retry="load">
     <ul v-if="data" class="cards">
-      <li v-for="p in data" :key="p.id" class="card stack">
+      <li v-for="(p, index) in data" :key="p.id" class="card stack" :class="{ featured: index === 0 }">
+        <div class="news-visual" aria-hidden="true"><img v-if="!settings.lowData && p.media.find(m => m.kind === 'image' && m.url)?.url" :src="p.media.find(m => m.kind === 'image' && m.url)!.url!" :alt="p.media.find(m => m.kind === 'image' && m.url)?.caption ?? ''" loading="lazy" /><Icon v-else :name="p.format === 'live' ? 'swords' : 'news'" :size="48" /></div>
         <span class="muted small">{{ t(`news.fmt.${p.format}` as never) }} · <JalaliDate :iso="p.publishedAt" format="date" /><span v-if="p.result"> · {{ p.result.final ? t('live.final') : t('live.provisional') }}</span></span>
         <h2><RouterLink :to="`/news/${encodeURIComponent(p.slug)}`" dir="auto">{{ p.title }}</RouterLink></h2>
         <p v-if="p.withdrawal" class="danger small">{{ t('live.withdrawn') }}</p>
@@ -48,6 +51,12 @@ async function older() {
 </template>
 
 <style scoped>
+.news-visual { display: grid; place-items: center; aspect-ratio: 3 / 1; background: var(--accent-soft); color: var(--accent); border-radius: var(--radius-md); }
+.news-visual img { inline-size: 100%; block-size: 100%; aspect-ratio: inherit; object-fit: cover; }
+.featured { grid-column: 1 / -1; }
+.featured h2 { font-size: var(--fs-xl); }
+.featured .news-visual { aspect-ratio: 6 / 1; }
+@media (max-width: 640px) { .featured .news-visual { aspect-ratio: 3 / 1; } }
 .row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-block-end: var(--sp-3); }
 .grow { flex: 1 1 14rem; }
 .cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--sp-3); }

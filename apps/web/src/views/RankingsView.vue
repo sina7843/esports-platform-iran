@@ -70,12 +70,12 @@ const rec = (k: string) => records.value?.[k] as Record<string, unknown> | null 
       </div>
       <p v-if="!board.label.official" class="muted small">{{ t('rank.unapprovedHint') }}</p>
       <p v-if="!board.rows.length" class="muted">{{ t('rank.empty') }}</p>
-      <table v-else class="table">
+      <div v-else class="rank-table-wrap" role="region" :aria-label="t('rank.leaderboard')" tabindex="0"><table class="table">
         <caption class="sr-only">{{ t('rank.leaderboard') }}</caption>
         <thead><tr><th scope="col">{{ t('rank.rank') }}</th><th scope="col">{{ t('rank.name') }}</th><th scope="col">{{ t('rank.rating') }}</th><th scope="col">{{ t('rank.games') }}</th><th scope="col">{{ t('rank.region') }}</th><th scope="col">{{ t('rank.lastActive') }}</th></tr></thead>
         <tbody>
           <tr v-for="r in board.rows" :key="r.subjectId" :class="{ inactive: r.inactive }">
-            <td>{{ r.rank === null ? t('rank.inactive') : num(r.rank) }}</td>
+            <td class="placement" :data-podium="r.rank !== null && r.rank <= 3">{{ r.rank === null ? t('rank.inactive') : num(r.rank) }}</td>
             <th scope="row"><RouterLink v-if="r.subjectKind === 'team'" :to="`/teams/${r.subjectId}`"><bdi>{{ r.displayName }}</bdi></RouterLink><bdi v-else>{{ r.displayName }}</bdi></th>
             <td><bdi class="ltr">{{ num(r.rating) }}<span v-if="r.rd !== null" class="muted"> ±{{ num(r.rd) }}</span></bdi></td>
             <td>{{ num(r.games) }} ({{ num(r.wins) }} {{ t('rank.wins') }})</td>
@@ -83,7 +83,7 @@ const rec = (k: string) => records.value?.[k] as Record<string, unknown> | null 
             <td><JalaliDate :iso="r.lastActiveAt" format="date" /></td>
           </tr>
         </tbody>
-      </table>
+      </table></div>
       <div class="row">
         <button type="button" class="btn btn-sm" :disabled="f.offset === 0" @click="f.offset = Math.max(0, f.offset - PAGE); fetchBoard()">{{ t('rank.prev') }}</button>
         <span class="muted small">{{ num(f.offset + 1) }}–{{ num(Math.min(f.offset + PAGE, board.total)) }} / {{ num(board.total) }}</span>
@@ -103,6 +103,11 @@ const rec = (k: string) => records.value?.[k] as Record<string, unknown> | null 
 .row { flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
 .between { justify-content: space-between; }
 .block { margin-block-start: var(--sp-4); }
+.rank-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.placement { font-weight: 800; font-size: var(--fs-lg); }
+.placement[data-podium="true"] { color: var(--accent); }
+.filters { display: grid; grid-template-columns: auto minmax(10rem, 1fr) auto minmax(8rem, 1fr); }
+@media (max-width: 640px) { .filters { grid-template-columns: minmax(0, 1fr); } }
 .table { width: 100%; border-collapse: collapse; }
 .table th, .table td { text-align: start; padding: var(--sp-2); border-block-end: 1px solid var(--border); }
 .inactive { opacity: 0.6; }
@@ -110,7 +115,7 @@ const rec = (k: string) => records.value?.[k] as Record<string, unknown> | null 
 [data-tone='ok'] { background: var(--ok-soft); color: var(--ok); }
 [data-tone='warn'] { background: var(--warn-soft); color: var(--warn); }
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--sp-2); margin: 0; }
-.facts dt { color: var(--muted); font-size: var(--fs-sm); }
+.facts dt { color: var(--text-muted); font-size: var(--fs-sm); }
 .facts dd { margin: 0; }
 .small { font-size: var(--fs-xs); }
 h2, p { margin: 0; }

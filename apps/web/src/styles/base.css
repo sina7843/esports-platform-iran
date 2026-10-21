@@ -73,3 +73,38 @@ th { font-size: var(--fs-sm); color: var(--text-muted); font-weight: 600; backgr
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Shared VibeFarsi Graphite adaptations for every public and operational screen. */
+:lang(fa) { letter-spacing: 0; }
+body { text-rendering: optimizeLegibility; }
+.btn { min-block-size: 44px; font-weight: 600; line-height: 1.5; transition: background 200ms, border-color 200ms, transform 200ms; }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn-sm { min-block-size: 44px; }
+.input { min-block-size: 48px; transition: border-color 200ms, background 200ms; background: var(--surface); }
+.input:hover { border-color: var(--text-muted); }
+.input:focus-visible { border-color: var(--accent); }
+textarea.input { min-block-size: 8rem; resize: vertical; }
+.card { min-inline-size: 0; }
+.card > h2:first-child { padding-block-end: var(--sp-3); border-block-end: 1px solid var(--border); }
+tbody tr { transition: background 200ms; }
+tbody tr:hover { background: var(--surface-2); }
+th { font-size: var(--fs-xs); }
+td { font-size: var(--fs-sm); }
+caption { padding: var(--sp-4); }
+fieldset { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--sp-4); min-inline-size: 0; }
+legend { padding-inline: var(--sp-2); color: var(--text-muted); font-size: var(--fs-sm); }
+hr { border: 0; border-block-start: 1px solid var(--border); margin-block: var(--sp-5); }
+label { font-weight: 500; }
+input, select, textarea { max-inline-size: 100%; }
+.content > .inner > .state { background: var(--surface); }
+.content .filters { background: var(--surface); border: 1px solid var(--border); padding: var(--sp-4); border-radius: var(--radius-lg); margin-block-end: var(--sp-5); }
+.content .cards .card { transition: border-color 200ms; }
+.content .cards .card:hover { border-color: var(--text-muted); }
+.content .cards h2 a { color: var(--text); text-decoration: none; }
+.content .cards h2 a:hover { color: var(--accent); }
+@media (max-width: 640px) {
+  .content .grid, .content .grid3, .content .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .content .card { padding: var(--sp-4); }
+  .content .row .input { flex: 1 1 100%; inline-size: 100%; }
+}
+@supports (-webkit-touch-callout: none) { input, select, textarea { font-size: max(1rem, 1em); } }
