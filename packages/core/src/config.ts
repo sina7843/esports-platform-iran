@@ -5,6 +5,7 @@ import { z } from 'zod';
  * Development/test may use deterministic defaults and test doubles. Production REQUIRES explicit values and
  * real providers; a missing provider blocks with PROVIDER_NOT_CONFIGURED instead of falling back to a double.
  */
+const envBoolean = z.preprocess(v => v === 'true' ? true : v === 'false' ? false : v, z.boolean().default(false));
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_ENV: z.enum(['local', 'ci', 'staging', 'production']).default('local'),
@@ -27,10 +28,10 @@ const EnvSchema = z.object({
   APP_SECRET_PREVIOUS: z.string().optional(),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(24 * 90).default(24 * 14),
   SIGNED_LINK_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(300),
-  TRUST_PROXY: z.coerce.boolean().default(false),
+  TRUST_PROXY: envBoolean,
 
   /** Development identity double. Must be absent in production. */
-  AUTH_DEV_LOGIN_ENABLED: z.coerce.boolean().default(false),
+  AUTH_DEV_LOGIN_ENABLED: envBoolean,
   AUTH_DEV_CODE: z.string().min(8).optional(),
 
   /** OTP / login hardening (SEC-002, USR-001). */
@@ -50,7 +51,10 @@ const EnvSchema = z.object({
 
   /** Provider adapters. Values are adapter names; '' or absent means unconfigured. */
   PAYMENT_ADAPTER: z.enum(['dev', 'none']).default('dev'),
-  SMS_ADAPTER: z.enum(['dev', 'none']).default('dev'),
+  SMS_ADAPTER: z.enum(['dev', 'none', 'kavenegar']).default('dev'),
+  KAVENEGAR_API_KEY: z.preprocess(v => v === '' ? undefined : v, z.string().regex(/^[A-Za-z0-9]+$/).optional()),
+  KAVENEGAR_OTP_TEMPLATE: z.preprocess(v => v === '' ? undefined : v, z.string().regex(/^[A-Za-z0-9-]{1,100}$/).optional()),
+  KAVENEGAR_SENDER: z.preprocess(v => v === '' ? undefined : v, z.string().regex(/^\d{3,20}$/).optional()),
   EMAIL_ADAPTER: z.enum(['dev', 'none']).default('dev'),
   STORAGE_ADAPTER: z.enum(['local', 'none']).default('local'),
   VIDEO_ADAPTER: z.enum(['dev', 'none']).default('dev'),
@@ -90,6 +94,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new Error(`Invalid configuration: ${issues}`);
   }
   const c = parsed.data;
+  if (c.SMS_ADAPTER === 'kavenegar' && (!c.KAVENEGAR_API_KEY || !c.KAVENEGAR_OTP_TEMPLATE)) {
+    throw new Error('Kavenegar configuration requires KAVENEGAR_API_KEY and KAVENEGAR_OTP_TEMPLATE');
+  }
   const isProduction = c.NODE_ENV === 'production' || c.APP_ENV === 'production' || c.APP_ENV === 'staging';
   if (isProduction) {
     const problems: string[] = [];

@@ -86,6 +86,7 @@ describe('ESP-07 web', () => {
     vi.stubGlobal('fetch', server([
       [/GET .*\/admin\/providers\/readiness/, { at: '', ready: false, rows: [{ kind: 'sms', provider: null, adapter: 'dev-sms', mode: 'development_double', status: 'ok', keys: [], ready: false, blockers: ['a development double is wired (forbidden in production)'], optional: false }] }],
       [/GET .*\/admin\/providers\/allowlist/, { origins: [] }],
+      [/GET .*\/admin\/providers\/sms/, { adapter: 'dev-sms', apiKeyConfigured: false, template: null, sender: null, health: { status: 'ok' } }],
       [/GET .*\/admin\/providers/, { items: [] }],
       [/GET .*\/admin\/partners/, { items: [] }],
       [/GET .*\/admin\/webhook-deliveries/, { items: [] }],

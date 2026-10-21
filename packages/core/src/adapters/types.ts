@@ -34,8 +34,13 @@ export interface PaymentAdapter extends AdapterBase {
   refund(input: { providerRef: string; amount: Money; reason: string; idempotencyKey: string }): Promise<{ status: 'accepted' | 'rejected' | 'unknown'; refundRef: string | null }>;
 }
 
+export interface SmsSendInput {
+  to: string; text: string; kind: 'otp' | 'transactional' | 'promotional'; idempotencyKey: string;
+  /** Explicit token for verification providers; never extract a code by parsing localized message text. */
+  otpCode?: string;
+}
 export interface SmsAdapter extends AdapterBase {
-  send(input: { to: string; text: string; kind: 'otp' | 'transactional' | 'promotional'; idempotencyKey: string }): Promise<{ status: 'queued' | 'sent' | 'failed'; providerRef: string | null }>;
+  send(input: SmsSendInput): Promise<{ status: 'queued' | 'sent' | 'failed'; providerRef: string | null }>;
   deliveryStatus?(providerRef: string): Promise<'delivered' | 'failed' | 'unknown'>;
 }
 

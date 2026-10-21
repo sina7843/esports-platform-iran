@@ -43,7 +43,7 @@ Choose a private `AUTH_DEV_CODE` of at least 8 characters. Do not reuse the appl
 
 ## Important: this profile is test-mode, not hardened production
 
-The current repository does not yet implement real production adapters for SMS, payment, email, video, or maps.
+The repository now includes a Kavenegar SMS adapter (see docs/operations/kavenegar.md). Real payment, email, video, and map integrations still require implementation/configuration.
 Production configuration deliberately rejects the development doubles. Therefore this Coolify profile defaults to
 `NODE_ENV=development` / `APP_ENV=local` while still running the optimized Docker images.
 
@@ -75,3 +75,7 @@ Never run `docker compose down -v` or prune production volumes.
 
 The repository's encrypted backup system remains optional in this test profile. If enabled, `BACKUP_TARGET_DIR`
 must point to an independently mounted filesystem and `BACKUP_ENCRYPTION_KEY` must be stored separately.
+
+## Kavenegar SMS
+
+Set `SMS_ADAPTER=kavenegar`, `KAVENEGAR_API_KEY`, and the exact approved `KAVENEGAR_OTP_TEMPLATE` in Coolify's server environment. `KAVENEGAR_SENDER` is optional for transactional SMS. Both API and worker receive these settings. Register/select the official `https://api.kavenegar.com` origin through `/admin/integrations` after evaluation. The panel never displays the API key or sends a test message automatically. See `docs/operations/kavenegar.md` for activation and delivery verification. This SMS integration alone does not make the test profile production-ready.

@@ -32,6 +32,7 @@ const faStates: Record<string, string> = {
 };
 // ESP-07 (administration, support, privacy, providers); entries already defined above or by a machine win
 const faStates07: Record<string, string> = {
+  unconfigured: 'پیکربندی نشده',
   suspended: 'معلق', open: 'باز', pending: 'در انتظار', in_progress: 'در حال انجام', resolved: 'حل‌شده', closed: 'بسته', selected: 'انتخاب‌شده', candidate: 'نامزد', rejected: 'ردشده',
   on_hold: 'معلق (توقیف)', in_review: 'در بررسی', completed: 'تکمیل‌شده', not_tested: 'آزمون‌نشده', passed: 'قبول', failed: 'ناموفق', dead: 'صف مرده', skipped: 'ردشده', ok: 'موفق', approved: 'تأییدشده',
   active: 'فعال', revoked: 'باطل', delivered: 'تحویل‌شده',

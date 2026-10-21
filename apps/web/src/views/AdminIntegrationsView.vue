@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue';
 import type { ApiClientError } from '../api/client';
 import { esp07 as esp07Api } from '../api/esp07';
+import KavenegarPanel from '../components/KavenegarPanel.vue';
 import DataState from '../components/DataState.vue';
 import ErrorNote from '../components/ErrorNote.vue';
 import FormField from '../components/FormField.vue';
@@ -49,6 +50,15 @@ function blocker(b: string): string {
 }
 const CATS = ['sms', 'payment', 'storage', 'cdn', 'video', 'email', 'map', 'search', 'analytics', 'errors', 'metrics', 'push', 'publisher'];
 const p = reactive({ id: '', category: 'sms', name: '', origins: '', iranian: true, selfHosted: false, capabilities: '', limits: '', costNote: '', contractRef: '', exitPlan: '', result: 'not_tested', keys: '', perMinute: '' });
+function kavenegarPreset() {
+  if (providers.data.value?.items.some(x => x.category === 'sms' && x.origins.includes('https://api.kavenegar.com'))) {
+    notice.value = t('sms.alreadyAdded'); return;
+  }
+  Object.assign(p, { id: 'prv_kavenegar', category: 'sms', name: 'کاوه‌نگار / Kavenegar', origins: 'https://api.kavenegar.com', iranian: true, selfHosted: false,
+    capabilities: 'OTP, Verify Lookup, Transactional SMS, Delivery status', keys: 'KAVENEGAR_API_KEY KAVENEGAR_OTP_TEMPLATE', result: 'not_tested', contractRef: '', limits: '', costNote: '', exitPlan: '', perMinute: '' });
+  notice.value = t('sms.presetNote');
+  document.getElementById('pv-n')?.focus();
+}
 const saveProvider = () =>
   act(async () => {
     await esp07.saveProvider({
@@ -72,6 +82,8 @@ const createPartner = () =>
   <ErrorNote :error="failure" />
   <p v-if="notice" role="status" class="ok">{{ notice }}</p>
   <p v-if="secret" class="warn card" role="alert">{{ t('a7.int.secretOnce') }} <code class="ltr">{{ secret.keyId }}</code> <code class="ltr">{{ secret.secret }}</code> <button type="button" class="btn btn-sm" @click="secret = null">{{ t('a7.int.hide') }}</button></p>
+
+  <KavenegarPanel @preset="kavenegarPreset" />
 
   <section class="card stack" aria-labelledby="rd-h">
     <div class="row between"><h2 id="rd-h">{{ t('a7.int.readiness') }}</h2><button type="button" class="btn btn-sm" @click="readiness.load">{{ t('a7.refresh') }}</button></div>

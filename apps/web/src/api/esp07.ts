@@ -25,7 +25,12 @@ export interface Readiness {
 }
 export interface LegalDoc { _id: string; kind: string; version: number; title: string; body: string; requiresAcceptance: boolean; effectiveAt: string }
 
+export interface SmsProviderConfig {
+  adapter: string; apiKeyConfigured: boolean; template: string | null; sender: string | null;
+  health: { status: 'ok' | 'degraded' | 'down' | 'unconfigured'; detail?: string };
+}
 export const esp07 = {
+  smsProvider: () => request<SmsProviderConfig>('GET', '/admin/providers/sms'),
   // users, settings, tasks
   users: (q: string) => request<{ items: Array<{ id: string; displayName: string; nickname: string | null; status: string; createdAt: string }> }>('GET', '/admin/users', { query: { q } }),
   setUserStatus: (id: string, status: 'active' | 'suspended', reason: string) => request<Obj>('POST', `/admin/users/${enc(id)}/status`, { body: { status, reason } }),
