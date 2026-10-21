@@ -38,8 +38,19 @@ jobs:
             docker logs esp-ci-mongo
             exit 1
           fi
-          docker exec esp-ci-mongo mongosh --quiet --eval 'assert.commandWorked(rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]}))'
-          docker exec esp-ci-mongo mongosh --quiet --eval 'assert.soon(() => db.hello().isWritablePrimary === true, "Replica set did not elect a primary", 60000, 1000)'
+          docker exec esp-ci-mongo mongosh --quiet --eval 'const result = rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]}); if (result.ok !== 1) throw new Error(JSON.stringify(result))'
+          primary=false
+          for attempt in {1..60}; do
+            if docker exec esp-ci-mongo mongosh --quiet --eval 'quit(db.hello().isWritablePrimary === true ? 0 : 1)'; then
+              primary=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$primary" != true ]; then
+            docker logs esp-ci-mongo
+            exit 1
+          fi
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
