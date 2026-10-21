@@ -56,6 +56,11 @@ async function act(fn: () => Promise<unknown>, msg = '✓') {
   }
 }
 const ev = computed(() => m.value?.event);
+const description = ref('');
+function editDescription() {
+  description.value = typeof ev.value?.config['description'] === 'string' ? ev.value.config['description'] : '';
+}
+const saveDescription = () => act(() => esp03.updateEvent(id.value, { description: description.value.trim() || null, expectedVersion: ev.value!.version }));
 const transitionsFor: Record<string, string[]> = {
   published: ['open_registration'],
   registration_open: ['close_registration'],
@@ -216,6 +221,13 @@ const csvUrl = esp03.exportUrl;
         <div class="row">
           <button v-for="tr in transitionsFor[ev.state] ?? []" :key="tr" type="button" class="btn" @click="transition(tr)">{{ t(`evm.tr.${tr}` as never) }}</button>
         </div>
+        <details @toggle="($event.target as HTMLDetailsElement).open && editDescription()">
+          <summary>{{ t('evm.editDescription') }}</summary>
+          <form class="stack" @submit.prevent="saveDescription">
+            <FormField id="em-description" :label="t('evm.description')"><template #default="{ id: fid }"><textarea :id="fid" v-model="description" class="input" dir="auto" rows="5" maxlength="10000" /></template></FormField>
+            <button type="submit" class="btn btn-sm">{{ t('mgmt.save') }}</button>
+          </form>
+        </details>
         <FormField id="em-poster" :label="t('evm.poster')" :hint="ev.config.posterFileId ? t('evm.posterSet') : t('evm.posterHint')">
           <template #default="{ id: fid, describedBy }"><input :id="fid" type="file" accept="image/png,image/jpeg,image/webp" class="input" :aria-describedby="describedBy" @change="uploadPoster" /></template>
         </FormField>
