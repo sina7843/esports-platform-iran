@@ -4,16 +4,11 @@ on:
   pull_request:
 jobs:
   check:
-    runs-on: ubuntu-latest
-    services:
-      mongo:
-        image: mongo:8.0
-        ports: ["27017:27017"]
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1}).ok' || exit 1"
-          --health-interval 5s --health-timeout 5s --health-retries 20
+    # MongoDB 8.0 cannot start on kernels 6.19–7.0.13 (SERVER-121912).
+    # Keep the runner on the Ubuntu 22.04 / 6.8 image rather than ubuntu-latest.
+    runs-on: ubuntu-22.04
     env:
-      MONGO_URL: mongodb://localhost:27017/esports_test?directConnection=true
+      MONGO_URL: mongodb://127.0.0.1:27017/esports_test?directConnection=true
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -24,8 +19,27 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: init replica set
-        run: docker exec $(docker ps -q --filter ancestor=mongo:8.0) mongosh --quiet --eval 'rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]})' || true
+      - name: Start MongoDB replica set
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name esp-ci-mongo \
+            --publish 127.0.0.1:27017:27017 \
+            mongo:8.0 mongod --replSet rs0 --bind_ip_all
+          ready=false
+          for attempt in {1..60}; do
+            if docker exec esp-ci-mongo mongosh --quiet --eval 'quit(db.adminCommand({ping:1}).ok === 1 ? 0 : 1)'; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            docker logs esp-ci-mongo
+            exit 1
+          fi
+          docker exec esp-ci-mongo mongosh --quiet --eval 'assert.commandWorked(rs.initiate({_id:"rs0",members:[{_id:0,host:"localhost:27017"}]}))'
+          docker exec esp-ci-mongo mongosh --quiet --eval 'assert.soon(() => db.hello().isWritablePrimary === true, "Replica set did not elect a primary", 60000, 1000)'
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
@@ -33,3 +47,9 @@ jobs:
       - run: docker build -f apps/api/Dockerfile -t esp-api:ci .
       - run: docker build -f apps/worker/Dockerfile -t esp-worker:ci .
       - run: docker build -f apps/web/Dockerfile -t esp-web:ci .
+      - name: MongoDB diagnostics
+        if: failure()
+        run: docker logs esp-ci-mongo
+      - name: Stop MongoDB
+        if: always()
+        run: docker rm --force esp-ci-mongo
