@@ -105,6 +105,7 @@ function allowed(c: RulesPackage['clauses'][number]): string {
     <template v-if="p">
       <PageHeader :title="p.title"><template #title><bdi>{{ p.title }}</bdi></template></PageHeader>
       <p v-if="p.label" class="notice" role="note">{{ p.label }}</p>
+      <p v-if="p.testOnly" class="muted">{{ t('rules.trialHelp') }}</p>
       <p v-if="p.supersededBy" class="notice" role="note">{{ t('rules.superseded') }} <RouterLink :to="`/rules/${p.supersededBy}`"><bdi class="ltr">{{ p.supersededBy }}</bdi></RouterLink></p>
       <p class="muted">{{ t('rules.notOfficial') }}</p>
       <dl class="meta card">

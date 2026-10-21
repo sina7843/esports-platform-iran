@@ -1,5 +1,6 @@
 /** ESP-02 management screen strings (teams, recruitment, organizer, catalog, rules, staff). */
 export const faMgmt = {
+  'rules.trialHelp': 'قوانین ساختگی در محیط توسعه برای تمرین خصوصی، رایگان، بدون رتبه و جایزه قابل استفاده‌اند؛ انتشار آزمایشی به معنای بررسی حقوق ناشر یا آماده‌بودن بازی برای مسابقهٔ واقعی نیست.',
   'mgmt.roleChange': 'تغییر نقش',
   'mgmt.transfer': 'انتقال مالکیت',
   'mgmt.transferTo': 'شناسه مالک جدید (باید عضو باشد)',

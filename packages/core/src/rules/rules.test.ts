@@ -77,13 +77,13 @@ describe('rules packages', () => {
   });
 
   it('publish is blocked for each blocker, and the author cannot publish', async () => {
-    const unreviewed = await inReview({}, false);
+    const unreviewed = await inReview({ testOnly: false }, false);
     expect(await blockers(publish(unreviewed))).toEqual(expect.arrayContaining(['translation_not_reviewed', 'publisher_rights_not_reviewed', 'human_review_not_acknowledged:age.minimum']));
 
     const bad = await inReview({ clauses: [cl('a.b', 'configurable', 5, null), cl('c.d', 'configurable', 9, { min: 0, max: 3, options: null })] });
     expect((await blockers(publish(bad))).filter((b) => b.startsWith('clause_invalid')).length).toBe(2);
 
-    const conflict = await inReview();
+    const conflict = await inReview({ testOnly: false });
     await svc.transition(O2, conflict, { transition: 'return_to_draft', note: null, expectedVersion: (await t.c.rulesPackages.findOne({ _id: conflict }))!.version }, rid());
     let p = await svc.recordConflict(O2, conflict, { description: 'sources disagree', resolution: null, expectedVersion: (await t.c.rulesPackages.findOne({ _id: conflict }))!.version }, rid());
     await svc.transition(O1, conflict, { transition: 'submit_for_review', note: null, expectedVersion: p.version }, rid());
@@ -93,9 +93,24 @@ describe('rules packages', () => {
     expect(await code(publish(conflict, O1))).toBe('SEPARATION_OF_DUTIES');
     expect((await publish(conflict)).state).toBe('published');
 
-    const ok = await inReview();
+    const ok = await inReview({ testOnly: false });
     expect(await code(publish(ok, O1))).toBe('SEPARATION_OF_DUTIES');
     expect(await code(publish(ok, seedIds.admin))).toBe('FORBIDDEN');
+  });
+
+  it('development trials retain review checks and never claim publisher approval', async () => {
+    const id = await inReview({ clauses: [cl('roster.min', 'mandatory', 5)] }, false);
+    expect(await blockers(publish(id, O1))).toEqual(['translation_not_reviewed']);
+    let p = (await t.c.rulesPackages.findOne({ _id: id }))!;
+    p = await svc.review(O1, id, { translationReviewed: true, acknowledgedClauseKeys: [], note: 'synthetic exercise', expectedVersion: p.version }, rid());
+    const disabled = new RulesService({ ...t, config: { ...t.config, devLoginEnabled: false } } as typeof t);
+    expect(await disabled.publishBlockers(p)).toContain('publisher_rights_not_reviewed');
+    expect(await code(disabled.transition(O1, id, { transition: 'publish', note: null, expectedVersion: p.version }, rid()))).toBe('SEPARATION_OF_DUTIES');
+    expect(await code(publish(id, seedIds.admin))).toBe('FORBIDDEN');
+    const published = await publish(id, O1);
+    expect(published.state).toBe('published');
+    expect(published.publisherRights).toEqual({ reviewed: false, restrictions: null, reviewedBy: null });
+    expect((await svc.freezeSnapshot(id)).label).toContain('TEST ONLY');
   });
 
   it('testOnly packages cannot be published in production config', async () => {

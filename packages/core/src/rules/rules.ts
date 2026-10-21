@@ -275,13 +275,18 @@ export class RulesService {
   }
 
   // ---------------------------------------------------------------- workflow
+  /** Synthetic exercises never represent publisher approval and are disabled outside development login mode. */
+  private isDevelopmentTrial(p: RulesPackageDoc): boolean {
+    return p.testOnly && !this.ct.config.isProduction && this.ct.config.devLoginEnabled;
+  }
+
   /** Everything that currently prevents publishing (RULE-005/010). */
   async publishBlockers(p: RulesPackageDoc): Promise<string[]> {
     const b: string[] = [];
     for (const i of clauseIssues(p.clauses)) b.push(`clause_invalid:${i}`);
     for (const x of p.conflicts) if (!x.resolution) b.push(`unresolved_conflict:${x.id}`);
     if (!p.translationFa.reviewed) b.push('translation_not_reviewed');
-    if (!p.publisherRights.reviewed) b.push('publisher_rights_not_reviewed');
+    if (!p.publisherRights.reviewed && !this.isDevelopmentTrial(p)) b.push('publisher_rights_not_reviewed');
     const acked = new Set((p.humanReviewAcks ?? []).map((a) => a.key));
     for (const c of p.clauses) if (c.kind === 'human_review' && !acked.has(c.key)) b.push(`human_review_not_acknowledged:${c.key}`);
     if (p.testOnly && this.ct.config.isProduction) b.push('test_only_in_production');
@@ -317,7 +322,7 @@ export class RulesService {
       case 'publish': {
         await this.ct.acl.require(me, 'rules.publish', SITE, rid);
         if (p.state !== 'under_review') throw illegal();
-        if (p.createdBy === me) throw new DomainError('SEPARATION_OF_DUTIES', 'the author of a rules package cannot publish it');
+        if (p.createdBy === me && !this.isDevelopmentTrial(p)) throw new DomainError('SEPARATION_OF_DUTIES', 'the author of a rules package cannot publish it');
         const blockers = await this.publishBlockers(p);
         if (blockers.length) throw new DomainError('PRECONDITION_FAILED', 'rules package cannot be published', { blockers });
         next = 'published';
@@ -333,7 +338,7 @@ export class RulesService {
       }
       const r = await this.c.rulesPackages.findOneAndUpdate({ _id: id, version: input.expectedVersion, state: p.state }, { $set: set, $push: { history: { state: next, by: me, at: t, note: input.note } }, $inc: { version: 1 } }, { session: s, returnDocument: 'after' });
       if (!r) throw new DomainError('VERSION_CONFLICT', 'package was modified');
-      await this.au(s, me, `rules.package.${input.transition}`, id, { from: p.state, to: next }, rid);
+      await this.au(s, me, `rules.package.${input.transition}`, id, { from: p.state, to: next, developmentTrial: this.isDevelopmentTrial(p) }, rid);
       await this.ev(s, `rules.package.${next}`, id, r.version, me, { from: p.state, to: next, gameId: p.gameId }, rid);
       if (next === 'published' && p.supersedes) {
         // RULE-007: the previous version is superseded; started events keep their frozen snapshot (never rewritten here)

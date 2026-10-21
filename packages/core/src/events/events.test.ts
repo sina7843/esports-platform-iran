@@ -128,3 +128,59 @@ describe('drafts, scheduling and duplication (EVT-006)', () => {
     await expect(ev.duplicate(eventId, { slug: `dup-${newId().toLowerCase()}`, name: 'other org', asTemplate: false }, seedIds.organizerB, rid())).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 });
+
+
+describe('private development exercises', () => {
+  async function trial() {
+    const ids = await draft();
+    const game = (await t.c.games.findOne({ _id: 'game_seed_synthetic' }))!;
+    const gameId = newId('game');
+    await t.c.games.insertOne({ ...game, _id: gameId, slug: gameId, state: 'proposed' });
+    const rules = (await t.c.rulesPackages.findOne({ _id: pkg }))!;
+    const rulesId = newId('rules');
+    await t.c.rulesPackages.insertOne({ ...rules, _id: rulesId, gameId, versionLabel: rulesId, publisherRights: { reviewed: false, restrictions: null, reviewedBy: null } });
+    await t.c.events.updateOne({ _id: ids.eventId }, { $set: { visibility: 'private' } });
+    await t.c.disciplines.updateOne({ _id: ids.disciplineId }, { $set: { gameId, 'config.rulesPackageId': rulesId } });
+    return { ...ids, gameId, rulesId };
+  }
+
+  it('publishes a private free unrated exercise without changing catalog readiness or rights', async () => {
+    const x = await trial();
+    expect((await ev.publishCheck(x.eventId)).problems).toEqual([]);
+    expect((await ev.publish(x.eventId, seedIds.organizer, rid())).state).toBe('published');
+    expect((await t.c.games.findOne({ _id: x.gameId }))!.state).toBe('proposed');
+    expect(await t.c.gameReadiness.countDocuments({ gameId: x.gameId })).toBe(0);
+    expect((await t.c.rulesPackages.findOne({ _id: x.rulesId }))!.publisherRights.reviewed).toBe(false);
+    expect((await t.c.disciplines.findOne({ _id: x.disciplineId }))!.rulesSnapshot!.label).toContain('TEST ONLY');
+  });
+
+  it('requires normal readiness for public, paid, rated and prize exercises', async () => {
+    for (const change of [
+      { visibility: 'public' as const },
+      { 'config.rated': true },
+      { 'config.prizes': [{ key: 'test', kind: 'cash', amountRial: 1, responsible: 'organizer' }] },
+    ]) {
+      const x = await trial();
+      await t.c.events.updateOne({ _id: x.eventId }, { $set: change });
+      expect((await ev.publishCheck(x.eventId)).problems).toContainEqual(expect.objectContaining({ code: 'game_readiness' }));
+    }
+    const paid = await trial();
+    await t.c.disciplines.updateOne({ _id: paid.disciplineId }, { $set: { 'config.feeRial': 1 } });
+    expect((await ev.publishCheck(paid.eventId)).problems).toContainEqual(expect.objectContaining({ code: 'game_readiness' }));
+  });
+
+  it('keeps production, configuration, package and game validity gates', async () => {
+    const x = await trial();
+    for (const config of [{ isProduction: true }, { devLoginEnabled: false }]) {
+      const service = new EventsService({ ...t, config: { ...t.config, ...config } });
+      expect((await service.publishCheck(x.eventId)).problems).toContainEqual(expect.objectContaining({ code: 'game_readiness' }));
+    }
+    for (const change of [{ state: 'suspended' as const }, { state: 'archived' as const }, { modes: [] }, { platforms: [] }, { moduleId: 'missing' }]) {
+      const y = await trial();
+      await t.c.games.updateOne({ _id: y.gameId }, { $set: change });
+      expect((await ev.publishCheck(y.eventId)).problems).toContainEqual(expect.objectContaining({ code: 'game_readiness' }));
+    }
+    await t.c.rulesPackages.updateOne({ _id: x.rulesId }, { $set: { state: 'under_review' } });
+    expect((await ev.publishCheck(x.eventId)).problems).toContainEqual(expect.objectContaining({ code: 'rules' }));
+  });
+});

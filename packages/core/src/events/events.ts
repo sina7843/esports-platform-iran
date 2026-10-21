@@ -22,6 +22,7 @@ import type { EntryCodeDoc, EventAffiliation, QualificationSlotDoc, SeasonDoc } 
 import { applyTransition } from '../domain/transition.js';
 import { newId } from '../ids.js';
 import { GameService } from '../catalog/catalog.js';
+import { getGameModule } from '../catalog/modules/index.js';
 import { RulesService } from '../rules/rules.js';
 import { OrganizerService } from '../organizer/organizer.js';
 import { defaultDisciplineConfig, defaultEventConfig } from './defaults.js';
@@ -227,17 +228,25 @@ export class EventsService {
       if (d.config.feeRial > 0 && !e.config.refundPolicy) add('refund_policy', 'paid registration needs a published refund policy (FIN-006)', d._id);
       if (!d.config.registrationClosesAt) add('registration_window', 'registration close time is required', d._id);
       if (e.startsAt && d.config.registrationClosesAt && d.config.registrationClosesAt > e.startsAt) add('registration_window', 'registration must close before the event starts', d._id);
+      let developmentTrial = false;
       if (!d.config.rulesPackageId) add('rules', 'a reviewed rules package is required (RULE-006/010)', d._id);
       else {
         const pkg = await this.c.rulesPackages.findOne({ _id: d.config.rulesPackageId });
         if (!pkg || pkg.state !== 'published') add('rules', 'rules package is not published', d._id);
         else {
+          // A private software exercise can use a proposed game without claiming catalog readiness.
+          // No global game state, publisher review or integration capability is changed.
+          if (pkg.testOnly && pkg.gameId === d.gameId && !this.ct.config.isProduction && this.ct.config.devLoginEnabled && e.visibility === 'private' && !e.config.rated && e.config.prizes.length === 0 && disciplines.every((x) => x.config.feeRial === 0)) {
+            const game = await this.c.games.findOne({ _id: d.gameId });
+            developmentTrial = !!game && ['proposed', 'under_review', 'ready'].includes(game.state) && game.platforms.includes(d.platform) && game.modes.includes(d.mode) && getGameModule(game.moduleId)?.descriptor.family === game.family;
+          }
+          if (pkg.testOnly && !pkg.publisherRights.reviewed && !developmentTrial) add('trial_scope', 'unreviewed synthetic rules require a private, free, unrated development exercise without prizes', d._id);
           if (pkg.gameId !== d.gameId) add('rules', 'rules package belongs to another game', d._id);
           if (pkg.testOnly && this.ct.config.isProduction) add('rules', 'TEST ONLY packages cannot be used in production', d._id);
           if (e.config.rated && (!pkg.nextReviewDueAt || pkg.nextReviewDueAt < iso())) add('rules_review', 'rated events need a rules review within the last month (RULE-012)', d._id);
         }
       }
-      if (!(await games.isReady(d.gameId, d.gameVersion, d.platform, d.mode))) add('game_readiness', 'this game version/platform/mode is not ready for standard competitions (GAME-004)', d._id);
+      if (!developmentTrial && !(await games.isReady(d.gameId, d.gameVersion, d.platform, d.mode))) add('game_readiness', 'this game version/platform/mode is not ready for standard competitions (GAME-004)', d._id);
     }
     const activeCount = await this.c.events.countDocuments({ organizerOrgId: e.organizerOrgId, state: { $in: ACTIVE_STATES }, _id: { $ne: e._id } });
     try {
