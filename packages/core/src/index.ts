@@ -93,3 +93,5 @@ export * from './admin/jobs.js';
 export * from './admin/security.js';
 export * from './ops/backup.js';
 export * from './ops/drill.js';
+
+export { seedCs2Training, CS2_TRAINING } from './db/cs2-training.js';
