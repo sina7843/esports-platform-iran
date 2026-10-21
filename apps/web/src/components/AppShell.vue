@@ -71,6 +71,9 @@ onUnmounted(() => { stop?.(); document.removeEventListener('keydown', drawerKeys
         </nav>
         <slot />
         <footer class="site-footer"><span>{{ t('app.name') }}</span><nav :aria-label="t('app.footer')"><RouterLink v-for="link in footerLinks" :key="link.to" :to="link.to">{{ t(link.label) }}</RouterLink></nav></footer>
+        <div class="site-foot">
+          <a referrerpolicy="origin" target="_blank" rel="noopener" href="https://trustseal.enamad.ir/?id=8145123&amp;Code=Tttq6xJZHxyQ30jr3TKmUqPFCSXgVehq"><img referrerpolicy="origin" src="https://trustseal.enamad.ir/logo.aspx?id=8145123&amp;Code=Tttq6xJZHxyQ30jr3TKmUqPFCSXgVehq" alt="نماد اعتماد الکترونیکی" width="60" height="60" style="cursor:pointer" code="Tttq6xJZHxyQ30jr3TKmUqPFCSXgVehq"></a>
+        </div>
       </div>
     </main>
   </div>
@@ -89,5 +92,7 @@ onUnmounted(() => { stop?.(); document.removeEventListener('keydown', drawerKeys
 .crumbs li { display: inline-flex; align-items: center; gap: var(--sp-1); }
 /* the whole selector must sit inside :global(); with a scoped tail the build emitted a bare [dir=rtl] rule that mirrored the entire page */
 :global([dir='rtl'] .crumbs .sep) { transform: scaleX(-1); }
+.site-foot { margin-block-start: var(--sp-5); text-align: left; } /* physical left in both LTR and RTL, as requested */
+.site-foot img { inline-size: 60px; block-size: auto; }
 @media (max-width: 900px) { .content { padding: var(--sp-4); } }
 </style>
