@@ -1,19 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { zonedWallTimeToUtc } from '@esp/contracts';
+import { QAlert, QButton, QCard, QCheckbox, QCode, QContainer, QDataState, QDataTable, QDateField, QEmptyState, QPageHeader, QSelect, QStatusBadge, QTabs, QTextField, fa, formatJalali, num, useToast, type QDataTableColumn } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp03, type ManageView } from '../api/esp03';
 import { esp04 as esp04Api, type DrawDoc, type Proposal, type PublicMatch } from '../api/esp04';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
-
+import { t } from '../i18n';
 /**
  * Competition operations for one event (FMT, DRAW, SCH, RUN-005, SRV): stage settings, draw lifecycle, structure,
  * rounds/phases, withdrawals and transfers; schedule configuration, automatic/bulk/delay proposals, manual times with
@@ -31,7 +24,8 @@ const error = ref<ApiClientError | null>(null);
 const failure = ref<ApiClientError | null>(null);
 const notice = ref('');
 const stageId = ref('');
-const tz = (s: string) => zonedWallTimeToUtc(s);
+/** QDateField gives Tehran wall time with its offset; the API takes UTC. */
+const tz = (s: string) => new Date(s).toISOString();
 
 async function load() {
   loading.value = true;
@@ -123,22 +117,22 @@ const withdrawal = reactive({ participationId: '', reason: '' });
 const transferFrom = ref('');
 
 // ---- schedule
-const cfg = reactive({ from: '', to: '', duration: 45, buffer: 10, rest: 15 });
+const cfg = reactive({ from: null as string | null, to: null as string | null, duration: '45', buffer: '10', rest: '15' });
 const proposals = ref<Proposal[]>([]);
 const matches = ref<PublicMatch[]>([]);
-const times = reactive<Record<string, { at: string; confirmed: boolean; reason: string; override: boolean; broadcast: boolean }>>({});
+const times = reactive<Record<string, { at: string | null; confirmed: boolean; reason: string; override: boolean; broadcast: boolean }>>({});
 const conflicts = ref<Proposal['conflicts']>([]);
-const delay = reactive({ matchId: '', minutes: 30, reason: '' });
+const delay = reactive({ matchId: '', minutes: '30', reason: '' });
 const requests = ref<Obj[]>([]);
 async function loadSchedule() {
   const [p, s, rq] = await Promise.all([esp04.proposals(eventId.value), esp04.schedule(eventId.value, { stageId: stageId.value || undefined, limit: 200 }), esp04.rescheduleRequests(eventId.value)].map((x) => x.catch(() => null)));
   proposals.value = (p as { items: Proposal[] } | null)?.items ?? [];
   matches.value = (s as { items: PublicMatch[] } | null)?.items ?? [];
   requests.value = (rq as { items: Obj[] } | null)?.items ?? [];
-  for (const m of matches.value) times[m.id] ??= { at: '', confirmed: true, reason: '', override: false, broadcast: false };
+  for (const m of matches.value) times[m.id] ??= { at: null, confirmed: true, reason: '', override: false, broadcast: false };
 }
 async function saveConfig() {
-  await act(() => esp04.setScheduleConfig(eventId.value, { windows: cfg.from && cfg.to ? [{ from: tz(cfg.from), to: tz(cfg.to) }] : [], defaultDurationMinutes: cfg.duration, bufferMinutes: cfg.buffer, minRestMinutes: cfg.rest, broadcastWindows: [], unavailable: [] }));
+  await act(() => esp04.setScheduleConfig(eventId.value, { windows: cfg.from && cfg.to ? [{ from: tz(cfg.from), to: tz(cfg.to) }] : [], defaultDurationMinutes: Number(cfg.duration), bufferMinutes: Number(cfg.buffer), minRestMinutes: Number(cfg.rest), broadcastWindows: [], unavailable: [] }));
 }
 async function auto() {
   await act(() => esp04.autoSchedule(eventId.value, { ...(stageId.value ? { stageId: stageId.value } : {}), from: cfg.from ? tz(cfg.from) : new Date().toISOString(), reason: 'automatic plan' }));
@@ -149,7 +143,7 @@ async function setTime(m: PublicMatch) {
   conflicts.value = [];
   failure.value = null;
   try {
-    const r = await esp04.setTime(m.id, { at: tz(x.at), confirmed: x.confirmed, broadcast: x.broadcast, reason: x.reason || 'manual', ...(x.override ? { override: true } : {}) });
+    const r = await esp04.setTime(m.id, { at: tz(x.at!), confirmed: x.confirmed, broadcast: x.broadcast, reason: x.reason || 'manual', ...(x.override ? { override: true } : {}) });
     conflicts.value = r.conflicts;
     notice.value = '✓';
   } catch (e) {
@@ -165,13 +159,13 @@ const matchLabel = (id: string) => {
 };
 
 // ---- incidents, review, calls, servers
-const incident = reactive({ kind: 'internet_outage', notice: '', delay: 30, newVersion: '' });
+const incident = reactive({ kind: 'internet_outage', notice: '', delay: '30', newVersion: '' });
 const incidents = ref<Obj[]>([]);
 const reviews = ref<Array<{ _id: string; kind: string; state: string; detail: Obj; resolution: string | null }>>([]);
 const calls = ref<Array<{ _id: string; matchId: string; reason: string; state: string; createdAt: string }>>([]);
 const resolution = reactive<Record<string, string>>({});
 const servers = ref<Array<Obj & { _id: string; name: string; region: string; capacity: number; inUse: number; health: string; enabled: boolean }>>([]);
-const srv = reactive({ gameId: '', name: '', region: 'tehran', host: '', port: 0, capacity: 1, matchId: '' });
+const srv = reactive({ gameId: '', name: '', region: 'tehran', host: '', port: '', capacity: '1', matchId: '' });
 async function loadOps() {
   const [i, r, c, s] = await Promise.all([esp04.incidents(eventId.value), esp04.reviewItems(eventId.value), esp04.refereeCalls(eventId.value), esp04.servers(eventId.value)].map((x) => x.catch(() => null)));
   incidents.value = (i as { items: Obj[] } | null)?.items ?? [];
@@ -184,190 +178,299 @@ watch(stageId, () => {
   rules.value = null;
   draws.value = [];
 });
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n === '✓' ? t('rv.done') : n, duration: 3000 }); });
+watch(failure, (f) => { if (f && f.code !== 'PRECONDITION_FAILED') push({ tone: 'danger', message: f.message }); });
+const tab = ref('stage');
+const tabs = computed(() => [
+  { key: 'stage', label: t('cops.stageTools'), icon: 'swords' as const },
+  { key: 'schedule', label: t('cops.schedule'), icon: 'calendar' as const, count: proposals.value.filter((x) => x.state === 'draft').length },
+  { key: 'control', label: t('cops.control'), icon: 'activity' as const, count: reviews.value.filter((r) => r.state === 'open').length },
+]);
+watch(tab, (k) => { if (k === 'schedule' && !matches.value.length) void loadSchedule(); if (k === 'control') void loadOps(); });
+const stageOpts = computed(() => (manage.value?.stages ?? []).map((s) => ({ value: s.id, label: `${num(s.order)}. ${s.name} — ${t(`fmt.${s.format}` as never)} (${s.state})` })));
+const METHODS = computed(() => ['random', 'manual', 'ranking', 'qualifier'].map((m) => ({ value: m, label: t(`drw.${m}` as never) })));
+const methodModel = computed({ get: () => method.value as string, set: (v: string) => { method.value = v as typeof method.value; } });
+type AttrKey = 'seed' | 'rank' | 'qualifierRank';
+const numAttr = (pid: string, k: AttrKey) => String(attrs[pid]?.[k] ?? '');
+const setNumAttr = (pid: string, k: AttrKey, v: string) => { (attrs[pid] ??= {})[k] = v ? Number(v) : null; };
+type DrawRow = { pid: string; i: number };
+const drawRows = computed<DrawRow[]>(() => (latest.value?.outcome.order ?? []).map((pid, i) => ({ pid, i })));
+const drawCols = computed<QDataTableColumn<DrawRow>[]>(() => [
+  { key: 'i', header: '#' }, { key: 'pid', header: t('st.participant') }, { key: 'seed', header: t('cops.seed') },
+  { key: 'rank', header: t('cops.rank') }, { key: 'qualifierRank', header: t('cops.qualifierRank') }, { key: 'region', header: t('cops.region') },
+]);
+const matchCols = computed<QDataTableColumn<PublicMatch>[]>(() => [
+  { key: 'slot', header: t('room.round') }, { key: 'sides', header: t('match.sides') }, { key: 'scheduledAt', header: t('match.scheduledAt') }, { key: 'newTime', header: t('cops.newTime') },
+]);
+const wdOpts = computed(() => (latest.value?.outcome.order ?? []).map((pid) => ({ value: pid, label: nameOf(pid) })));
+const transferOpts = computed(() => (manage.value?.stages ?? []).filter((x) => stage.value && x.order < stage.value.order).map((s) => ({ value: s.id, label: s.name })));
+const INCIDENTS = computed(() => ['internet_outage', 'game_update', 'infrastructure', 'venue'].map((k) => ({ value: k, label: t(`cops.ik.${k}` as never) })));
+const allocOpts = computed(() => matches.value.map((m) => ({ value: m.id, label: matchLabel(m.id) })));
+const flag = (id: string, k: 'override' | 'broadcast', v: boolean | null) => { times[id]![k] = !!v; };
+const iid = (i: Obj) => String(i._id ?? i.id);
 </script>
 
 <template>
-  <DataState :loading="loading && !manage" :error="error" @retry="load">
-    <template v-if="manage">
-      <PageHeader :title="t('cops.title')" :lead="manage.event.name">
+  <QContainer>
+    <QDataState v-if="!manage" :state="error ? 'error' : 'loading'" :error="error" skeleton="rows" @retry="load" />
+    <div v-else class="k-stack p-ops">
+      <QPageHeader compact :title="t('cops.title')" :description="manage.event.name" :breadcrumb="[{ label: t('oa.crumb'), href: '/organizer' }, { label: manage.event.name, href: `/organizer/events/${eventId}` }, { label: t('cops.title') }]">
         <template #actions>
-          <RouterLink class="btn btn-sm" :to="`/organizer/events/${eventId}`">{{ t('cops.back') }}</RouterLink>
-          <RouterLink class="btn btn-sm" :to="`/organizer/events/${eventId}/lan`">{{ t('cops.lan') }}</RouterLink>
+          <QButton variant="secondary" size="sm" icon="arrow-right" :href="`/organizer/events/${eventId}`">{{ t('cops.back') }}</QButton>
+          <QButton variant="secondary" size="sm" icon="map-pin" :href="`/organizer/events/${eventId}/lan`">{{ t('cops.lan') }}</QButton>
         </template>
-      </PageHeader>
-      <ErrorNote :error="failure" />
-      <p v-if="failure?.code === 'PRECONDITION_FAILED'" class="muted" role="status">{{ failure.message }}</p>
-      <p v-if="notice" role="status" class="ok">{{ notice }}</p>
+      </QPageHeader>
+      <QAlert v-if="failure?.code === 'PRECONDITION_FAILED'" tone="warning">{{ failure.message }}</QAlert>
 
-      <FormField id="ops-stage" :label="t('cops.stage')">
-        <template #default="{ id }"><select :id="id" v-model="stageId" class="input"><option v-for="s in manage.stages" :key="s.id" :value="s.id">{{ num(s.order) }}. {{ s.name }} — {{ t(`fmt.${s.format}` as never) }} ({{ s.state }})</option></select></template>
-      </FormField>
+      <QTabs v-model="tab" variant="line" :items="tabs" :aria-label="t('cops.title')">
+        <template #panel="{ item }">
+          <!-- stage tools: settings, draw, structure -->
+          <div v-if="item.key === 'stage'" class="k-stack">
+            <div class="p-ops-bar">
+              <QSelect id="ops-stage" v-model="stageId" :label="t('cops.stage')" :options="stageOpts" />
+              <QButton v-if="stage" variant="ghost" size="sm" icon="external" :href="`/stages/${stage.id}`">{{ t('cops.publicStage') }}</QButton>
+            </div>
+            <QEmptyState v-if="!stage" compact icon="swords" :title="t('cops.noStage')" />
+            <template v-else>
+              <QCard>
+                <details class="p-ops-more" @toggle="($event.target as HTMLDetailsElement).open && !rules && loadRules()">
+                  <summary>{{ t('cops.rules') }}</summary>
+                  <div class="k-stack">
+                    <QCode v-if="rules" block>{{ JSON.stringify(rules.values, null, 1) }}</QCode>
+                    <QTextField id="ops-settings" v-model="settingsText" :label="t('cops.settings')" :hint="t('cops.settingsHint')" multiline :rows="5" ltr />
+                    <div><QButton size="sm" variant="secondary" :disabled="stage.state !== 'planned'" @click="saveSettings">{{ t('mgmt.save') }}</QButton></div>
+                  </div>
+                </details>
+              </QCard>
 
-      <section v-if="stage" class="card stack block">
-        <div class="row between"><h2>{{ t('cops.stageTools') }}</h2><RouterLink :to="`/stages/${stage.id}`" class="btn btn-sm">{{ t('cops.publicStage') }}</RouterLink></div>
-        <details @toggle="($event.target as HTMLDetailsElement).open && !rules && loadRules()">
-          <summary>{{ t('cops.rules') }}</summary>
-          <pre v-if="rules" class="code ltr">{{ JSON.stringify(rules.values, null, 1) }}</pre>
-          <FormField id="ops-settings" :label="t('cops.settings')" :hint="t('cops.settingsHint')"><template #default="{ id, describedBy }"><textarea :id="id" v-model="settingsText" class="input ltr code" rows="5" :aria-describedby="describedBy" /></template></FormField>
-          <button type="button" class="btn btn-sm" :disabled="stage.state !== 'planned'" @click="saveSettings">{{ t('mgmt.save') }}</button>
-        </details>
+              <QCard>
+                <div class="k-stack">
+                  <h2 class="h4 p-ops-p">{{ t('cops.draw') }}</h2>
+                  <div class="p-ops-bar">
+                    <QSelect id="ops-method" v-model="methodModel" :label="t('stg.method')" :options="METHODS" />
+                    <QButton size="sm" variant="secondary" icon="refresh" @click="loadDraws">{{ t('cops.loadDraws') }}</QButton>
+                    <QButton v-if="stage.state === 'planned'" size="sm" @click="preview">{{ t('cops.preview') }}</QButton>
+                  </div>
+                  <div v-if="latest" class="k-stack">
+                    <p class="p-ops-p">{{ t('stg.drawNo', { n: fa(latest.number) }) }} — <QStatusBadge :state="latest.state" /> · <code class="q-mono q-ltr">{{ latest.seedString }}</code></p>
+                    <QDataTable :caption="t('cops.entrants')" caption-hidden row-key="pid" row-header="pid" :columns="drawCols" :rows="drawRows">
+                      <template #cell-i="{ row }">{{ fa(row.i + 1) }}</template>
+                      <template #cell-pid="{ row }"><bdi>{{ nameOf(row.pid) }}</bdi></template>
+                      <template v-for="k in (['seed', 'rank', 'qualifierRank'] as const)" :key="k" #[`cell-${k}`]="{ row }">
+                        <QTextField :id="`at-${k}-${row.pid}`" :model-value="numAttr(row.pid, k)" :label="t(`cops.${k}` as never)" hide-label type="number" ltr class="p-ops-xs" @update:model-value="(v?: string) => setNumAttr(row.pid, k, v ?? '')" />
+                      </template>
+                      <template #cell-region="{ row }">
+                        <QTextField :id="`at-rg-${row.pid}`" :model-value="attrs[row.pid]?.region ?? ''" :label="t('cops.region')" hide-label class="p-ops-sm" @update:model-value="(v?: string) => ((attrs[row.pid] ??= {}).region = v || null)" />
+                      </template>
+                    </QDataTable>
+                    <div v-if="latest.outcome.groups" class="p-ops-groups">
+                      <QCard v-for="(ids, g) in latest.outcome.groups" :key="g"><strong>{{ t('br.group', { g: String(g) }) }}</strong><ul class="p-ops-list"><li v-for="pid in ids" :key="pid"><bdi>{{ nameOf(pid) }}</bdi></li></ul></QCard>
+                    </div>
+                    <ul v-if="latest.outcome.explanations.length" class="p-ops-list p-ops-muted"><li v-for="(x, i) in latest.outcome.explanations" :key="i"><bdi>{{ x }}</bdi></li></ul>
+                    <div class="k-row">
+                      <QButton v-if="latest.state === 'preview'" size="sm" variant="secondary" @click="step('confirm')">{{ t('cops.confirm') }}</QButton>
+                      <QButton v-if="latest.state === 'confirmed'" size="sm" variant="secondary" icon="lock" @click="step('lock')">{{ t('cops.lock') }}</QButton>
+                      <QButton v-if="latest.state === 'locked'" size="sm" variant="green" @click="step('publish')">{{ t('cops.publish') }}</QButton>
+                    </div>
+                    <form v-if="latest.state === 'published'" class="p-ops-bar" novalidate @submit.prevent="redraw">
+                      <QTextField id="ops-redraw" v-model="redrawReason" :label="t('cops.redrawReason')" />
+                      <QButton type="submit" size="sm" variant="danger" :disabled="redrawReason.trim().length < 5">{{ t('cops.redraw') }}</QButton>
+                    </form>
+                  </div>
+                </div>
+              </QCard>
 
-        <h3>{{ t('cops.draw') }}</h3>
-        <div class="row">
-          <FormField id="ops-method" :label="t('stg.method')"><template #default="{ id }"><select :id="id" v-model="method" class="input"><option v-for="mm in ['random', 'manual', 'ranking', 'qualifier']" :key="mm" :value="mm">{{ t(`drw.${mm}` as never) }}</option></select></template></FormField>
-          <button type="button" class="btn btn-sm" @click="loadDraws">{{ t('cops.loadDraws') }}</button>
-          <button v-if="stage.state === 'planned'" type="button" class="btn btn-primary btn-sm" @click="preview">{{ t('cops.preview') }}</button>
-        </div>
-        <div v-if="latest" class="stack">
-          <p>{{ t('stg.drawNo', { n: num(latest.number) }) }} — <StatusBadge :state="latest.state" /> · <bdi class="ltr code">{{ latest.seedString }}</bdi></p>
-          <div class="table-wrap">
-            <table class="tbl">
-              <caption class="sr-only">{{ t('cops.entrants') }}</caption>
-              <thead><tr><th scope="col">#</th><th scope="col">{{ t('st.participant') }}</th><th scope="col">{{ t('cops.seed') }}</th><th scope="col">{{ t('cops.rank') }}</th><th scope="col">{{ t('cops.qualifierRank') }}</th><th scope="col">{{ t('cops.region') }}</th></tr></thead>
-              <tbody>
-                <tr v-for="(pid, i) in latest.outcome.order" :key="pid">
-                  <td>{{ num(i + 1) }}</td><th scope="row"><bdi>{{ nameOf(pid) }}</bdi></th>
-                  <td><input v-model.number="attrs[pid]!.seed" type="number" min="1" class="input input-xs ltr" :aria-label="t('cops.seed')" /></td>
-                  <td><input v-model.number="attrs[pid]!.rank" type="number" min="1" class="input input-xs ltr" :aria-label="t('cops.rank')" /></td>
-                  <td><input v-model.number="attrs[pid]!.qualifierRank" type="number" min="1" class="input input-xs ltr" :aria-label="t('cops.qualifierRank')" /></td>
-                  <td><input v-model="attrs[pid]!.region" class="input input-xs" dir="auto" :aria-label="t('cops.region')" /></td>
-                </tr>
-              </tbody>
-            </table>
+              <QCard>
+                <div class="k-stack">
+                  <h2 class="h4 p-ops-p">{{ t('cops.structure') }}</h2>
+                  <div class="k-row">
+                    <QButton v-if="stage.state === 'drawn'" size="sm" @click="act(() => esp04.generate(stage!.id)).then(load)">{{ t('cops.generate') }}</QButton>
+                    <QButton v-if="['swiss', 'multi_lobby'].includes(stage.format)" size="sm" variant="secondary" @click="act(() => esp04.nextRound(stage!.id))">{{ t('cops.nextRound') }}</QButton>
+                    <QButton v-if="stage.format === 'mixed'" size="sm" variant="secondary" @click="act(() => esp04.nextPhase(stage!.id))">{{ t('cops.nextPhase') }}</QButton>
+                  </div>
+                  <form class="p-ops-grid" novalidate @submit.prevent="act(() => esp04.withdraw(stage!.id, withdrawal.participationId, withdrawal.reason), t('cops.withdrawn'))">
+                    <QSelect id="ops-wd" v-model="withdrawal.participationId" :label="t('cops.withdrawal')" :placeholder="'—'" :options="wdOpts" />
+                    <QTextField id="ops-wdr" v-model="withdrawal.reason" :label="t('evm.reason')" />
+                    <div><QButton type="submit" size="sm" variant="danger" :disabled="!withdrawal.participationId || withdrawal.reason.length < 5">{{ t('cops.recordWithdrawal') }}</QButton></div>
+                  </form>
+                  <form v-if="transferOpts.length" class="p-ops-grid" novalidate @submit.prevent="act(async () => { const r = await esp04.transfer(stage!.id, transferFrom); notice = t('cops.transferred', { c: fa(r.created), e: fa(r.existing) }); })">
+                    <QSelect id="ops-tf" v-model="transferFrom" :label="t('cops.transferFrom')" :placeholder="'—'" :options="transferOpts" />
+                    <div><QButton type="submit" size="sm" variant="secondary" :disabled="!transferFrom">{{ t('cops.transfer') }}</QButton></div>
+                  </form>
+                </div>
+              </QCard>
+            </template>
           </div>
-          <div v-if="latest.outcome.groups" class="groups"><div v-for="(ids, g) in latest.outcome.groups" :key="g" class="card"><strong>{{ t('br.group', { g: String(g) }) }}</strong><ul class="list"><li v-for="pid in ids" :key="pid"><bdi>{{ nameOf(pid) }}</bdi></li></ul></div></div>
-          <ul v-if="latest.outcome.explanations.length" class="list muted"><li v-for="(x, i) in latest.outcome.explanations" :key="i" dir="auto">{{ x }}</li></ul>
-          <div class="row">
-            <button v-if="latest.state === 'preview'" type="button" class="btn btn-sm" @click="step('confirm')">{{ t('cops.confirm') }}</button>
-            <button v-if="latest.state === 'confirmed'" type="button" class="btn btn-sm" @click="step('lock')">{{ t('cops.lock') }}</button>
-            <button v-if="latest.state === 'locked'" type="button" class="btn btn-primary btn-sm" @click="step('publish')">{{ t('cops.publish') }}</button>
+
+          <!-- schedule -->
+          <div v-else-if="item.key === 'schedule'" class="k-stack">
+            <QCard>
+              <form class="k-stack" novalidate @submit.prevent="saveConfig">
+                <div class="p-ops-grid">
+                  <QDateField id="sc-from" v-model="cfg.from" :label="t('cops.windowFrom')" with-time />
+                  <QDateField id="sc-to" v-model="cfg.to" :label="t('cops.windowTo')" with-time />
+                  <QTextField id="sc-dur" v-model="cfg.duration" :label="t('cops.duration')" type="number" ltr />
+                  <QTextField id="sc-buf" v-model="cfg.buffer" :label="t('cops.buffer')" type="number" ltr />
+                  <QTextField id="sc-rest" v-model="cfg.rest" :label="t('cops.rest')" type="number" ltr />
+                </div>
+                <div class="k-row">
+                  <QButton type="submit" size="sm" variant="secondary">{{ t('cops.saveConfig') }}</QButton>
+                  <QButton size="sm" icon="calendar" @click="auto">{{ t('cops.auto') }}</QButton>
+                  <QButton size="sm" variant="ghost" icon="refresh" @click="loadSchedule">{{ t('cops.loadSchedule') }}</QButton>
+                </div>
+              </form>
+            </QCard>
+            <QCard v-for="p in proposals.filter((x) => x.state === 'draft')" :key="p._id" class="p-ops-proposal">
+              <div class="k-stack">
+                <h3 class="p-ops-h3">{{ t(`cops.pk.${p.kind}` as never) }} — <bdi>{{ p.reason }}</bdi></h3>
+                <ul class="p-ops-list"><li v-for="c in p.changes" :key="c.matchId"><bdi>{{ matchLabel(c.matchId) }}</bdi>: {{ formatJalali(c.from) }} ← {{ formatJalali(c.to) }}</li></ul>
+                <ul v-if="p.conflicts.length" class="p-ops-list"><li v-for="(c, i) in p.conflicts" :key="i" :class="c.hard ? 'p-ops-bad' : 'p-ops-warn'">{{ c.hard ? t('cops.hard') : t('cops.soft') }} — {{ t(`cops.ck.${c.kind}` as never) }}: <bdi>{{ c.detail }}</bdi></li></ul>
+                <div class="k-row">
+                  <QButton size="sm" variant="green" @click="act(() => esp04.applyProposal(p._id, { confirm: true })).then(loadSchedule)">{{ t('cops.apply') }}</QButton>
+                  <QButton size="sm" variant="ghost" @click="act(() => esp04.rejectProposal(p._id)).then(loadSchedule)">{{ t('evm.reject') }}</QButton>
+                </div>
+              </div>
+            </QCard>
+            <QAlert v-if="conflicts.length" tone="danger">
+              <ul class="p-ops-list"><li v-for="(c, i) in conflicts" :key="i">{{ c.hard ? t('cops.hard') : t('cops.soft') }} — {{ t(`cops.ck.${c.kind}` as never) }}: <bdi>{{ c.detail }}</bdi></li></ul>
+            </QAlert>
+            <QDataTable v-if="matches.length" :caption="t('cops.matches')" caption-hidden row-key="id" row-header="sides" :columns="matchCols" :rows="matches">
+              <template #cell-slot="{ row }"><code class="q-mono q-ltr">{{ row.slot?.key }}</code></template>
+              <template #cell-sides="{ row }"><RouterLink :to="`/matches/${row.id}`"><bdi>{{ row.sides.map((s) => s.displayName).join(' — ') || t('br.tbd') }}</bdi></RouterLink></template>
+              <template #cell-scheduledAt="{ row }">{{ row.scheduledAt ? formatJalali(row.scheduledAt) : '—' }}<span v-if="row.estimated && row.scheduledAt" class="p-ops-muted"> ~</span></template>
+              <template #cell-newTime="{ row }">
+                <div class="k-stack p-ops-time">
+                  <QDateField :id="`tm-${row.id}`" v-model="times[row.id]!.at" :label="t('cops.newTime')" with-time :hint="null" />
+                  <QTextField :id="`tr-${row.id}`" v-model="times[row.id]!.reason" :label="t('evm.reason')" hide-label :placeholder="t('evm.reason')" />
+                  <QCheckbox :model-value="times[row.id]!.override" :label="t('cops.override')" @update:model-value="(v) => flag(row.id, 'override', v)" />
+                  <QCheckbox :model-value="times[row.id]!.broadcast" :label="t('cops.broadcast')" @update:model-value="(v) => flag(row.id, 'broadcast', v)" />
+                </div>
+              </template>
+              <template #row-actions="{ row }">
+                <QButton size="sm" variant="secondary" :disabled="!times[row.id]!.at" @click="setTime(row)">{{ t('cops.setTime') }}</QButton>
+                <QButton size="sm" variant="ghost" icon="clock" @click="delay.matchId = row.id">{{ t('cops.delay') }}</QButton>
+              </template>
+            </QDataTable>
+            <QCard v-if="delay.matchId">
+              <form class="p-ops-grid" novalidate @submit.prevent="act(() => esp04.delay(delay.matchId, Number(delay.minutes), delay.reason)).then(loadSchedule)">
+                <p class="p-ops-p"><bdi>{{ matchLabel(delay.matchId) }}</bdi></p>
+                <QTextField id="dl-m" v-model="delay.minutes" :label="t('cops.delayMinutes')" type="number" ltr />
+                <QTextField id="dl-r" v-model="delay.reason" :label="t('evm.reason')" />
+                <div><QButton type="submit" size="sm" variant="secondary" :disabled="delay.reason.length < 2">{{ t('cops.proposeDelay') }}</QButton></div>
+              </form>
+            </QCard>
+            <template v-if="requests.length">
+              <h3 class="p-ops-h3">{{ t('cops.requests') }}</h3>
+              <QCard padding="none">
+                <ul class="p-ops-rows">
+                  <li v-for="r in requests" :key="String(r._id)">
+                    <span><bdi>{{ matchLabel(String(r.matchId)) }}</bdi> ← {{ formatJalali(String(r.proposedAt)) }} — <bdi>{{ r.reason }}</bdi> <QStatusBadge :state="String(r.state)" /></span>
+                    <span v-if="r.state === 'agreed'" class="k-row">
+                      <QButton size="sm" variant="green" @click="act(() => esp04.decideReschedule(String(r._id), true, 'approved')).then(loadSchedule)">{{ t('evm.approve') }}</QButton>
+                      <QButton size="sm" variant="ghost" @click="act(() => esp04.decideReschedule(String(r._id), false, 'rejected')).then(loadSchedule)">{{ t('evm.reject') }}</QButton>
+                    </span>
+                  </li>
+                </ul>
+              </QCard>
+            </template>
           </div>
-          <form v-if="latest.state === 'published'" class="row" novalidate @submit.prevent="redraw">
-            <FormField id="ops-redraw" :label="t('cops.redrawReason')"><template #default="{ id }"><input :id="id" v-model="redrawReason" class="input" dir="auto" /></template></FormField>
-            <button type="submit" class="btn btn-danger btn-sm" :disabled="redrawReason.trim().length < 5">{{ t('cops.redraw') }}</button>
-          </form>
-        </div>
 
-        <h3>{{ t('cops.structure') }}</h3>
-        <div class="row">
-          <button v-if="stage.state === 'drawn'" type="button" class="btn btn-primary btn-sm" @click="act(() => esp04.generate(stage!.id)).then(load)">{{ t('cops.generate') }}</button>
-          <button v-if="['swiss', 'multi_lobby'].includes(stage.format)" type="button" class="btn btn-sm" @click="act(() => esp04.nextRound(stage!.id))">{{ t('cops.nextRound') }}</button>
-          <button v-if="stage.format === 'mixed'" type="button" class="btn btn-sm" @click="act(() => esp04.nextPhase(stage!.id))">{{ t('cops.nextPhase') }}</button>
-        </div>
-        <form class="row" novalidate @submit.prevent="act(() => esp04.withdraw(stage!.id, withdrawal.participationId, withdrawal.reason), t('cops.withdrawn'))">
-          <FormField id="ops-wd" :label="t('cops.withdrawal')"><template #default="{ id }"><select :id="id" v-model="withdrawal.participationId" class="input"><option value="" disabled>—</option><option v-for="pid in latest?.outcome.order ?? []" :key="pid" :value="pid">{{ nameOf(pid) }}</option></select></template></FormField>
-          <FormField id="ops-wdr" :label="t('evm.reason')"><template #default="{ id }"><input :id="id" v-model="withdrawal.reason" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn btn-danger btn-sm" :disabled="!withdrawal.participationId || withdrawal.reason.length < 5">{{ t('cops.recordWithdrawal') }}</button>
-        </form>
-        <form v-if="manage.stages.some((s) => s.id !== stage!.id && s.order < stage!.order)" class="row" novalidate @submit.prevent="act(async () => { const r = await esp04.transfer(stage!.id, transferFrom); notice = t('cops.transferred', { c: num(r.created), e: num(r.existing) }); })">
-          <FormField id="ops-tf" :label="t('cops.transferFrom')"><template #default="{ id }"><select :id="id" v-model="transferFrom" class="input"><option v-for="s in manage.stages.filter((x) => x.order < stage!.order)" :key="s.id" :value="s.id">{{ s.name }}</option></select></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!transferFrom">{{ t('cops.transfer') }}</button>
-        </form>
-      </section>
-
-      <section class="card stack block">
-        <div class="row between"><h2>{{ t('cops.schedule') }}</h2><button type="button" class="btn btn-sm" @click="loadSchedule">{{ t('cops.loadSchedule') }}</button></div>
-        <form class="grid" novalidate @submit.prevent="saveConfig">
-          <FormField id="sc-from" :label="t('cops.windowFrom')"><template #default="{ id }"><input :id="id" v-model="cfg.from" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="sc-to" :label="t('cops.windowTo')"><template #default="{ id }"><input :id="id" v-model="cfg.to" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="sc-dur" :label="t('cops.duration')"><template #default="{ id }"><input :id="id" v-model.number="cfg.duration" type="number" min="1" class="input ltr" /></template></FormField>
-          <FormField id="sc-buf" :label="t('cops.buffer')"><template #default="{ id }"><input :id="id" v-model.number="cfg.buffer" type="number" min="0" class="input ltr" /></template></FormField>
-          <FormField id="sc-rest" :label="t('cops.rest')"><template #default="{ id }"><input :id="id" v-model.number="cfg.rest" type="number" min="0" class="input ltr" /></template></FormField>
-          <div class="row"><button type="submit" class="btn btn-sm">{{ t('cops.saveConfig') }}</button><button type="button" class="btn btn-primary btn-sm" @click="auto">{{ t('cops.auto') }}</button></div>
-        </form>
-        <article v-for="p in proposals.filter((x) => x.state === 'draft')" :key="p._id" class="card stack proposal">
-          <h3>{{ t(`cops.pk.${p.kind}` as never) }} — <span dir="auto">{{ p.reason }}</span></h3>
-          <ul class="list"><li v-for="c in p.changes" :key="c.matchId"><bdi>{{ matchLabel(c.matchId) }}</bdi>: <JalaliDate :iso="c.from" /> → <JalaliDate :iso="c.to" /></li></ul>
-          <ul v-if="p.conflicts.length" class="list"><li v-for="(c, i) in p.conflicts" :key="i" :class="c.hard ? 'bad' : 'warn'">{{ c.hard ? t('cops.hard') : t('cops.soft') }} — {{ t(`cops.ck.${c.kind}` as never) }}: <span dir="auto">{{ c.detail }}</span></li></ul>
-          <div class="row">
-            <button type="button" class="btn btn-primary btn-sm" @click="act(() => esp04.applyProposal(p._id, { confirm: true })).then(loadSchedule)">{{ t('cops.apply') }}</button>
-            <button type="button" class="btn btn-sm" @click="act(() => esp04.rejectProposal(p._id)).then(loadSchedule)">{{ t('evm.reject') }}</button>
+          <!-- control: incidents, review, calls, servers -->
+          <div v-else class="k-stack">
+            <div><QButton size="sm" variant="ghost" icon="refresh" @click="loadOps">{{ t('cops.refresh') }}</QButton></div>
+            <QCard>
+              <form class="p-ops-grid" novalidate @submit.prevent="act(() => esp04.openIncident(eventId, { kind: incident.kind, publicNotice: incident.notice, delayMinutes: Number(incident.delay), newGameVersion: incident.newVersion || null })).then(loadOps)">
+                <QSelect id="in-k" v-model="incident.kind" :label="t('cops.incidentKind')" :options="INCIDENTS" />
+                <QTextField id="in-n" v-model="incident.notice" :label="t('cops.publicNotice')" />
+                <QTextField id="in-d" v-model="incident.delay" :label="t('cops.delayMinutes')" type="number" ltr />
+                <QTextField v-if="incident.kind === 'game_update'" id="in-v" v-model="incident.newVersion" :label="t('cops.newVersion')" ltr />
+                <div><QButton type="submit" size="sm" variant="danger" icon="alert" :disabled="incident.notice.length < 5">{{ t('cops.openIncident') }}</QButton></div>
+              </form>
+            </QCard>
+            <QCard v-if="incidents.length" padding="none">
+              <ul class="p-ops-rows">
+                <li v-for="i in incidents" :key="iid(i)">
+                  <span><bdi>{{ i.publicNotice }}</bdi> <QStatusBadge :state="String(i.state)" /></span>
+                  <span v-if="i.state === 'active'" class="p-ops-bar">
+                    <QTextField :id="`ic-${iid(i)}`" v-model="resolution[iid(i)]" :label="t('cops.compatNote')" hide-label :placeholder="t('cops.compatNote')" />
+                    <QButton size="sm" variant="green" @click="act(() => esp04.resolveIncident(iid(i), true, resolution[iid(i)] ?? '')).then(loadOps)">{{ t('cops.resolveResume') }}</QButton>
+                  </span>
+                </li>
+              </ul>
+            </QCard>
+            <h3 class="p-ops-h3">{{ t('cops.review') }} ({{ fa(reviews.filter((r) => r.state === 'open').length) }})</h3>
+            <QCard padding="none">
+              <ul class="p-ops-rows">
+                <li v-for="r in reviews" :key="r._id">
+                  <span><strong>{{ t(`cops.rk.${r.kind}` as never) }}</strong> — <bdi>{{ (r.detail.message ?? r.detail.conflict ?? '') as string }}</bdi> <QStatusBadge :state="r.state" /></span>
+                  <span v-if="r.state === 'open'" class="p-ops-bar">
+                    <QTextField :id="`rr-${r._id}`" v-model="resolution[r._id]" :label="t('cops.resolution')" hide-label :placeholder="t('cops.resolution')" />
+                    <QButton size="sm" variant="secondary" :disabled="(resolution[r._id] ?? '').length < 5" @click="act(() => esp04.resolveReview(r._id, resolution[r._id]!)).then(loadOps)">{{ t('cops.resolve') }}</QButton>
+                  </span>
+                </li>
+                <li v-if="!reviews.length" class="p-ops-muted">—</li>
+              </ul>
+            </QCard>
+            <h3 class="p-ops-h3">{{ t('cops.calls') }}</h3>
+            <QCard padding="none">
+              <ul class="p-ops-rows">
+                <li v-for="c in calls" :key="c._id"><span><RouterLink :to="`/matches/${c.matchId}`" class="q-ltr">{{ c.matchId }}</RouterLink> — <bdi>{{ c.reason }}</bdi></span><QStatusBadge :state="c.state" /></li>
+                <li v-if="!calls.length" class="p-ops-muted">—</li>
+              </ul>
+            </QCard>
+            <h3 class="p-ops-h3">{{ t('cops.servers') }}</h3>
+            <QCard padding="none">
+              <ul class="p-ops-rows">
+                <li v-for="s in servers" :key="s._id">
+                  <span><bdi>{{ s.name }}</bdi> · <span class="q-ltr">{{ s.region }}</span> · {{ fa(s.inUse) }}/{{ fa(s.capacity) }} <QStatusBadge :state="s.health" /></span>
+                  <span class="k-row">
+                    <QButton size="sm" variant="secondary" @click="act(() => esp04.serverHealth(s._id, 'healthy', true)).then(loadOps)">{{ t('cops.markHealthy') }}</QButton>
+                    <QButton size="sm" variant="danger" @click="act(() => esp04.serverHealth(s._id, 'down', false)).then(loadOps)">{{ t('cops.markDown') }}</QButton>
+                  </span>
+                </li>
+                <li v-if="!servers.length" class="p-ops-muted">—</li>
+              </ul>
+            </QCard>
+            <QCard>
+              <div class="k-stack">
+                <form class="p-ops-grid" novalidate @submit.prevent="act(() => esp04.createServer(eventId, { gameId: srv.gameId, name: srv.name, region: srv.region, kind: 'dedicated', connection: { host: srv.host, port: Number(srv.port) || null }, capacity: Number(srv.capacity) })).then(loadOps)">
+                  <QTextField id="sv-n" v-model="srv.name" :label="t('events.name')" ltr />
+                  <QTextField id="sv-r" v-model="srv.region" :label="t('cops.region')" ltr />
+                  <QTextField id="sv-h" v-model="srv.host" :label="t('match.lobbyHost')" ltr />
+                  <QTextField id="sv-p" v-model="srv.port" :label="t('cops.port')" type="number" ltr />
+                  <QTextField id="sv-c" v-model="srv.capacity" :label="t('reg.capacity')" type="number" ltr />
+                  <div><QButton type="submit" size="sm" variant="green" icon="plus" :disabled="!srv.name || !srv.host">{{ t('cops.addServer') }}</QButton></div>
+                </form>
+                <form class="p-ops-grid" novalidate @submit.prevent="act(() => esp04.allocate(srv.matchId, null, 'auto allocation'))">
+                  <QSelect id="sv-m" v-model="srv.matchId" :label="t('cops.allocateFor')" :placeholder="'—'" :options="allocOpts" />
+                  <div><QButton type="submit" size="sm" variant="secondary" :disabled="!srv.matchId">{{ t('cops.allocate') }}</QButton></div>
+                </form>
+              </div>
+            </QCard>
           </div>
-        </article>
-        <ul v-if="conflicts.length" class="list" role="alert"><li v-for="(c, i) in conflicts" :key="i" :class="c.hard ? 'bad' : 'warn'">{{ c.hard ? t('cops.hard') : t('cops.soft') }} — {{ t(`cops.ck.${c.kind}` as never) }}: <span dir="auto">{{ c.detail }}</span></li></ul>
-        <div v-if="matches.length" class="table-wrap">
-          <table class="tbl">
-            <caption class="sr-only">{{ t('cops.matches') }}</caption>
-            <thead><tr><th scope="col">{{ t('room.round') }}</th><th scope="col">{{ t('match.sides') }}</th><th scope="col">{{ t('match.scheduledAt') }}</th><th scope="col">{{ t('cops.newTime') }}</th><th scope="col">{{ t('evm.actions') }}</th></tr></thead>
-            <tbody>
-              <tr v-for="m in matches" :key="m.id">
-                <td><bdi class="ltr">{{ m.slot?.key }}</bdi></td>
-                <th scope="row"><RouterLink :to="`/matches/${m.id}`"><bdi>{{ m.sides.map((s) => s.displayName).join(' — ') || t('br.tbd') }}</bdi></RouterLink></th>
-                <td><JalaliDate :iso="m.scheduledAt" /><span v-if="m.estimated && m.scheduledAt" class="muted"> ~</span></td>
-                <td class="stack">
-                  <input v-model="times[m.id]!.at" type="datetime-local" class="input input-sm" :aria-label="t('cops.newTime')" />
-                  <input v-model="times[m.id]!.reason" class="input input-sm" dir="auto" :placeholder="t('evm.reason')" :aria-label="t('evm.reason')" />
-                  <label class="row small"><input v-model="times[m.id]!.override" type="checkbox" /> {{ t('cops.override') }}</label>
-                  <label class="row small"><input v-model="times[m.id]!.broadcast" type="checkbox" /> {{ t('cops.broadcast') }}</label>
-                </td>
-                <td><div class="row"><button type="button" class="btn btn-sm" :disabled="!times[m.id]!.at" @click="setTime(m)">{{ t('cops.setTime') }}</button><button type="button" class="btn btn-sm" @click="delay.matchId = m.id">{{ t('cops.delay') }}</button></div></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <form v-if="delay.matchId" class="row" novalidate @submit.prevent="act(() => esp04.delay(delay.matchId, delay.minutes, delay.reason)).then(loadSchedule)">
-          <span><bdi>{{ matchLabel(delay.matchId) }}</bdi></span>
-          <FormField id="dl-m" :label="t('cops.delayMinutes')"><template #default="{ id }"><input :id="id" v-model.number="delay.minutes" type="number" min="1" class="input ltr" /></template></FormField>
-          <FormField id="dl-r" :label="t('evm.reason')"><template #default="{ id }"><input :id="id" v-model="delay.reason" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="delay.reason.length < 2">{{ t('cops.proposeDelay') }}</button>
-        </form>
-        <h3 v-if="requests.length">{{ t('cops.requests') }}</h3>
-        <ul class="list"><li v-for="r in requests" :key="String(r._id)"><bdi>{{ matchLabel(String(r.matchId)) }}</bdi> → <JalaliDate :iso="String(r.proposedAt)" /> — <span dir="auto">{{ r.reason }}</span> <StatusBadge :state="String(r.state)" />
-          <template v-if="r.state === 'agreed'"><button type="button" class="btn btn-sm" @click="act(() => esp04.decideReschedule(String(r._id), true, 'approved')).then(loadSchedule)">{{ t('evm.approve') }}</button><button type="button" class="btn btn-sm" @click="act(() => esp04.decideReschedule(String(r._id), false, 'rejected')).then(loadSchedule)">{{ t('evm.reject') }}</button></template></li></ul>
-      </section>
-
-      <section class="card stack block">
-        <div class="row between"><h2>{{ t('cops.control') }}</h2><button type="button" class="btn btn-sm" @click="loadOps">{{ t('cops.refresh') }}</button></div>
-        <form class="grid" novalidate @submit.prevent="act(() => esp04.openIncident(eventId, { kind: incident.kind, publicNotice: incident.notice, delayMinutes: incident.delay, newGameVersion: incident.newVersion || null })).then(loadOps)">
-          <FormField id="in-k" :label="t('cops.incidentKind')"><template #default="{ id }"><select :id="id" v-model="incident.kind" class="input"><option v-for="k in ['internet_outage', 'game_update', 'infrastructure', 'venue']" :key="k" :value="k">{{ t(`cops.ik.${k}` as never) }}</option></select></template></FormField>
-          <FormField id="in-n" :label="t('cops.publicNotice')"><template #default="{ id }"><input :id="id" v-model="incident.notice" class="input" dir="auto" /></template></FormField>
-          <FormField id="in-d" :label="t('cops.delayMinutes')"><template #default="{ id }"><input :id="id" v-model.number="incident.delay" type="number" min="0" class="input ltr" /></template></FormField>
-          <FormField v-if="incident.kind === 'game_update'" id="in-v" :label="t('cops.newVersion')"><template #default="{ id }"><input :id="id" v-model="incident.newVersion" class="input ltr" /></template></FormField>
-          <button type="submit" class="btn btn-danger btn-sm" :disabled="incident.notice.length < 5">{{ t('cops.openIncident') }}</button>
-        </form>
-        <ul class="list"><li v-for="i in incidents" :key="String(i._id ?? i.id)"><span dir="auto">{{ i.publicNotice }}</span> <StatusBadge :state="String(i.state)" /><button v-if="i.state === 'active'" type="button" class="btn btn-sm" @click="act(() => esp04.resolveIncident(String(i._id ?? i.id), true, resolution[String(i._id ?? i.id)] ?? '')).then(loadOps)">{{ t('cops.resolveResume') }}</button><input v-if="i.state === 'active'" v-model="resolution[String(i._id ?? i.id)]" class="input input-sm" dir="auto" :placeholder="t('cops.compatNote')" :aria-label="t('cops.compatNote')" /></li></ul>
-        <h3>{{ t('cops.review') }} ({{ num(reviews.filter((r) => r.state === 'open').length) }})</h3>
-        <ul class="list"><li v-for="r in reviews" :key="r._id"><strong>{{ t(`cops.rk.${r.kind}` as never) }}</strong> — <span dir="auto">{{ (r.detail.message ?? r.detail.conflict ?? '') as string }}</span> <StatusBadge :state="r.state" />
-          <template v-if="r.state === 'open'"><input v-model="resolution[r._id]" class="input input-sm" dir="auto" :placeholder="t('cops.resolution')" :aria-label="t('cops.resolution')" /><button type="button" class="btn btn-sm" :disabled="(resolution[r._id] ?? '').length < 5" @click="act(() => esp04.resolveReview(r._id, resolution[r._id]!)).then(loadOps)">{{ t('cops.resolve') }}</button></template></li></ul>
-        <h3>{{ t('cops.calls') }}</h3>
-        <ul class="list"><li v-for="c in calls" :key="c._id"><RouterLink :to="`/matches/${c.matchId}`">{{ c.matchId }}</RouterLink> — <span dir="auto">{{ c.reason }}</span> <StatusBadge :state="c.state" /></li></ul>
-        <h3>{{ t('cops.servers') }}</h3>
-        <ul class="list"><li v-for="s in servers" :key="s._id"><bdi>{{ s.name }}</bdi> · {{ s.region }} · {{ num(s.inUse) }}/{{ num(s.capacity) }} <StatusBadge :state="s.health" />
-          <button type="button" class="btn btn-sm" @click="act(() => esp04.serverHealth(s._id, 'healthy', true)).then(loadOps)">{{ t('cops.markHealthy') }}</button><button type="button" class="btn btn-sm" @click="act(() => esp04.serverHealth(s._id, 'down', false)).then(loadOps)">{{ t('cops.markDown') }}</button></li></ul>
-        <form class="grid" novalidate @submit.prevent="act(() => esp04.createServer(eventId, { gameId: srv.gameId, name: srv.name, region: srv.region, kind: 'dedicated', connection: { host: srv.host, port: srv.port || null }, capacity: srv.capacity })).then(loadOps)">
-          <FormField id="sv-n" :label="t('events.name')"><template #default="{ id }"><input :id="id" v-model="srv.name" class="input ltr" /></template></FormField>
-          <FormField id="sv-r" :label="t('cops.region')"><template #default="{ id }"><input :id="id" v-model="srv.region" class="input ltr" /></template></FormField>
-          <FormField id="sv-h" :label="t('match.lobbyHost')"><template #default="{ id }"><input :id="id" v-model="srv.host" class="input ltr" /></template></FormField>
-          <FormField id="sv-p" :label="t('cops.port')"><template #default="{ id }"><input :id="id" v-model.number="srv.port" type="number" min="0" class="input ltr" /></template></FormField>
-          <FormField id="sv-c" :label="t('reg.capacity')"><template #default="{ id }"><input :id="id" v-model.number="srv.capacity" type="number" min="1" class="input ltr" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!srv.name || !srv.host">{{ t('cops.addServer') }}</button>
-        </form>
-        <form class="row" novalidate @submit.prevent="act(() => esp04.allocate(srv.matchId, null, 'auto allocation'))">
-          <FormField id="sv-m" :label="t('cops.allocateFor')"><template #default="{ id }"><select :id="id" v-model="srv.matchId" class="input"><option v-for="m in matches" :key="m.id" :value="m.id">{{ matchLabel(m.id) }}</option></select></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!srv.matchId">{{ t('cops.allocate') }}</button>
-        </form>
-      </section>
-    </template>
-  </DataState>
+        </template>
+      </QTabs>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.block { margin-block-start: var(--sp-4); }
-.between { justify-content: space-between; }
-.row { flex-wrap: wrap; gap: var(--sp-2); align-items: flex-end; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: var(--sp-3); align-items: end; }
-.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--sp-2); }
-.list { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-1); }
-.table-wrap { overflow-x: auto; }
-.tbl { inline-size: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.tbl th, .tbl td { padding: var(--sp-1) var(--sp-2); border-block-end: 1px solid var(--border); text-align: start; vertical-align: top; }
-.input-xs { max-inline-size: 5rem; }
-.input-sm { max-inline-size: 12rem; }
-.code { font-family: monospace; font-size: var(--fs-xs); max-block-size: 14rem; overflow: auto; white-space: pre-wrap; }
-.ok { color: var(--ok); }
-.warn { color: var(--warn); }
-.bad { color: var(--danger); font-weight: 600; }
-.small { font-size: var(--fs-xs); }
-.proposal { border-inline-start: 4px solid var(--accent); }
-h2, h3, p { margin: 0; }
+.p-ops-p { margin: 0; }
+.p-ops-h3 { margin: 0; font-size: 15px; font-weight: 800; }
+.p-ops-bar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
+.p-ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: var(--space-3); align-items: end; }
+.p-ops-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
+.p-ops-list { margin: 0; padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
+.p-ops-rows { margin: 0; padding: 0; list-style: none; }
+.p-ops-rows > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-block-end: 1px solid var(--line); }
+.p-ops-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-ops-warn { color: var(--warning-text); }
+.p-ops-bad { color: var(--danger-text); font-weight: 700; }
+.p-ops-xs { max-inline-size: 6rem; }
+.p-ops-sm { max-inline-size: 10rem; }
+.p-ops-time { gap: var(--space-2); min-inline-size: 14rem; }
+.p-ops-proposal { border-inline-start: 4px solid var(--green-500); }
+.p-ops-more > summary { cursor: pointer; font-weight: 800; }
+.p-ops-more[open] > summary { margin-block-end: var(--space-3); }
 </style>
