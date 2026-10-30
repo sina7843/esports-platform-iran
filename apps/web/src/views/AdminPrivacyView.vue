@@ -1,17 +1,11 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { QAlert, QButton, QCard, QCheckbox, QConfirmDialog, QContainer, QDataState, QPageHeader, QSection, QSelect, QStatusBadge, QTextField, fa, formatJalali, num, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp07 as esp07Api } from '../api/esp07';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t } from '../i18n';
 import { useLoad } from '../useLoad';
-
 /**
  * ADM-012 / OPS-001..003: versioned legal texts, legal holds, configurable retention (identity and financial documents
  * stay blocked until an approved policy is recorded), the retention job with a dry run, and data-subject requests.
@@ -46,97 +40,123 @@ const polOf = (id: string, days: number | null, note: string) => (pol[id] ??= { 
 const runReport = ref<Awaited<ReturnType<typeof esp07.runRetention>> | null>(null);
 // requests
 const note = reactive<Record<string, string>>({});
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 3000 }); });
+const reqAcc = computed({ get: () => doc.requiresAcceptance, set: (v: boolean | null) => { doc.requiresAcceptance = !!v; } });
+const confirmRun = ref(false);
+const runReal = () => { confirmRun.value = false; void act(async () => (runReport.value = await esp07.runRetention(false)), [], ''); };
+const listState = (l: { loading: { value: boolean }; error: { value: ApiClientError | null }; data: { value: { items: unknown[] } | null } }) =>
+  (l.error.value ? 'error' : l.loading.value && !l.data.value ? 'loading' : l.data.value && !l.data.value.items.length ? 'empty' : 'content');
 </script>
 
 <template>
-  <PageHeader :title="t('a7.privacy.title')" :lead="t('a7.privacy.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
+  <QContainer>
+    <div class="k-stack p-apriv">
+      <QPageHeader compact :title="t('a7.privacy.title')" :description="t('a7.privacy.lead')" :breadcrumb="[{ label: t('shell.platform_admin'), href: '/admin' }, { label: t('a7.privacy.title') }]" />
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
 
-  <section class="card stack" aria-labelledby="lg-h">
-    <h2 id="lg-h">{{ t('a7.privacy.legal') }}</h2>
-    <form class="stack" @submit.prevent="act(() => esp07.publishLegal({ ...doc, effectiveAt: null }), [() => showHistory(doc.kind)])">
-      <div class="grid">
-        <FormField id="lg-k" :label="t('a7.privacy.kind')"><template #default="{ id: fid }"><select :id="fid" v-model="doc.kind" class="input"><option v-for="k in KINDS" :key="k" :value="k">{{ t(`a7.legal.${k}` as never) }}</option></select></template></FormField>
-        <FormField id="lg-t" :label="t('a7.privacy.docTitle')"><template #default="{ id: fid }"><input :id="fid" v-model="doc.title" class="input" dir="auto" /></template></FormField>
-      </div>
-      <FormField id="lg-b" :label="t('a7.privacy.docBody')" :hint="t('a7.privacy.docHint')"><template #default="{ id: fid, describedBy }"><textarea :id="fid" v-model="doc.body" class="input" rows="6" dir="auto" :aria-describedby="describedBy" /></template></FormField>
-      <label><input v-model="doc.requiresAcceptance" type="checkbox" /> {{ t('a7.privacy.requiresAcceptance') }}</label>
-      <div class="row"><button type="submit" class="btn btn-primary" :disabled="doc.title.trim().length < 3 || doc.body.trim().length < 20">{{ t('a7.privacy.publish') }}</button><button type="button" class="btn btn-sm" @click="showHistory(doc.kind)">{{ t('a7.privacy.history') }}</button></div>
-    </form>
-    <ul v-if="history.length" class="plain small"><li v-for="h in history" :key="h.id">v{{ num(h.version) }} — <bdi>{{ h.title }}</bdi> · <JalaliDate :iso="h.effectiveAt" /></li></ul>
-  </section>
+      <QSection id="legal" small :title="t('a7.privacy.legal')">
+        <QCard>
+          <form class="k-stack" novalidate @submit.prevent="act(() => esp07.publishLegal({ ...doc, effectiveAt: null }), [() => showHistory(doc.kind)])">
+            <div class="p-apriv-grid">
+              <QSelect id="lg-k" v-model="doc.kind" :label="t('a7.privacy.kind')" :options="KINDS.map((k) => ({ value: k, label: t(`a7.legal.${k}` as never) }))" />
+              <QTextField id="lg-t" v-model="doc.title" :label="t('a7.privacy.docTitle')" />
+            </div>
+            <QTextField id="lg-b" v-model="doc.body" :label="t('a7.privacy.docBody')" :hint="t('a7.privacy.docHint')" multiline :rows="6" />
+            <QCheckbox v-model="reqAcc" :label="t('a7.privacy.requiresAcceptance')" />
+            <div class="k-row">
+              <QButton type="submit" variant="primary" :disabled="doc.title.trim().length < 3 || doc.body.trim().length < 20">{{ t('a7.privacy.publish') }}</QButton>
+              <QButton variant="ghost" size="sm" @click="showHistory(doc.kind)">{{ t('a7.privacy.history') }}</QButton>
+            </div>
+          </form>
+          <ul v-if="history.length" class="p-apriv-log"><li v-for="h in history" :key="h.id">v{{ fa(h.version) }} — <bdi>{{ h.title }}</bdi> · {{ formatJalali(h.effectiveAt) }}</li></ul>
+        </QCard>
+      </QSection>
 
-  <section class="card stack block" aria-labelledby="hd-h">
-    <h2 id="hd-h">{{ t('a7.privacy.holds') }}</h2>
-    <p class="muted small">{{ t('a7.privacy.holdsLead') }}</p>
-    <DataState :loading="holds.loading.value" :error="holds.error.value" :empty="!!holds.data.value && holds.data.value.items.length === 0" @retry="holds.load">
-      <ul v-if="holds.data.value" class="plain stack"><li v-for="h in holds.data.value.items" :key="h._id" class="row between"><span><strong>{{ h.scope.kind }}</strong> <bdi class="ltr">{{ h.scope.id }}</bdi> — <span dir="auto">{{ h.reason }}</span></span><button type="button" class="btn btn-sm" @click="act(() => esp07.releaseHold(h._id), [holds.load])">{{ t('a7.privacy.release') }}</button></li></ul>
-    </DataState>
-    <form class="grid" @submit.prevent="act(() => esp07.placeHold(hold.kind, hold.id, hold.reason), [holds.load])">
-      <FormField id="hd-k" :label="t('a7.privacy.kind')"><template #default="{ id: fid }"><select :id="fid" v-model="hold.kind" class="input"><option v-for="k in ['principal', 'event', 'file', 'dispute']" :key="k" :value="k">{{ k }}</option></select></template></FormField>
-      <FormField id="hd-i" :label="t('a7.privacy.ref')"><template #default="{ id: fid }"><input :id="fid" v-model="hold.id" class="input ltr" /></template></FormField>
-      <FormField id="hd-r" :label="t('a7.reason')"><template #default="{ id: fid }"><input :id="fid" v-model="hold.reason" class="input" dir="auto" /></template></FormField>
-      <button type="submit" class="btn" :disabled="!hold.id || hold.reason.trim().length < 5">{{ t('a7.privacy.place') }}</button>
-    </form>
-  </section>
-
-  <section class="card stack block" aria-labelledby="rt-h">
-    <h2 id="rt-h">{{ t('a7.privacy.retention') }}</h2>
-    <p class="muted small">{{ t('a7.privacy.retentionLead') }}</p>
-    <DataState :loading="policies.loading.value" :error="policies.error.value" @retry="policies.load">
-      <ul v-if="policies.data.value" class="plain stack">
-        <li v-for="p in policies.data.value.items" :key="p._id" class="item stack">
-          <div class="row between"><strong class="ltr">{{ p._id }}</strong><StatusBadge :state="p.approved ? 'approved' : 'pending'" /></div>
-          <div class="row">
-            <label>{{ t('a7.privacy.days') }} <input v-model="polOf(p._id, p.days, p.note).days" class="input ltr narrow" inputmode="numeric" :placeholder="t('a7.privacy.forever')" /></label>
-            <input v-model="polOf(p._id, p.days, p.note).note" class="input grow" dir="auto" :placeholder="t('a7.privacy.policyRef')" :aria-label="t('a7.privacy.policyRef')" />
-            <button type="button" class="btn btn-sm" @click="act(() => esp07.setRetention(p._id, { days: polOf(p._id, p.days, p.note).days ? Number(polOf(p._id, p.days, p.note).days) : null, approved: true, note: polOf(p._id, p.days, p.note).note }), [policies.load])">{{ t('a7.privacy.approve') }}</button>
-            <button v-if="p.approved" type="button" class="btn btn-sm" @click="act(() => esp07.setRetention(p._id, { days: p.days, approved: false, note: polOf(p._id, p.days, p.note).note }), [policies.load])">{{ t('a7.privacy.unapprove') }}</button>
+      <QSection id="holds" small :title="t('a7.privacy.holds')" :description="t('a7.privacy.holdsLead')">
+        <QCard>
+          <div class="k-stack">
+            <QDataState v-if="listState(holds) !== 'content'" :state="listState(holds) as never" skeleton="rows" @retry="holds.load" />
+            <ul v-else class="p-apriv-rows">
+              <li v-for="h in holds.data.value!.items" :key="h._id">
+                <span><strong>{{ h.scope.kind }}</strong> <bdi class="q-ltr">{{ h.scope.id }}</bdi> — <span dir="auto">{{ h.reason }}</span></span>
+                <QButton size="sm" variant="secondary" @click="act(() => esp07.releaseHold(h._id), [holds.load])">{{ t('a7.privacy.release') }}</QButton>
+              </li>
+            </ul>
+            <form class="p-apriv-inline" novalidate @submit.prevent="act(() => esp07.placeHold(hold.kind, hold.id, hold.reason), [holds.load])">
+              <QSelect id="hd-k" v-model="hold.kind" :label="t('a7.privacy.kind')" :options="['principal', 'event', 'file', 'dispute'].map((k) => ({ value: k, label: k }))" />
+              <QTextField id="hd-i" v-model="hold.id" :label="t('a7.privacy.ref')" ltr />
+              <QTextField id="hd-r" v-model="hold.reason" :label="t('a7.reason')" />
+              <QButton type="submit" variant="secondary" :disabled="!hold.id || hold.reason.trim().length < 5">{{ t('a7.privacy.place') }}</QButton>
+            </form>
           </div>
-        </li>
-      </ul>
-    </DataState>
-    <div class="row">
-      <button type="button" class="btn" @click="act(async () => (runReport = await esp07.runRetention(true)), [], '')">{{ t('a7.privacy.dryRun') }}</button>
-      <button type="button" class="btn btn-primary" @click="act(async () => (runReport = await esp07.runRetention(false)), [], '')">{{ t('a7.privacy.run') }}</button>
-    </div>
-    <div v-if="runReport" role="status" class="stack small">
-      <strong>{{ runReport.dryRun ? t('a7.privacy.dryRun') : t('a7.privacy.run') }}</strong>
-      <ul class="plain"><li v-for="(r, k) in runReport.report" :key="k"><bdi class="ltr">{{ k }}</bdi>: {{ t('a7.privacy.runLine', { c: num(r.candidates), d: num(r.deleted), h: num(r.held) }) }}</li><li v-if="!Object.keys(runReport.report).length" class="muted">{{ t('a7.empty') }}</li></ul>
-    </div>
-  </section>
+        </QCard>
+      </QSection>
 
-  <section class="card stack block" aria-labelledby="dr-h">
-    <h2 id="dr-h">{{ t('a7.privacy.requests') }}</h2>
-    <DataState :loading="requests.loading.value" :error="requests.error.value" :empty="!!requests.data.value && requests.data.value.items.length === 0" @retry="requests.load">
-      <ul v-if="requests.data.value" class="plain stack">
-        <li v-for="r in requests.data.value.items" :key="r._id" class="item stack">
-          <div class="row between"><span><strong>{{ t(`a7.req.${r.kind}` as never) }}</strong> — <bdi class="ltr">{{ r.principalId }}</bdi></span><span class="row small"><StatusBadge :state="r.state" /> <JalaliDate :iso="r.createdAt" /></span></div>
-          <p v-if="r.detail" dir="auto" class="small">{{ r.detail }}</p>
-          <p v-if="r.state === 'on_hold'" class="warn small">{{ t('a7.privacy.onHold') }}</p>
-          <div class="row">
-            <input v-model="note[r._id]" class="input grow" dir="auto" :placeholder="t('a7.privacy.decisionNote')" :aria-label="t('a7.privacy.decisionNote')" />
-            <button type="button" class="btn btn-sm btn-primary" :disabled="(note[r._id] ?? '').trim().length < 5" @click="act(() => esp07.decideRequest(r._id, 'complete', note[r._id] ?? ''), [requests.load])">{{ t('a7.privacy.complete') }}</button>
-            <button type="button" class="btn btn-sm" :disabled="(note[r._id] ?? '').trim().length < 5" @click="act(() => esp07.decideRequest(r._id, 'reject', note[r._id] ?? ''), [requests.load])">{{ t('a7.privacy.reject') }}</button>
+      <QSection id="retention" small :title="t('a7.privacy.retention')" :description="t('a7.privacy.retentionLead')">
+        <div class="k-stack">
+          <QDataState v-if="!policies.data.value" :state="policies.error.value ? 'error' : 'loading'" skeleton="rows" @retry="policies.load" />
+          <QCard v-for="p in policies.data.value?.items ?? []" :key="p._id">
+            <div class="k-stack">
+              <div class="p-apriv-head"><code class="q-mono q-ltr">{{ p._id }}</code><QStatusBadge :state="p.approved ? 'approved' : 'pending'" /></div>
+              <div class="p-apriv-inline">
+                <QTextField v-model="polOf(p._id, p.days, p.note).days" :label="t('a7.privacy.days')" input-mode="numeric" ltr :placeholder="t('a7.privacy.forever')" />
+                <QTextField v-model="polOf(p._id, p.days, p.note).note" :label="t('a7.privacy.policyRef')" />
+                <span class="k-row">
+                  <QButton size="sm" variant="green" @click="act(() => esp07.setRetention(p._id, { days: polOf(p._id, p.days, p.note).days ? Number(polOf(p._id, p.days, p.note).days) : null, approved: true, note: polOf(p._id, p.days, p.note).note }), [policies.load])">{{ t('a7.privacy.approve') }}</QButton>
+                  <QButton v-if="p.approved" size="sm" variant="secondary" @click="act(() => esp07.setRetention(p._id, { days: p.days, approved: false, note: polOf(p._id, p.days, p.note).note }), [policies.load])">{{ t('a7.privacy.unapprove') }}</QButton>
+                </span>
+              </div>
+            </div>
+          </QCard>
+          <div class="k-row">
+            <QButton variant="secondary" icon="eye" @click="act(async () => (runReport = await esp07.runRetention(true)), [], '')">{{ t('a7.privacy.dryRun') }}</QButton>
+            <QButton variant="danger" icon="trash" @click="confirmRun = true">{{ t('a7.privacy.run') }}</QButton>
           </div>
-        </li>
-      </ul>
-    </DataState>
-  </section>
+          <QAlert v-if="runReport" :tone="runReport.dryRun ? 'info' : 'success'" :title="runReport.dryRun ? t('a7.privacy.dryRun') : t('a7.privacy.run')">
+            <ul class="p-apriv-log">
+              <li v-for="(r, k) in runReport.report" :key="k"><bdi class="q-ltr">{{ k }}</bdi>: {{ t('a7.privacy.runLine', { c: num(r.candidates), d: num(r.deleted), h: num(r.held) }) }}</li>
+              <li v-if="!Object.keys(runReport.report).length">{{ t('a7.empty') }}</li>
+            </ul>
+          </QAlert>
+        </div>
+      </QSection>
+
+      <QSection id="requests" small :title="t('a7.privacy.requests')">
+        <QDataState v-if="listState(requests) !== 'content'" :state="listState(requests) as never" skeleton="rows" @retry="requests.load" />
+        <div v-else class="k-stack">
+          <QCard v-for="r in requests.data.value!.items" :key="r._id">
+            <div class="k-stack">
+              <div class="p-apriv-head">
+                <span><strong>{{ t(`a7.req.${r.kind}` as never) }}</strong> — <bdi class="q-ltr">{{ r.principalId }}</bdi></span>
+                <span class="k-row"><QStatusBadge :state="r.state" /><span class="p-apriv-muted">{{ formatJalali(r.createdAt) }}</span></span>
+              </div>
+              <p v-if="r.detail" class="p-apriv-muted" dir="auto">{{ r.detail }}</p>
+              <QAlert v-if="r.state === 'on_hold'" tone="warning">{{ t('a7.privacy.onHold') }}</QAlert>
+              <div class="p-apriv-inline">
+                <QTextField v-model="note[r._id]" :label="t('a7.privacy.decisionNote')" />
+                <span class="k-row">
+                  <QButton size="sm" variant="primary" :disabled="(note[r._id] ?? '').trim().length < 5" @click="act(() => esp07.decideRequest(r._id, 'complete', note[r._id] ?? ''), [requests.load])">{{ t('a7.privacy.complete') }}</QButton>
+                  <QButton size="sm" variant="secondary" :disabled="(note[r._id] ?? '').trim().length < 5" @click="act(() => esp07.decideRequest(r._id, 'reject', note[r._id] ?? ''), [requests.load])">{{ t('a7.privacy.reject') }}</QButton>
+                </span>
+              </div>
+            </div>
+          </QCard>
+        </div>
+      </QSection>
+    </div>
+    <QConfirmDialog :open="confirmRun" icon="trash" :title="t('a7.privacy.run')" :message="t('a7.privacy.retentionLead')" :confirm-label="t('a7.privacy.run')" :cancel-label="t('ap.cancel')" @close="confirmRun = false" @confirm="runReal" />
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.between { justify-content: space-between; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--sp-2); align-items: end; }
-.plain { list-style: none; margin: 0; padding: 0; }
-.block { margin-block-start: var(--sp-4); }
-.item { border-block-end: 1px solid var(--border); padding-block: var(--sp-2); }
-.narrow { inline-size: 7rem; }
-.grow { flex: 1 1 14rem; }
-.small { font-size: var(--fs-xs); }
-.warn { color: var(--warn); }
-.ok { color: var(--ok); }
-h2, p { margin: 0; }
+.p-apriv { gap: var(--space-7); }
+.p-apriv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.p-apriv-inline { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--space-3); align-items: end; }
+.p-apriv-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-apriv-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.p-apriv-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding-block: var(--space-3); border-block-end: 1px solid var(--line); font-size: 14px; }
+.p-apriv-log { margin: var(--space-3) 0 0; padding-inline-start: var(--space-5); font-size: 13px; display: flex; flex-direction: column; gap: var(--space-1); }
+.p-apriv-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+@media (max-width: 720px) { .p-apriv-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
