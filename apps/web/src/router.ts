@@ -54,10 +54,10 @@ export const routes: RouteRecordRaw[] = [
   { path: '/offline', name: 'offline', component: () => import('./views/OfflineView.vue'), meta: { title: 'offline.title', layout: 'public', redesigned: true } },
 
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue'), meta: { requiresAuth: true, title: 'nav.account', layout: 'panel', side: 'account', redesigned: true } },
-  { path: '/account/profile', name: 'profile', component: () => import('./views/ProfileView.vue'), meta: { requiresAuth: true, title: 'nav.profile', layout: 'panel', side: 'profile' } },
-  { path: '/account/security', name: 'security', component: () => import('./views/SecurityView.vue'), meta: { requiresAuth: true, title: 'nav.security', layout: 'panel', side: 'security' } },
+  { path: '/account/profile', name: 'profile', component: () => import('./views/ProfileView.vue'), meta: { requiresAuth: true, title: 'nav.profile', layout: 'panel', side: 'profile', redesigned: true } },
+  { path: '/account/security', name: 'security', component: () => import('./views/SecurityView.vue'), meta: { requiresAuth: true, title: 'nav.security', layout: 'panel', side: 'security', redesigned: true } },
   { path: '/account/notifications', name: 'notifications', component: () => import('./views/NotificationsView.vue'), meta: { requiresAuth: true, title: 'nav.notifications', layout: 'panel', side: 'notifications', redesigned: true } },
-  { path: '/account/registrations', name: 'my-registrations', component: () => import('./views/MyRegistrationsView.vue'), meta: { requiresAuth: true, title: 'reg.mine', layout: 'panel', side: 'registrations' } },
+  { path: '/account/registrations', name: 'my-registrations', component: () => import('./views/MyRegistrationsView.vue'), meta: { requiresAuth: true, title: 'reg.mine', layout: 'panel', side: 'registrations', redesigned: true } },
   { path: '/account/certificates', name: 'my-certificates', component: () => import('./views/CertificatesView.vue'), meta: { requiresAuth: true, title: 'cert.title', layout: 'panel', side: 'certificates', redesigned: true } },
   { path: '/account/calendar', name: 'my-calendar', component: () => import('./views/MyCalendarView.vue'), meta: { requiresAuth: true, title: 'cal.title', layout: 'panel', side: 'calendar' } },
   { path: '/events/:id/my-qr', name: 'my-qr', component: () => import('./views/MyQrView.vue'), meta: { requiresAuth: true, title: 'qr.title', layout: 'panel', side: 'registrations', redesigned: true } },

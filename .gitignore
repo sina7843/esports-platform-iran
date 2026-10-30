@@ -73,3 +73,7 @@ data/
 
 # QeSB redesign handoff (local reference, 31MB with screenshots)
 docs/redesign/
+
+# local port helper files
+apps/web/.port.py
+apps/web/.p-*

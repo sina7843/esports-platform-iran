@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
+import { QAlert, QBadge, QButton, QCard, QCheckbox, QContainer, QDataState, QGameIdentity, QPageHeader, QSection, QSelect, QTextField, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02, type GameIdentity, type GameProfile, type MyProfile, type Privacy } from '../api/esp02';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import PageHeader from '../components/PageHeader.vue';
 import { toClientError } from '../errors';
 import { t, type MessageKey } from '../i18n';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 
 /** USR-003/004/005/007, REC-002: own profile with per-field privacy, games, looking-for-team and game identities. */
@@ -88,111 +86,115 @@ async function addIdentity() {
     gidFailure.value = toClientError(e);
   }
 }
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 4000 }); });
+const ds = useDataState({ loading: computed(() => profile.loading.value && !profile.data.value), error: profile.error });
+const levelOptions = computed(() => levels.map((l) => ({ value: l, label: t(`privacy.${l}` as MessageKey) })));
+const policyOptions = computed(() => policies.map((p) => ({ value: p, label: t(`msg.${p}` as MessageKey) })));
+const lft = computed({ get: () => !!form.value?.lookingForTeam.active, set: (v: boolean | null) => { if (form.value) form.value.lookingForTeam.active = !!v; } });
+const str = (o: Record<string, unknown>, k: string) => computed({ get: () => String(o[k] ?? ''), set: (v: string) => { o[k] = v; } });
+const gidState = (s: string) => (['verified', 'pending', 'unverified', 'rejected', 'disputed'].includes(s) ? s : 'unverified') as never;
 </script>
 
 <template>
-  <PageHeader :title="t('profile.title')">
-    <template v-if="form" #actions><RouterLink class="btn" :to="`/players/${encodeURIComponent(form.nickname)}`">{{ t('profile.viewPublic') }}</RouterLink></template>
-  </PageHeader>
-  <DataState :loading="profile.loading.value" :error="profile.error.value" @retry="profile.load">
-    <form v-if="form" class="card stack form" novalidate @submit.prevent="save">
-      <FormField id="nick" :label="t('profile.nickname')" required>
-        <template #default="{ id, describedBy }"><input :id="id" v-model="form.nickname" class="input" dir="auto" :aria-describedby="describedBy" /></template>
-      </FormField>
-      <FormField id="rn" :label="t('profile.realName')">
-        <template #default="{ id }"><input :id="id" v-model="form.realName" class="input" dir="auto" /></template>
-      </FormField>
-      <FormField id="bio" :label="t('profile.bio')">
-        <template #default="{ id }"><textarea :id="id" v-model="form.bio" class="input" rows="3" dir="auto" /></template>
-      </FormField>
-      <div class="grid two">
-        <FormField id="prov" :label="t('profile.province')"><template #default="{ id }"><input :id="id" v-model="form.province" class="input" dir="auto" /></template></FormField>
-        <FormField id="city" :label="t('profile.city')"><template #default="{ id }"><input :id="id" v-model="form.city" class="input" dir="auto" /></template></FormField>
+  <QContainer>
+    <div class="k-stack p-profile">
+      <QPageHeader compact :title="t('profile.title')" :description="t('pf.desc')">
+        <template v-if="form" #actions><QButton variant="secondary" icon="eye" :href="`/players/${encodeURIComponent(form.nickname)}`">{{ t('profile.viewPublic') }}</QButton></template>
+      </QPageHeader>
+      <QDataState v-if="ds.state.value !== 'content' || !form" v-bind="ds.props.value" @retry="profile.load" />
+      <form v-else class="k-stack p-profile" novalidate @submit.prevent="save">
+        <QSection id="identity" small :title="t('pf.identity')">
+          <QCard>
+            <div class="p-profile-grid">
+              <QTextField id="nick" v-model="form.nickname" :label="t('profile.nickname')" required />
+              <QTextField id="rn" v-model="str(form, 'realName').value" :label="t('profile.realName')" />
+              <QTextField id="prov" v-model="str(form, 'province').value" :label="t('profile.province')" />
+              <QTextField id="city" v-model="str(form, 'city').value" :label="t('profile.city')" />
+              <div class="p-profile-span"><QTextField id="bio" v-model="str(form, 'bio').value" :label="t('profile.bio')" multiline :rows="3" /></div>
+            </div>
+          </QCard>
+        </QSection>
+        <QSection id="privacy" small :title="t('profile.privacy')" :description="t('pf.privacyDesc')">
+          <QCard>
+            <div class="p-profile-grid">
+              <QSelect v-for="f in privacyFields" :id="`pv-${f}`" :key="f" v-model="form.privacy[f]" :label="t(`profile.${f}` as MessageKey)" :options="levelOptions" />
+              <QSelect id="mp" v-model="form.messagePolicy" :label="t('profile.messagePolicy')" :options="policyOptions" />
+            </div>
+          </QCard>
+        </QSection>
+        <QSection id="games" small :title="t('profile.games')">
+          <QCard>
+            <div class="k-stack">
+              <div v-for="(g, i) in form.games" :key="i" class="p-profile-game">
+                <QTextField :id="`g-${i}`" v-model="g.gameId" :label="t('profile.gameId')" ltr />
+                <QTextField :id="`gr-${i}`" :model-value="rolesText(g)" :label="t('profile.roles')" @update:model-value="(v) => setRoles(g, v ?? '')" />
+                <QTextField :id="`gl-${i}`" v-model="str(g, 'declaredLevel').value" :label="t('profile.declaredLevel')" />
+                <p v-if="g.verifiedLevel" class="p-profile-muted">{{ t('profile.verifiedLevel') }}: <bdi>{{ g.verifiedLevel.value }}</bdi></p>
+              </div>
+              <div><QButton variant="secondary" size="sm" icon="plus" @click="addGame">{{ t('profile.addGame') }}</QButton></div>
+            </div>
+          </QCard>
+        </QSection>
+        <QSection id="lft" small :title="t('profile.lft')">
+          <QCard>
+            <div class="k-stack">
+              <QCheckbox v-model="lft" :label="t('profile.lft')" />
+              <QTextField id="resume" v-model="str(form.lookingForTeam, 'resume').value" :label="t('profile.resume')" multiline :rows="3" />
+            </div>
+          </QCard>
+        </QSection>
+        <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+        <div><QButton type="submit" variant="primary" icon="check" :loading="saving">{{ t('profile.save') }}</QButton></div>
+      </form>
+
+      <QSection id="gid" small :title="t('gid.title')">
+        <QCard>
+          <div class="k-stack">
+            <QDataState v-if="ids.error.value" state="error" @retry="ids.load" />
+            <div v-else-if="ids.data.value?.items.length" class="k-stack">
+              <QGameIdentity v-for="g in ids.data.value.items" :key="g.id" :game="g.gameId" :platform="g.platform" :value="g.value" :state="gidState(g.verification.state)" :on-edit="false" />
+            </div>
+            <QAlert v-if="lastDisputed" tone="warning">{{ t('gid.disputedNote') }}</QAlert>
+            <form class="p-profile-gid" novalidate @submit.prevent="addIdentity">
+              <QTextField id="gid-game" v-model="gid.gameId" :label="t('profile.gameId')" ltr />
+              <QTextField id="gid-plat" v-model="gid.platform" :label="t('gid.platform')" ltr />
+              <QTextField id="gid-val" v-model="gid.value" :label="t('gid.value')" ltr />
+              <QSelect id="gid-vis" v-model="gid.visibility" :label="t('profile.privacy')" :options="levelOptions" />
+              <QButton type="submit" variant="green" icon="plus">{{ t('gid.add') }}</QButton>
+            </form>
+            <QAlert v-if="gidFailure" tone="danger">{{ gidFailure.message }}</QAlert>
+          </div>
+        </QCard>
+      </QSection>
+
+      <div class="p-profile-two">
+        <QSection id="following" small :title="t('adm.following')">
+          <QCard>
+            <p v-if="!following.data.value?.items.length" class="p-profile-muted">—</p>
+            <ul v-else class="p-profile-list"><li v-for="f in following.data.value.items" :key="f.targetType + f.targetId"><QBadge tone="neutral">{{ f.targetType }}</QBadge><bdi>{{ f.label ?? f.targetId }}</bdi></li></ul>
+          </QCard>
+        </QSection>
+        <QSection id="blocks" small :title="t('adm.blocks')">
+          <QCard>
+            <p v-if="!blocks.data.value?.items.length" class="p-profile-muted">—</p>
+            <ul v-else class="p-profile-list"><li v-for="b in blocks.data.value.items" :key="b.principalId"><bdi>{{ b.nickname ?? b.principalId }}</bdi><QButton variant="secondary" size="sm" @click="unblock(b.principalId)">{{ t('adm.unblock') }}</QButton></li></ul>
+          </QCard>
+        </QSection>
       </div>
-
-      <fieldset class="stack">
-        <legend>{{ t('profile.privacy') }}</legend>
-        <div v-for="f in privacyFields" :key="f" class="row priv">
-          <label :for="`pv-${f}`">{{ t(`profile.${f}` as MessageKey) }}</label>
-          <select :id="`pv-${f}`" v-model="form.privacy[f]" class="input">
-            <option v-for="l in levels" :key="l" :value="l">{{ t(`privacy.${l}` as MessageKey) }}</option>
-          </select>
-        </div>
-      </fieldset>
-
-      <FormField id="mp" :label="t('profile.messagePolicy')">
-        <template #default="{ id }">
-          <select :id="id" v-model="form.messagePolicy" class="input"><option v-for="p in policies" :key="p" :value="p">{{ t(`msg.${p}` as MessageKey) }}</option></select>
-        </template>
-      </FormField>
-
-      <fieldset class="stack">
-        <legend>{{ t('profile.games') }}</legend>
-        <div v-for="(g, i) in form.games" :key="i" class="grid three game">
-          <FormField :id="`g-${i}`" :label="t('profile.gameId')"><template #default="{ id }"><input :id="id" v-model="g.gameId" class="input ltr" /></template></FormField>
-          <FormField :id="`gr-${i}`" :label="t('profile.roles')"><template #default="{ id }"><input :id="id" :value="rolesText(g)" class="input" dir="auto" @change="setRoles(g, ($event.target as HTMLInputElement).value)" /></template></FormField>
-          <FormField :id="`gl-${i}`" :label="t('profile.declaredLevel')"><template #default="{ id }"><input :id="id" v-model="g.declaredLevel" class="input" dir="auto" /></template></FormField>
-          <p v-if="g.verifiedLevel" class="muted">{{ t('profile.verifiedLevel') }}: <bdi>{{ g.verifiedLevel.value }}</bdi></p>
-        </div>
-        <button type="button" class="btn btn-sm" @click="addGame">{{ t('profile.addGame') }}</button>
-      </fieldset>
-
-      <fieldset class="stack">
-        <legend>{{ t('profile.lft') }}</legend>
-        <label class="row"><input v-model="form.lookingForTeam.active" type="checkbox" /> {{ t('profile.lft') }}</label>
-        <FormField id="resume" :label="t('profile.resume')"><template #default="{ id }"><textarea :id="id" v-model="form.lookingForTeam.resume" class="input" rows="3" dir="auto" /></template></FormField>
-      </fieldset>
-
-      <ErrorNote :error="failure" />
-      <p v-if="notice" class="ok" role="status">{{ notice }}</p>
-      <button type="submit" class="btn btn-primary" :disabled="saving">{{ t('profile.save') }}</button>
-    </form>
-  </DataState>
-
-  <section class="card stack block" aria-labelledby="gid-h">
-    <h2 id="gid-h">{{ t('gid.title') }}</h2>
-    <DataState :loading="ids.loading.value" :error="ids.error.value" :empty="!!ids.data.value && ids.data.value.items.length === 0" @retry="ids.load">
-      <ul v-if="ids.data.value" class="list">
-        <li v-for="g in ids.data.value.items" :key="g.id">
-          <bdi class="ltr">{{ g.gameId }} · {{ g.platform }} · {{ g.value }}</bdi> — {{ t('gid.state') }}: <bdi class="ltr">{{ g.verification.state }}</bdi>
-        </li>
-      </ul>
-    </DataState>
-    <p v-if="lastDisputed" class="notice" role="status">{{ t('gid.disputedNote') }}</p>
-    <form class="grid four" novalidate @submit.prevent="addIdentity">
-      <FormField id="gid-game" :label="t('profile.gameId')"><template #default="{ id }"><input :id="id" v-model="gid.gameId" class="input ltr" /></template></FormField>
-      <FormField id="gid-plat" :label="t('gid.platform')"><template #default="{ id }"><input :id="id" v-model="gid.platform" class="input ltr" /></template></FormField>
-      <FormField id="gid-val" :label="t('gid.value')"><template #default="{ id }"><input :id="id" v-model="gid.value" class="input ltr" /></template></FormField>
-      <FormField id="gid-vis" :label="t('profile.privacy')">
-        <template #default="{ id }"><select :id="id" v-model="gid.visibility" class="input"><option v-for="l in levels" :key="l" :value="l">{{ t(`privacy.${l}` as MessageKey) }}</option></select></template>
-      </FormField>
-      <button type="submit" class="btn">{{ t('gid.add') }}</button>
-    </form>
-    <ErrorNote :error="gidFailure" />
-  </section>
-
-  <section class="card stack block" aria-labelledby="fo-h">
-    <h2 id="fo-h">{{ t('adm.following') }}</h2>
-    <DataState :loading="following.loading.value" :error="following.error.value" :empty="!!following.data.value && following.data.value.items.length === 0" @retry="following.load">
-      <ul v-if="following.data.value" class="list"><li v-for="f in following.data.value.items" :key="f.targetType + f.targetId"><bdi class="ltr">{{ f.targetType }}</bdi> · <bdi>{{ f.label ?? f.targetId }}</bdi></li></ul>
-    </DataState>
-    <h2>{{ t('adm.blocks') }}</h2>
-    <DataState :loading="blocks.loading.value" :error="blocks.error.value" :empty="!!blocks.data.value && blocks.data.value.items.length === 0" @retry="blocks.load">
-      <ul v-if="blocks.data.value" class="list"><li v-for="b in blocks.data.value.items" :key="b.principalId"><bdi>{{ b.nickname ?? b.principalId }}</bdi> <button type="button" class="btn btn-sm" @click="unblock(b.principalId)">{{ t('adm.unblock') }}</button></li></ul>
-    </DataState>
-  </section>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.form { max-inline-size: 48rem; }
-.two { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
-.three { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); align-items: end; }
-.four { grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); align-items: end; gap: var(--sp-3); }
-.priv { justify-content: space-between; gap: var(--sp-3); }
-.priv select { max-inline-size: 12rem; }
-fieldset { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--sp-4); }
-.block { margin-block-start: var(--sp-6); }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.ok { color: var(--ok, var(--accent-strong)); margin: 0; }
-.notice { margin: 0; padding: var(--sp-3); background: var(--warn-soft); color: var(--warn); border-radius: var(--radius-md); }
+.p-profile { gap: var(--space-7); }
+.p-profile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.p-profile-span { grid-column: 1 / -1; }
+.p-profile-game { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); padding-block-end: var(--space-4); border-block-end: 1px solid var(--line); }
+.p-profile-gid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: var(--space-3); align-items: end; }
+.p-profile-muted { margin: 0; color: var(--ink-muted); font-size: 14px; }
+.p-profile-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.p-profile-list li { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-profile-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); align-items: start; }
+@media (max-width: 900px) { .p-profile-grid, .p-profile-game, .p-profile-gid, .p-profile-two { grid-template-columns: minmax(0, 1fr); } }
 </style>

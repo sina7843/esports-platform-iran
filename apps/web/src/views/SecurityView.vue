@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import qrcode from 'qrcode-generator';
+import { QAlert, QBadge, QButton, QCard, QCode, QConfirmDialog, QContainer, QDataState, QOtpInput, QPageHeader, QSection, QTextField, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02 } from '../api/esp02';
-import DataState from '../components/DataState.vue';
-import DigitInput from '../components/DigitInput.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import PageHeader from '../components/PageHeader.vue';
 import { toClientError } from '../errors';
 import { t } from '../i18n';
-import { resetSession } from '../session';
+import { resetSession, session } from '../session';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 
 /** USR-009 (2FA, devices), ADM-012/DATA-006 (export, delete with anonymization). */
@@ -51,58 +49,94 @@ const deleteAccount = () =>
     resetSession();
     await router.replace('/');
   });
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 4000 }); });
+const ds = useDataState({ loading: computed(() => mfa.loading.value && !mfa.data.value), error: mfa.error });
+const confirmingDelete = ref(false);
+// TOTP enrolment QR, built locally from the secret (never sent to a third party)
+const totpSvg = computed(() => {
+  if (!setup.value) return '';
+  const label = encodeURIComponent(`QeSB:${session.me?.principal.displayName ?? 'account'}`);
+  const q = qrcode(0, 'M');
+  q.addData(`otpauth://totp/${label}?secret=${setup.value.secret}&issuer=QeSB`);
+  q.make();
+  return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+});
+const onCode = (v: string | undefined) => { code.value = v ?? ''; };
 </script>
 
 <template>
-  <PageHeader :title="t('security.title')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
+  <QContainer>
+    <div class="k-stack p-security">
+      <QPageHeader compact :title="t('security.title')" :description="t('sc.desc')" />
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
 
-  <section class="card stack" aria-labelledby="mfa-h">
-    <h2 id="mfa-h">{{ t('security.mfa') }}</h2>
-    <DataState :loading="mfa.loading.value" :error="mfa.error.value" @retry="mfa.load">
-      <template v-if="mfa.data.value">
-        <p>{{ mfa.data.value.enabled ? t('security.mfaOn') : t('security.mfaOff') }}</p>
-        <p v-if="mfa.data.value.requiredByRole" class="notice">{{ t('security.mfaRequired') }}</p>
-        <button v-if="!mfa.data.value.enabled && !setup" type="button" class="btn" :disabled="busy" @click="startSetup">{{ t('security.setup') }}</button>
-        <div v-if="setup" class="stack">
-          <p>{{ t('security.secret') }} <code class="ltr">{{ setup.secret }}</code></p>
-          <p>{{ t('security.recovery') }}</p>
-          <ul class="codes ltr"><li v-for="c in setup.recoveryCodes" :key="c"><code>{{ c }}</code></li></ul>
-        </div>
-        <form v-if="setup || (mfa.data.value.enabled && !mfa.data.value.sessionVerified)" class="row" novalidate @submit.prevent="setup ? confirmSetup() : stepUp()">
-          <FormField id="totp" :label="setup ? t('security.confirm') : t('security.stepUp')">
-            <template #default="{ id, describedBy }"><DigitInput :id="id" v-model="code" inputmode="numeric" :described-by="describedBy" /></template>
-          </FormField>
-          <button type="submit" class="btn btn-primary" :disabled="busy || code.length < 6">{{ t('security.confirm') }}</button>
-        </form>
-      </template>
-    </DataState>
-  </section>
+      <QSection id="mfa" small :title="t('security.mfa')">
+        <QCard>
+          <QDataState v-if="ds.state.value !== 'content' || !mfa.data.value" v-bind="ds.props.value" @retry="mfa.load" />
+          <div v-else class="k-stack">
+            <div class="k-row">
+              <QBadge :tone="mfa.data.value.enabled ? 'success' : 'warning'" icon="lock">{{ mfa.data.value.enabled ? t('security.mfaOn') : t('security.mfaOff') }}</QBadge>
+            </div>
+            <QAlert v-if="mfa.data.value.requiredByRole" tone="warning">{{ t('security.mfaRequired') }}</QAlert>
+            <div v-if="!mfa.data.value.enabled && !setup"><QButton variant="green" icon="shield" :loading="busy" @click="startSetup">{{ t('security.setup') }}</QButton></div>
+            <div v-if="setup" class="p-security-setup">
+              <!-- eslint-disable-next-line vue/no-v-html -- SVG built locally by qrcode-generator -->
+              <span class="p-security-qr" role="img" :aria-label="t('sc.qr')" v-html="totpSvg" />
+              <div class="k-stack">
+                <QCode copy :label="t('security.secret')" :copy-label="t('sc.copy')">{{ setup.secret }}</QCode>
+                <div>
+                  <h3 class="p-security-h">{{ t('security.recovery') }}</h3>
+                  <ul class="p-security-codes"><li v-for="c in setup.recoveryCodes" :key="c"><code class="q-mono q-ltr">{{ c }}</code></li></ul>
+                </div>
+              </div>
+            </div>
+            <form v-if="setup || (mfa.data.value.enabled && !mfa.data.value.sessionVerified)" class="k-stack" novalidate @submit.prevent="setup ? confirmSetup() : stepUp()">
+              <QOtpInput :model-value="code" :length="6" :label="setup ? t('security.confirm') : t('security.stepUp')" hide-resend @update:model-value="onCode" />
+              <div><QButton type="submit" variant="primary" :loading="busy" :disabled="code.length < 6">{{ setup ? t('security.confirm') : t('security.stepUp') }}</QButton></div>
+            </form>
+          </div>
+        </QCard>
+      </QSection>
 
-  <section class="card stack block">
-    <button type="button" class="btn" :disabled="busy" @click="logoutOthers">{{ t('security.logoutOthers') }}</button>
-    <a class="btn" :href="esp02.exportUrl()" download="my-data.json">{{ t('security.export') }}</a>
-  </section>
+      <QSection id="devices" small :title="t('sc.devices')">
+        <QCard>
+          <div class="k-row">
+            <QButton variant="secondary" icon="logout" :loading="busy" @click="logoutOthers">{{ t('security.logoutOthers') }}</QButton>
+            <QButton variant="ghost" icon="user" href="/account">{{ t('sc.sessions') }}</QButton>
+          </div>
+        </QCard>
+      </QSection>
 
-  <section class="card stack block danger" aria-labelledby="del-h">
-    <h2 id="del-h">{{ t('security.delete') }}</h2>
-    <p>{{ t('security.deleteWarn') }}</p>
-    <button v-if="!reauthSent" type="button" class="btn" :disabled="busy" @click="sendReauth">{{ t('security.reauthSend') }}</button>
-    <form v-else class="row" novalidate @submit.prevent="deleteAccount">
-      <FormField id="reauth" :label="t('security.reauthCode')">
-        <template #default="{ id, describedBy }"><DigitInput :id="id" v-model="reauthCode" inputmode="numeric" :described-by="describedBy" /></template>
-      </FormField>
-      <button type="submit" class="btn btn-danger" :disabled="busy || reauthCode.length < 4">{{ t('security.deleteConfirm') }}</button>
-    </form>
-  </section>
+      <QSection id="data" small :title="t('sc.data')">
+        <QCard>
+          <div class="k-stack">
+            <div><QButton variant="secondary" icon="download" :href="esp02.exportUrl()" download="my-data.json">{{ t('security.export') }}</QButton></div>
+            <QAlert tone="danger" icon="alert" :title="t('security.delete')">{{ t('security.deleteWarn') }}</QAlert>
+            <div v-if="!reauthSent"><QButton variant="danger" :loading="busy" @click="sendReauth">{{ t('security.reauthSend') }}</QButton></div>
+            <form v-else class="p-security-del" novalidate @submit.prevent="confirmingDelete = true">
+              <QTextField id="reauth" v-model="reauthCode" :label="t('security.reauthCode')" input-mode="numeric" ltr />
+              <QButton type="submit" variant="danger" :disabled="!reauthCode">{{ t('security.delete') }}</QButton>
+            </form>
+          </div>
+        </QCard>
+      </QSection>
+    </div>
+    <QConfirmDialog
+      :open="confirmingDelete" icon="trash" :title="t('security.delete')" :message="t('security.deleteConfirm')" :confirm-label="t('security.delete')" :cancel-label="t('sc.cancel')"
+      :loading="busy" @close="confirmingDelete = false" @confirm="confirmingDelete = false; deleteAccount()"
+    />
+  </QContainer>
 </template>
 
 <style scoped>
-.block { margin-block-start: var(--sp-6); }
-.codes { columns: 2; margin: 0; }
-.danger { border-color: var(--danger, #b42318); }
-.ok { color: var(--accent-strong); }
-.notice { margin: 0; padding: var(--sp-3); background: var(--warn-soft); color: var(--warn); border-radius: var(--radius-md); }
-.row { align-items: flex-end; flex-wrap: wrap; gap: var(--sp-3); }
+.p-security { gap: var(--space-7); }
+.p-security-h { margin: 0 0 var(--space-2); font-size: 14px; font-weight: 800; }
+.p-security-setup { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.p-security-qr { display: block; inline-size: 180px; block-size: 180px; padding: var(--space-2); background: var(--ink); color: var(--bg); border-radius: var(--radius-md); }
+:global([data-theme="light"] .p-security-qr) { background: var(--surface); border: 1px solid var(--line-strong); }
+.p-security-qr :deep(svg) { display: block; inline-size: 100%; block-size: 100%; }
+.p-security-codes { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-1) var(--space-4); }
+.p-security-del { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; max-inline-size: 520px; }
+@media (max-width: 640px) { .p-security-setup, .p-security-del { grid-template-columns: minmax(0, 1fr); } }
 </style>
