@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { zonedWallTimeToUtc } from '@esp/contracts';
+import { QAlert, QBadge, QButton, QCard, QCheckbox, QCode, QContainer, QDataState, QDateField, QPageHeader, QSection, QSegmentedControl, QSelect, QStatusBadge, QTextField, fa, formatJalali, num, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp06 as esp06Api } from '../api/esp06';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t } from '../i18n';
 import { useLoad } from '../useLoad';
-
 /**
  * CAST-001..008 and COM-006 for one event: streams (primary/fallback, language, delay, status, next programme),
  * crew appointments, VOD/highlight/interview archive tied to matches, overlay tokens (shown once) and official
@@ -58,112 +52,160 @@ async function createOverlay() {
 }
 const next = reactive<Record<string, { title: string; at: string; delay: number }>>({});
 const nextOf = (id: string, delay: number) => (next[id] ??= { title: '', at: '', delay });
+const nextAt = (id: string, delay: number) => computed({ get: () => nextOf(id, delay).at || null, set: (v: string | null) => { nextOf(id, delay).at = v ?? ''; } });
+const nextDelay = (id: string, delay: number) => computed({ get: () => String(nextOf(id, delay).delay), set: (v: string) => { nextOf(id, delay).delay = Number(v) || 0; } });
+
 const msg = reactive({ audience: 'participants', title: '', body: '', requiresAck: true });
 const report = ref<Record<string, Record<string, number>>>({});
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 3000 }); });
+const stDelay = computed({ get: () => String(st.delaySeconds), set: (v: string) => { st.delaySeconds = Number(v) || 0; } });
+const ovHours = computed({ get: () => String(ov.hours), set: (v: string) => { ov.hours = Number(v) || 1; } });
+const spoiler = computed({ get: () => vid.spoiler, set: (v: boolean | null) => { vid.spoiler = !!v; } });
+const reqAck = computed({ get: () => msg.requiresAck, set: (v: boolean | null) => { msg.requiresAck = !!v; } });
+const WIDGETS = ['scoreboard', 'lineup', 'bracket', 'veto', 'sponsor', 'logo'];
+const toggleWidget = (w: string, on: boolean | null) => { ov.widgets = on ? [...new Set([...ov.widgets, w])] : ov.widgets.filter((x) => x !== w); };
+const opts = (keys: string[], prefix: string) => keys.map((k) => ({ value: k, label: t(`${prefix}.${k}` as never) }));
 </script>
 
 <template>
-  <PageHeader :title="t('bc.title')" :lead="t('bc.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
-  <DataState :loading="loading" :error="error" @retry="load">
-    <template v-if="data">
-      <section class="card stack" aria-labelledby="bs-h">
-        <h2 id="bs-h">{{ t('live.streams') }}</h2>
-        <p class="muted small">{{ t('bc.providerNote') }}</p>
-        <article v-for="s in data.streams" :key="s._id" class="item stack">
-          <div class="row between"><strong><bdi>{{ s.label }}</bdi></strong><span class="row small"><StatusBadge :state="s.status" /> {{ s.language }} · {{ t(`live.role.${s.role}` as never) }} · {{ t('live.delay', { n: num(s.delaySeconds) }) }}</span></div>
-          <div class="row">
-            <button v-for="x in ['live', 'offline', 'ended']" :key="x" type="button" class="btn btn-sm" :aria-pressed="s.status === x" @click="act(() => esp06.updateStream(s._id, { status: x, expectedVersion: s.version }))">{{ t(`bc.status.${x}` as never) }}</button>
+  <QContainer>
+    <div class="k-stack p-bc">
+      <QPageHeader compact :title="t('bc.title')" :description="t('bc.lead')" :breadcrumb="[{ label: t('shell.organizer'), href: '/organizer' }, { label: t('shell.events'), href: `/organizer/events/${eventId}` }, { label: t('bc.title') }]" />
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+      <QDataState v-if="!data" :state="error ? (error.code === 'FORBIDDEN' ? 'forbidden' : 'error') : 'loading'" skeleton="cards" @retry="load" />
+      <template v-else>
+        <QSection id="streams" small :title="t('live.streams')" :description="t('bc.providerNote')">
+          <div class="k-stack">
+            <QCard v-for="s in data.streams" :key="s._id">
+              <div class="k-stack">
+                <div class="p-bc-head">
+                  <strong><bdi>{{ s.label }}</bdi></strong>
+                  <span class="p-bc-meta"><QStatusBadge :state="s.status" /> {{ s.language }} · {{ t(`live.role.${s.role}` as never) }} · {{ t('live.delay', { n: fa(s.delaySeconds) }) }}</span>
+                </div>
+                <QSegmentedControl
+                  size="sm" :aria-label="t('bc.label')" :model-value="s.status" :options="opts(['live', 'offline', 'ended'], 'bc.status')"
+                  @update:model-value="(x) => x && x !== s.status && act(() => esp06.updateStream(s._id, { status: x, expectedVersion: s.version }))"
+                />
+                <div class="p-bc-form">
+                  <QTextField v-model="nextOf(s._id, s.delaySeconds).title" :label="t('bc.nextTitle')" />
+                  <QDateField v-model="nextAt(s._id, s.delaySeconds).value" :label="t('bc.nextAt')" with-time />
+                  <QButton size="sm" variant="secondary" :disabled="!nextOf(s._id, s.delaySeconds).title || !nextOf(s._id, s.delaySeconds).at" @click="act(() => esp06.updateStream(s._id, { nextProgramme: { title: nextOf(s._id, s.delaySeconds).title, at: zonedWallTimeToUtc(nextOf(s._id, s.delaySeconds).at) }, expectedVersion: s.version }))">{{ t('bc.setNext') }}</QButton>
+                </div>
+                <div class="p-bc-form">
+                  <QTextField v-model="nextDelay(s._id, s.delaySeconds).value" :label="t('bc.delay')" type="number" ltr />
+                  <QButton size="sm" variant="secondary" @click="act(() => esp06.updateStream(s._id, { delaySeconds: nextOf(s._id, s.delaySeconds).delay, expectedVersion: s.version }))">{{ t('bc.saveDelay') }}</QButton>
+                </div>
+              </div>
+            </QCard>
+            <QCard>
+              <form class="p-bc-grid" novalidate @submit.prevent="act(() => esp06.addStream(eventId, { ...st }))">
+                <QTextField id="bs-l" v-model="st.label" :label="t('bc.label')" />
+                <QTextField id="bs-k" v-model="st.streamKey" :label="t('bc.key')" ltr />
+                <QTextField id="bs-lg" v-model="st.language" :label="t('bc.language')" ltr />
+                <QSelect id="bs-r" v-model="st.role" :label="t('res.roleLabel')" :options="[{ value: 'primary', label: t('live.role.primary') }, { value: 'fallback', label: t('live.role.fallback') }]" />
+                <QTextField id="bs-d" v-model="stDelay" :label="t('bc.delay')" :hint="t('bc.delayHint')" type="number" ltr />
+                <div class="p-bc-end"><QButton type="submit" variant="green" icon="plus" :disabled="!st.label || !st.streamKey">{{ t('bc.addStream') }}</QButton></div>
+              </form>
+            </QCard>
           </div>
-          <div class="row">
-            <input v-model="nextOf(s._id, s.delaySeconds).title" class="input" dir="auto" :placeholder="t('bc.nextTitle')" :aria-label="t('bc.nextTitle')" />
-            <input v-model="nextOf(s._id, s.delaySeconds).at" type="datetime-local" class="input" :aria-label="t('bc.nextAt')" />
-            <button type="button" class="btn btn-sm" :disabled="!nextOf(s._id, s.delaySeconds).title || !nextOf(s._id, s.delaySeconds).at" @click="act(() => esp06.updateStream(s._id, { nextProgramme: { title: nextOf(s._id, s.delaySeconds).title, at: zonedWallTimeToUtc(nextOf(s._id, s.delaySeconds).at) }, expectedVersion: s.version }))">{{ t('bc.setNext') }}</button>
-            <label class="small">{{ t('bc.delay') }} <input v-model.number="nextOf(s._id, s.delaySeconds).delay" type="number" min="0" max="3600" class="input ltr narrow" /></label>
-            <button type="button" class="btn btn-sm" @click="act(() => esp06.updateStream(s._id, { delaySeconds: nextOf(s._id, s.delaySeconds).delay, expectedVersion: s.version }))">{{ t('bc.saveDelay') }}</button>
-          </div>
-        </article>
-        <form class="grid" @submit.prevent="act(() => esp06.addStream(eventId, { ...st }))">
-          <FormField id="bs-l" :label="t('bc.label')"><template #default="{ id: fid }"><input :id="fid" v-model="st.label" class="input" dir="auto" /></template></FormField>
-          <FormField id="bs-k" :label="t('bc.key')"><template #default="{ id: fid }"><input :id="fid" v-model="st.streamKey" class="input ltr" /></template></FormField>
-          <FormField id="bs-lg" :label="t('bc.language')"><template #default="{ id: fid }"><input :id="fid" v-model="st.language" class="input ltr" /></template></FormField>
-          <FormField id="bs-r" :label="t('res.roleLabel')"><template #default="{ id: fid }"><select :id="fid" v-model="st.role" class="input"><option value="primary">{{ t('live.role.primary') }}</option><option value="fallback">{{ t('live.role.fallback') }}</option></select></template></FormField>
-          <FormField id="bs-d" :label="t('bc.delay')" :hint="t('bc.delayHint')"><template #default="{ id: fid, describedBy }"><input :id="fid" v-model.number="st.delaySeconds" type="number" min="0" max="3600" class="input ltr" :aria-describedby="describedBy" /></template></FormField>
-          <button type="submit" class="btn" :disabled="!st.label || !st.streamKey">{{ t('bc.addStream') }}</button>
-        </form>
-      </section>
+        </QSection>
 
-      <section class="card stack block" aria-labelledby="cr-h">
-        <h2 id="cr-h">{{ t('bc.crew') }}</h2>
-        <ul class="list"><li v-for="c in data.crew" :key="c._id"><bdi class="ltr">{{ c.principalId }}</bdi> — {{ t(`bc.crewRole.${c.role}` as never) }}<span v-if="c.matchId"> ({{ c.matchId }})</span> <button type="button" class="btn btn-sm" @click="act(() => esp06.endCrew(c._id))">{{ t('res.remove') }}</button></li></ul>
-        <form class="row" @submit.prevent="act(() => esp06.addCrew(eventId, { principalId: crew.principalId, role: crew.role, matchId: crew.matchId || null, streamId: null }))">
-          <input v-model="crew.principalId" class="input ltr" :placeholder="t('res.principal')" :aria-label="t('res.principal')" />
-          <select v-model="crew.role" class="input" :aria-label="t('res.roleLabel')"><option v-for="r in ['commentator', 'analyst', 'observer', 'producer']" :key="r" :value="r">{{ t(`bc.crewRole.${r}` as never) }}</option></select>
-          <input v-model="crew.matchId" class="input ltr" :placeholder="t('case.match')" :aria-label="t('case.match')" />
-          <button type="submit" class="btn btn-sm" :disabled="!crew.principalId">{{ t('res.appoint') }}</button>
-        </form>
-      </section>
+        <QSection id="crew" small :title="t('bc.crew')">
+          <QCard>
+            <div class="k-stack">
+              <ul v-if="data.crew.length" class="p-bc-rows">
+                <li v-for="c in data.crew" :key="c._id"><span><bdi class="q-ltr">{{ c.principalId }}</bdi> — {{ t(`bc.crewRole.${c.role}` as never) }}<span v-if="c.matchId" class="q-ltr"> ({{ c.matchId }})</span></span><QButton size="sm" variant="secondary" @click="act(() => esp06.endCrew(c._id))">{{ t('res.remove') }}</QButton></li>
+              </ul>
+              <form class="p-bc-grid" novalidate @submit.prevent="act(() => esp06.addCrew(eventId, { principalId: crew.principalId, role: crew.role, matchId: crew.matchId || null, streamId: null }))">
+                <QTextField v-model="crew.principalId" :label="t('res.principal')" ltr />
+                <QSelect v-model="crew.role" :label="t('res.roleLabel')" :options="opts(['commentator', 'analyst', 'observer', 'producer'], 'bc.crewRole')" />
+                <QTextField v-model="crew.matchId" :label="t('case.match')" ltr />
+                <div class="p-bc-end"><QButton type="submit" size="sm" variant="secondary" :disabled="!crew.principalId">{{ t('res.appoint') }}</QButton></div>
+              </form>
+            </div>
+          </QCard>
+        </QSection>
 
-      <section class="card stack block" aria-labelledby="vd-h">
-        <h2 id="vd-h">{{ t('bc.archive') }}</h2>
-        <form class="grid" @submit.prevent="act(() => esp06.addMedia(eventId, { kind: vid.kind, title: vid.title, url: vid.url || null, fileId: null, matchId: vid.matchId || null, streamId: null, offsetSeconds: null, occurredAt: null, spoiler: vid.spoiler }))">
-          <FormField id="vd-k" :label="t('nr.kind')"><template #default="{ id: fid }"><select :id="fid" v-model="vid.kind" class="input"><option v-for="k in ['vod', 'highlight', 'interview']" :key="k" :value="k">{{ t(`live.vid.${k}` as never) }}</option></select></template></FormField>
-          <FormField id="vd-t" :label="t('nr.title')"><template #default="{ id: fid }"><input :id="fid" v-model="vid.title" class="input" dir="auto" /></template></FormField>
-          <FormField id="vd-u" :label="t('bc.url')" :hint="t('bc.urlHint')"><template #default="{ id: fid, describedBy }"><input :id="fid" v-model="vid.url" type="url" class="input ltr" :aria-describedby="describedBy" /></template></FormField>
-          <FormField id="vd-m" :label="t('case.match')"><template #default="{ id: fid }"><input :id="fid" v-model="vid.matchId" class="input ltr" /></template></FormField>
-          <label><input v-model="vid.spoiler" type="checkbox" /> {{ t('nr.spoiler') }}</label>
-          <button type="submit" class="btn" :disabled="vid.title.length < 2 || !vid.url">{{ t('bc.addVideo') }}</button>
-        </form>
-      </section>
+        <QSection id="archive" small :title="t('bc.archive')">
+          <QCard>
+            <form class="p-bc-grid" novalidate @submit.prevent="act(() => esp06.addMedia(eventId, { kind: vid.kind, title: vid.title, url: vid.url || null, fileId: null, matchId: vid.matchId || null, streamId: null, offsetSeconds: null, occurredAt: null, spoiler: vid.spoiler }))">
+              <QSelect id="vd-k" v-model="vid.kind" :label="t('nr.kind')" :options="opts(['vod', 'highlight', 'interview'], 'live.vid')" />
+              <QTextField id="vd-t" v-model="vid.title" :label="t('nr.title')" />
+              <QTextField id="vd-u" v-model="vid.url" :label="t('bc.url')" :hint="t('bc.urlHint')" type="url" ltr />
+              <QTextField id="vd-m" v-model="vid.matchId" :label="t('case.match')" ltr />
+              <QCheckbox v-model="spoiler" :label="t('nr.spoiler')" />
+              <div class="p-bc-end"><QButton type="submit" variant="secondary" :disabled="vid.title.length < 2 || !vid.url">{{ t('bc.addVideo') }}</QButton></div>
+            </form>
+          </QCard>
+        </QSection>
 
-      <section class="card stack block" aria-labelledby="ov-h">
-        <h2 id="ov-h">{{ t('bc.overlays') }}</h2>
-        <p class="muted small">{{ t('bc.overlayNote') }}</p>
-        <ul class="list"><li v-for="o in data.overlays" :key="o._id">{{ o.label }} — {{ o.mode === 'latest' ? t('ovl.latest') : t('ovl.syncedShort') }} · {{ o.widgets.join('، ') }} · <JalaliDate :iso="o.expiresAt" /> <StatusBadge v-if="o.revokedAt" state="revoked" />
-          <button v-if="!o.revokedAt" type="button" class="btn btn-sm" @click="act(() => esp06.revokeOverlay(o._id))">{{ t('bc.revoke') }}</button></li></ul>
-        <form class="grid" @submit.prevent="createOverlay">
-          <FormField id="ov-m" :label="t('bc.mode')"><template #default="{ id: fid }"><select :id="fid" v-model="ov.mode" class="input"><option value="synced">{{ t('ovl.syncedShort') }}</option><option value="latest">{{ t('ovl.latest') }}</option></select></template></FormField>
-          <FormField v-if="ov.mode === 'synced'" id="ov-s" :label="t('bc.stream')"><template #default="{ id: fid }"><select :id="fid" v-model="ov.streamId" class="input"><option value="" disabled>—</option><option v-for="s in data.streams" :key="s._id" :value="s._id">{{ s.label }}</option></select></template></FormField>
-          <fieldset class="row"><legend>{{ t('bc.widgets') }}</legend><label v-for="w in ['scoreboard', 'lineup', 'bracket', 'veto', 'sponsor', 'logo']" :key="w"><input v-model="ov.widgets" type="checkbox" :value="w" /> {{ t(`bc.w.${w}` as never) }}</label></fieldset>
-          <FormField id="ov-l" :label="t('bc.label')"><template #default="{ id: fid }"><input :id="fid" v-model="ov.label" class="input" dir="auto" /></template></FormField>
-          <FormField id="ov-h2" :label="t('bc.hours')"><template #default="{ id: fid }"><input :id="fid" v-model.number="ov.hours" type="number" min="1" max="168" class="input ltr" /></template></FormField>
-          <button type="submit" class="btn" :disabled="!ov.widgets.length || (ov.mode === 'synced' && !ov.streamId)">{{ t('bc.createOverlay') }}</button>
-        </form>
-        <p v-if="createdOverlay" class="warn" role="status">{{ t('bc.tokenOnce') }} <code class="ltr">{{ createdOverlay.url }}</code></p>
-      </section>
+        <QSection id="overlays" small :title="t('bc.overlays')" :description="t('bc.overlayNote')">
+          <QCard>
+            <div class="k-stack">
+              <ul v-if="data.overlays.length" class="p-bc-rows">
+                <li v-for="o in data.overlays" :key="o._id">
+                  <span>{{ o.label }} — {{ o.mode === 'latest' ? t('ovl.latest') : t('ovl.syncedShort') }} · {{ o.widgets.join('، ') }} · {{ formatJalali(o.expiresAt) }}</span>
+                  <QBadge v-if="o.revokedAt" tone="neutral">{{ t('bc.revoke') }}</QBadge>
+                  <QButton v-else size="sm" variant="danger" @click="act(() => esp06.revokeOverlay(o._id))">{{ t('bc.revoke') }}</QButton>
+                </li>
+              </ul>
+              <form class="k-stack" novalidate @submit.prevent="createOverlay">
+                <div class="p-bc-grid">
+                  <QSelect id="ov-m" v-model="ov.mode" :label="t('bc.mode')" :options="[{ value: 'synced', label: t('ovl.syncedShort') }, { value: 'latest', label: t('ovl.latest') }]" />
+                  <QSelect v-if="ov.mode === 'synced'" id="ov-s" v-model="ov.streamId" :label="t('bc.stream')" :options="data.streams.map((s) => ({ value: s._id, label: s.label }))" />
+                  <QTextField id="ov-l" v-model="ov.label" :label="t('bc.label')" />
+                  <QTextField id="ov-h2" v-model="ovHours" :label="t('bc.hours')" type="number" ltr />
+                </div>
+                <fieldset class="p-bc-set">
+                  <legend>{{ t('bc.widgets') }}</legend>
+                  <QCheckbox v-for="w in WIDGETS" :key="w" :model-value="ov.widgets.includes(w)" :label="t(`bc.w.${w}` as never)" @update:model-value="(v) => toggleWidget(w, v)" />
+                </fieldset>
+                <div><QButton type="submit" variant="green" icon="plus" :disabled="!ov.widgets.length || (ov.mode === 'synced' && !ov.streamId)">{{ t('bc.createOverlay') }}</QButton></div>
+              </form>
+              <QAlert v-if="createdOverlay" tone="warning" :title="t('bc.tokenOnce')"><QCode copy :label="t('bc.overlays')">{{ createdOverlay.url }}</QCode></QAlert>
+            </div>
+          </QCard>
+        </QSection>
 
-      <section class="card stack block" aria-labelledby="om-h">
-        <h2 id="om-h">{{ t('bc.official') }}</h2>
-        <form class="stack" @submit.prevent="act(() => esp06.sendOfficial(eventId, { ...msg }), t('bc.sent'))">
-          <div class="grid">
-            <FormField id="om-a" :label="t('bc.audience')"><template #default="{ id: fid }"><select :id="fid" v-model="msg.audience" class="input"><option v-for="a in ['participants', 'captains', 'staff']" :key="a" :value="a">{{ t(`bc.aud.${a}` as never) }}</option></select></template></FormField>
-            <FormField id="om-t" :label="t('nr.title')"><template #default="{ id: fid }"><input :id="fid" v-model="msg.title" class="input" dir="auto" /></template></FormField>
-          </div>
-          <FormField id="om-b" :label="t('nr.body')"><template #default="{ id: fid }"><textarea :id="fid" v-model="msg.body" class="input" rows="3" dir="auto" /></template></FormField>
-          <label><input v-model="msg.requiresAck" type="checkbox" /> {{ t('bc.requiresAck') }}</label>
-          <button type="submit" class="btn btn-primary" :disabled="msg.title.length < 3 || msg.body.length < 5">{{ t('bc.send') }}</button>
-        </form>
-        <ul class="list"><li v-for="m in data.messages" :key="m._id">{{ m.title }} — {{ t(`bc.aud.${m.audience}` as never) }} · {{ num(m.recipients) }} · <JalaliDate :iso="m.createdAt" />
-          <button type="button" class="btn btn-sm" @click="act(async () => { report[m._id] = (await esp06.officialReport(m._id)).totals; }, '')">{{ t('bc.report') }}</button>
-          <span v-if="report[m._id]" class="small"> {{ t('bc.reportLine', { r: num(report[m._id]!['read'] ?? 0), a: num(report[m._id]!['acknowledged'] ?? 0), s: num(report[m._id]!['smsSent'] ?? 0), d: num(report[m._id]!['smsDelivered'] ?? 0) }) }}</span></li></ul>
-      </section>
-    </template>
-  </DataState>
+        <QSection id="official" small :title="t('bc.official')">
+          <QCard>
+            <div class="k-stack">
+              <form class="k-stack" novalidate @submit.prevent="act(() => esp06.sendOfficial(eventId, { ...msg }), t('bc.sent'))">
+                <div class="p-bc-grid">
+                  <QSelect id="om-a" v-model="msg.audience" :label="t('bc.audience')" :options="opts(['participants', 'captains', 'staff'], 'bc.aud')" />
+                  <QTextField id="om-t" v-model="msg.title" :label="t('nr.title')" />
+                </div>
+                <QTextField id="om-b" v-model="msg.body" :label="t('nr.body')" multiline :rows="3" />
+                <QCheckbox v-model="reqAck" :label="t('bc.requiresAck')" />
+                <div><QButton type="submit" variant="primary" icon="send" :disabled="msg.title.length < 3 || msg.body.length < 5">{{ t('bc.send') }}</QButton></div>
+              </form>
+              <ul v-if="data.messages.length" class="p-bc-rows">
+                <li v-for="m in data.messages" :key="m._id">
+                  <span>{{ m.title }} — {{ t(`bc.aud.${m.audience}` as never) }} · {{ num(m.recipients) }} · {{ formatJalali(m.createdAt) }}</span>
+                  <span class="k-row">
+                    <QButton size="sm" variant="ghost" @click="act(async () => { report[m._id] = (await esp06.officialReport(m._id)).totals; }, '')">{{ t('bc.report') }}</QButton>
+                    <span v-if="report[m._id]" class="p-bc-meta">{{ t('bc.reportLine', { r: num(report[m._id]!['read'] ?? 0), a: num(report[m._id]!['acknowledged'] ?? 0), s: num(report[m._id]!['smsSent'] ?? 0), d: num(report[m._id]!['smsDelivered'] ?? 0) }) }}</span>
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </QCard>
+        </QSection>
+      </template>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.between { justify-content: space-between; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-2); align-items: end; }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.item { border-block-end: 1px solid var(--border); padding-block: var(--sp-2); }
-.block { margin-block-start: var(--sp-4); }
-.narrow { inline-size: 6rem; }
-fieldset { border: 0; padding: 0; margin: 0; }
-code { word-break: break-all; }
-.small { font-size: var(--fs-xs); }
-.warn { color: var(--warn); }
-.ok { color: var(--ok); }
-h2, p { margin: 0; }
+.p-bc { gap: var(--space-7); }
+.p-bc-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-bc-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 13px; color: var(--ink-subtle); }
+.p-bc-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--space-3); align-items: end; }
+.p-bc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--space-4); align-items: end; }
+.p-bc-end { align-self: end; }
+.p-bc-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.p-bc-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding-block: var(--space-3); border-block-end: 1px solid var(--line); font-size: 14px; }
+.p-bc-set { margin: 0; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
+.p-bc-set legend { padding-inline: var(--space-2); font-weight: 800; }
 </style>
