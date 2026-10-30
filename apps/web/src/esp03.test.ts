@@ -141,7 +141,9 @@ describe('finance dashboard (FIN-004/006)', () => {
     const w = mount(FinanceView, { global: { plugins: [router] } });
     await flushPromises();
     expect(w.text()).toContain('pay_x');
+    await w.findAll('.p-fin-tile')[3]!.trigger('click');
     expect(w.text()).toContain('reg_y');
+    await w.findAll('button').find((b) => b.text() === 'بازپرداخت')!.trigger('click');
     await w.get('#rf-p').setValue('pay_1');
     await w.get('#rf-a').setValue(500);
     await w.get<HTMLInputElement>('#rf-p').element.form!.dispatchEvent(new Event('submit'));
