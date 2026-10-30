@@ -1,18 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { zonedWallTimeToUtc } from '@esp/contracts';
+import { QAlert, QBadge, QButton, QCard, QCheckbox, QCode, QContainer, QDataState, QDataTable, QDateField, QFacts, QFileUpload, QIcon, QMoney, QPageHeader, QSelect, QStatusBadge, QTabs, QTextField, fa, toman, useToast, type QDataTableColumn } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp03, type ManageView, type Registration } from '../api/esp03';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import MoneyLabel from '../components/MoneyLabel.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
 import { num, t } from '../i18n';
-
 /** template alias (vue-tsc mis-types direct use of this import inside template arrow functions) */
 const call: typeof esp03 = esp03;
 
@@ -29,7 +22,8 @@ const loading = ref(false);
 const error = ref<ApiClientError | null>(null);
 const failure = ref<ApiClientError | null>(null);
 const notice = ref('');
-const tz = (s: string) => (s ? zonedWallTimeToUtc(s) : null);
+/** QDateField gives Tehran wall time with its offset; the API takes UTC. */
+const tz = (s: string | null) => (s ? new Date(s).toISOString() : null);
 
 async function load() {
   loading.value = true;
@@ -70,7 +64,7 @@ const transitionsFor: Record<string, string[]> = {
 const transition = (name: string) => act(() => esp03.transition(id.value, name, ev.value!.version));
 
 // ---- schedule, duplicate, cancel
-const sched = ref('');
+const sched = ref<string | null>(null);
 const dup = reactive({ slug: '', name: '', asTemplate: false });
 const cancel = reactive({ approvalId: '', reason: '' });
 async function requestCancel() {
@@ -140,8 +134,8 @@ const claimAffiliation = () => act(async () => {
   await esp03.claimAffiliation(id.value, { kind: aff.kind, body: aff.body, evidenceFileId: f.id });
 }, t('evm.affClaimed'));
 // EVT-001: poster is a public, scanned image; only presentation fields stay editable after publication
-async function uploadPoster(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0];
+async function uploadPoster(fs: File[]) {
+  const file = fs[0];
   if (!file || !ev.value) return;
   await act(async () => {
     const f = await esp03.uploadFile(file, { visibility: 'public', scopeType: 'organization', scopeId: ev.value!.organizerOrgId, retentionClass: 'media_public' });
@@ -161,8 +155,8 @@ const decide = (dId: string, r: Registration, action: string) => act(async () =>
 const codes = reactive<Record<string, string[]>>({});
 const genCodes = (dId: string) => act(async () => (codes[dId] = (await esp03.entryCodes(dId, 'invite', 5)).items.map((x) => x._id)));
 const importResult = ref<string>('');
-async function importCsv(dId: string, e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0];
+async function importCsv(dId: string, fs: File[]) {
+  const file = fs[0];
   if (!file) return;
   await act(async () => {
     const r = await esp03.importInvites(dId, file);
@@ -189,282 +183,379 @@ const sp = reactive({ sponsorName: '', placement: 'event_header', label: 'sponso
 const rcp = reactive<Record<string, { kind: string; ref: string; payee: string }>>({});
 const rcpForm = (pid: string) => (rcp[pid] ??= { kind: 'team', ref: '', payee: '' });
 const csvUrl = esp03.exportUrl;
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n === '✓' ? t('rv.done') : n, duration: 3000 }); });
+watch(failure, (f) => { if (f) push({ tone: 'danger', message: f.message }); });
+/** v-bind helper: a numeric field edited through a string QTextField. */
+const n = (o: object, k: string) => ({
+  modelValue: String((o as Record<string, unknown>)[k] ?? ''),
+  'onUpdate:modelValue': (v?: string) => { (o as Record<string, unknown>)[k] = v === '' || v == null ? null : Number(v); },
+});
+/** v-bind helper: a boolean field edited through QCheckbox. */
+const b = (o: object, k: string) => ({
+  modelValue: !!(o as Record<string, unknown>)[k],
+  'onUpdate:modelValue': (v: boolean | null) => { (o as Record<string, unknown>)[k] = !!v; },
+});
+const opts = (keys: string[], label: (k: string) => string) => keys.map((k) => ({ value: k, label: label(k) }));
+const tab = ref('overview');
+const tabs = computed(() => [
+  { key: 'overview', label: t('evm.lifecycle'), icon: 'flag' as const },
+  { key: 'disciplines', label: t('evm.disciplines'), icon: 'gamepad' as const, count: m.value?.disciplines.length ?? 0 },
+  { key: 'seasons', label: t('evm.seasons'), icon: 'calendar' as const },
+  { key: 'checkin', label: t('evm.rosterCheckin'), icon: 'check-circle' as const },
+  { key: 'money', label: t('evm.money'), icon: 'wallet' as const },
+]);
+watch(tab, (k) => { if (k === 'money' && !fin.value) void loadFinance(); if (k === 'checkin' && !checkins.value.length) void loadCheckins(); if (k === 'seasons' && !seasons.value.length) void loadSeasons(); });
+const stagesOf = (dId: string) => (m.value?.stages ?? []).filter((x) => x.disciplineId === dId);
+const stageOpts = (dId: string) => [{ value: '', label: '—' }, ...stagesOf(dId).map((s) => ({ value: s.id, label: s.name }))];
+const regCols = computed<QDataTableColumn<Registration>[]>(() => [
+  { key: 'trackingCode', header: t('reg.tracking') }, { key: 'displayName', header: t('events.name') },
+  { key: 'state', header: t('events.state') }, { key: 'issues', header: t('evm.issues') },
+]);
+const finFacts = computed(() => {
+  const f = fin.value as Record<string, unknown> | null;
+  if (!f) return [];
+  const by = (f.ordersByKind ?? {}) as Record<string, { grossRial?: number } | undefined>;
+  return [
+    { label: t('evm.entryGross'), value: toman(Number(by.entry?.grossRial ?? 0)) },
+    { label: t('evm.ticketGross'), value: toman(Number(by.ticket?.grossRial ?? 0)) },
+    { label: t('pay.fee'), value: toman(Number(f.feesRial)) },
+    { label: t('pay.discount'), value: toman(Number(f.discountsRial)) },
+    { label: t('pay.refunded'), value: toman(Number(f.refundedRial)) },
+    { label: t('evm.openOrders'), value: fa(Number(f.openOrders)) },
+    { label: t('evm.payable'), value: toman(Number(f.organizerPayableRial)) },
+  ];
+});
+const toolLinks = computed(() => (ev.value ? [
+  { href: `/organizer/events/${ev.value.id}/operations`, label: t('cops.title'), icon: 'swords' as const },
+  { href: `/organizer/events/${ev.value.id}/lan`, label: t('cops.lan'), icon: 'map-pin' as const },
+  { href: `/organizer/events/${ev.value.id}/results`, label: t('res.title'), icon: 'gavel' as const },
+  { href: `/organizer/events/${ev.value.id}/broadcast`, label: t('bc.title'), icon: 'broadcast' as const },
+] : []));
 </script>
 
 <template>
-  <DataState :loading="loading && !m" :error="error" @retry="load">
-    <template v-if="m && ev">
-      <PageHeader :title="ev.name">
+  <QContainer>
+    <QDataState v-if="!m || !ev" :state="error ? 'error' : 'loading'" :error="error" skeleton="rows" @retry="load" />
+    <div v-else class="k-stack p-oe">
+      <QPageHeader compact :breadcrumb="[{ label: t('oa.crumb'), href: '/organizer' }, { label: ev.name }]">
         <template #title><bdi>{{ ev.name }}</bdi></template>
-        <template #actions><StatusBadge :state="ev.state" /> <RouterLink class="btn btn-sm" :to="`/events/${ev.id}${ev.config.linkToken ? `?t=${ev.config.linkToken}` : ''}`">{{ t('evm.publicPage') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/operations`">{{ t('cops.title') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/lan`">{{ t('cops.lan') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/results`">{{ t('res.title') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/organizer/events/${ev.id}/broadcast`">{{ t('bc.title') }}</RouterLink></template>
-      </PageHeader>
-      <ErrorNote :error="failure" />
-      <p v-if="notice" role="status" class="notice">{{ notice }}</p>
+        <template #badge><QStatusBadge :state="ev.state" /></template>
+        <template #actions><QButton variant="secondary" size="sm" icon="external" :href="`/events/${ev.id}${ev.config.linkToken ? `?t=${ev.config.linkToken}` : ''}`">{{ t('evm.publicPage') }}</QButton></template>
+      </QPageHeader>
+      <nav class="p-oe-tools" :aria-label="t('oe.tools')">
+        <RouterLink v-for="l in toolLinks" :key="l.href" :to="l.href" class="p-oe-tool"><QIcon :name="l.icon" :size="16" /> {{ l.label }}</RouterLink>
+      </nav>
 
-      <!-- publication gate (EVT-004) and lifecycle -->
-      <section class="card stack block">
-        <h2>{{ t('evm.lifecycle') }}</h2>
-        <template v-if="['draft', 'in_review'].includes(ev.state)">
-          <p v-if="m.publishCheck.ok" class="ok">{{ t('evm.readyToPublish') }}</p>
-          <ul v-else class="list warn" :aria-label="t('evm.problems')"><li v-for="p in m.publishCheck.problems" :key="p.code + (p.ref ?? '')" dir="auto">{{ p.message }}</li></ul>
-          <div class="row">
-            <button type="button" class="btn btn-primary" :disabled="!m.publishCheck.ok" @click="act(() => call.publish(id))">{{ t('evm.publish') }}</button>
-            <FormField id="em-sched" :label="t('evm.scheduleAt')"><template #default="{ id: fid }"><input :id="fid" v-model="sched" type="datetime-local" class="input" /></template></FormField>
-            <button type="button" class="btn" :disabled="!sched || !m.publishCheck.ok" @click="act(() => call.schedule(id, tz(sched)!, ev!.version))">{{ t('evm.schedule') }}</button>
-          </div>
-        </template>
-        <div class="row">
-          <button v-for="tr in transitionsFor[ev.state] ?? []" :key="tr" type="button" class="btn" @click="transition(tr)">{{ t(`evm.tr.${tr}` as never) }}</button>
-        </div>
-        <FormField id="em-poster" :label="t('evm.poster')" :hint="ev.config.posterFileId ? t('evm.posterSet') : t('evm.posterHint')">
-          <template #default="{ id: fid, describedBy }"><input :id="fid" type="file" accept="image/png,image/jpeg,image/webp" class="input" :aria-describedby="describedBy" @change="uploadPoster" /></template>
-        </FormField>
-        <details>
-          <summary>{{ t('evm.affiliation') }}<template v-if="ev.config.affiliation"> — <StatusBadge :state="ev.config.affiliation.state" /></template></summary>
-          <p v-if="ev.config.affiliation?.note" class="muted" dir="auto">{{ ev.config.affiliation.note }}</p>
-          <form class="row" novalidate @submit.prevent="claimAffiliation">
-            <FormField id="af-k" :label="t('mgmt.kind')"><template #default="{ id: fid }"><select :id="fid" v-model="aff.kind" class="input"><option v-for="k in ['publisher_licensed', 'federation_sanctioned', 'official_partner']" :key="k" :value="k">{{ t(`evm.aff.${k}` as never) }}</option></select></template></FormField>
-            <FormField id="af-b" :label="t('evm.affBody')"><template #default="{ id: fid }"><input :id="fid" v-model="aff.body" class="input" dir="auto" /></template></FormField>
-            <FormField id="af-e" :label="t('evm.affEvidence')" :hint="t('reg.docPrivate')"><template #default="{ id: fid, describedBy }"><input :id="fid" type="file" accept="application/pdf,image/png,image/jpeg" class="input" :aria-describedby="describedBy" @change="aff.file = ($event.target as HTMLInputElement).files?.[0] ?? null" /></template></FormField>
-            <button type="submit" class="btn btn-sm" :disabled="aff.body.length < 2 || !aff.file">{{ t('evm.affClaim') }}</button>
-          </form>
-          <p class="muted">{{ t('evm.affHint') }}</p>
-        </details>
-        <p v-if="ev.visibility === 'link_only' && ev.config.linkToken" class="muted">{{ t('evm.linkOnly') }} <bdi class="ltr">/events/{{ ev.id }}?t={{ ev.config.linkToken }}</bdi></p>
-        <details>
-          <summary>{{ t('evm.duplicate') }}</summary>
-          <form class="row" novalidate @submit.prevent="duplicate">
-            <FormField id="em-dn" :label="t('events.name')"><template #default="{ id: fid }"><input :id="fid" v-model="dup.name" class="input" dir="auto" /></template></FormField>
-            <FormField id="em-ds" :label="t('adm.slug')"><template #default="{ id: fid }"><input :id="fid" v-model="dup.slug" class="input ltr" /></template></FormField>
-            <label class="row"><input v-model="dup.asTemplate" type="checkbox" /> {{ t('evm.asTemplate') }}</label>
-            <button type="submit" class="btn" :disabled="!dup.name || !dup.slug">{{ t('evm.duplicate') }}</button>
-          </form>
-        </details>
-        <details v-if="!['cancelled', 'archived', 'closed', 'finished'].includes(ev.state)">
-          <summary class="danger">{{ t('evm.cancel') }}</summary>
-          <p class="muted">{{ t('evm.cancelHelp') }}</p>
-          <form class="stack" novalidate @submit.prevent="act(() => call.cancelEvent(id, cancel.approvalId, cancel.reason))">
-            <FormField id="em-cr" :label="t('evm.reason')"><template #default="{ id: fid }"><textarea :id="fid" v-model="cancel.reason" class="input" rows="2" dir="auto" /></template></FormField>
-            <div class="row">
-              <button type="button" class="btn" :disabled="cancel.reason.length < 5" @click="requestCancel">{{ t('evm.requestApproval') }}</button>
-              <FormField id="em-ca" :label="t('evm.approvalId')"><template #default="{ id: fid }"><input :id="fid" v-model="cancel.approvalId" class="input ltr" /></template></FormField>
-              <button type="submit" class="btn btn-danger" :disabled="!cancel.approvalId || cancel.reason.length < 5">{{ t('evm.cancelNow') }}</button>
-            </div>
-          </form>
-        </details>
-      </section>
-
-      <!-- disciplines, stages, registrations -->
-      <section v-for="d in m.disciplines" :key="d.id" class="card stack block">
-        <h2><bdi>{{ d.name }}</bdi> <span class="muted"><bdi class="ltr">{{ d.platform }} / {{ d.mode }} / {{ d.gameVersion }}</bdi></span></h2>
-        <p class="muted">{{ t('reg.kind') }}: {{ t(`reg.kind.${d.config.participantKind}` as never) }} · {{ t('reg.capacity') }}: {{ num(d.config.capacity) }} · {{ t('reg.fee') }}: <MoneyLabel :rial="d.config.feeRial" /> · {{ d.rulesFrozen ? t('evm.rulesFrozen') : t('evm.rulesNotFrozen') }}</p>
-        <ul class="list">
-          <li v-for="s in m.stages.filter((x) => x.disciplineId === d.id)" :key="s.id" class="stack">
-            <span>{{ num(s.order) }}. <bdi>{{ s.name }}</bdi> — <bdi class="ltr">{{ s.format }}</bdi> — {{ t(`reg.presence.${s.presence}` as never) }} <StatusBadge :state="s.state" /> <button type="button" class="btn btn-sm" @click="checkStart(s.id)">{{ t('evm.canStart') }}</button></span>
-            <span v-for="l in s.links" :key="l.kind + (l.fromStageId ?? '')" class="muted">← {{ t(`evm.link.${l.kind}` as never) }} × {{ num(l.slots) }} — {{ t(`evm.points.${l.points}` as never) }}<template v-if="l.factor !== null"> ×{{ num(l.factor) }}</template></span>
-            <template v-if="startInfo[s.id]">
-              <span :class="startInfo[s.id]!.ok ? 'ok' : 'warn'" role="status">{{ startInfo[s.id]!.ok ? t('evm.canStartYes') : startInfo[s.id]!.reasons.join('؛ ') }}</span>
-              <form v-if="!startInfo[s.id]!.ok" class="row" novalidate @submit.prevent="act(() => call.startException(s.id, exc.approvalId, exc.reason))">
-                <button type="button" class="btn btn-sm" :disabled="exc.reason.length < 5" @click="requestStageException(s.id)">{{ t('evm.requestApproval') }}</button>
-                <FormField :id="`ex-a-${s.id}`" :label="t('evm.approvalId')"><template #default="{ id: fid }"><input :id="fid" v-model="exc.approvalId" class="input ltr" /></template></FormField>
-                <FormField :id="`ex-r-${s.id}`" :label="t('evm.impact')"><template #default="{ id: fid }"><input :id="fid" v-model="exc.reason" class="input" dir="auto" /></template></FormField>
-                <button type="submit" class="btn btn-sm" :disabled="!exc.approvalId || exc.reason.length < 5">{{ t('evm.startException') }}</button>
-              </form>
-            </template>
-          </li>
-        </ul>
-        <details v-if="['draft', 'in_review'].includes(ev.state)">
-          <summary>{{ t('evm.addStage') }}</summary>
-          <form class="stack" novalidate @submit.prevent="act(() => call.addStage(d.id, stagePayload(d.id)))">
-            <div class="grid">
-              <FormField :id="`st-n-${d.id}`" :label="t('events.stage')"><template #default="{ id: fid }"><input :id="fid" v-model="stageForm(d.id).name" class="input" dir="auto" /></template></FormField>
-              <FormField :id="`st-o-${d.id}`" label="#"><template #default="{ id: fid }"><input :id="fid" v-model.number="stageForm(d.id).order" type="number" min="1" class="input ltr" /></template></FormField>
-              <FormField :id="`st-f-${d.id}`" :label="t('events.format')"><template #default="{ id: fid }"><select :id="fid" v-model="stageForm(d.id).format" class="input ltr"><option v-for="f in FORMATS" :key="f" :value="f">{{ f }}</option></select></template></FormField>
-              <FormField :id="`st-p-${d.id}`" :label="t('reg.presence')"><template #default="{ id: fid }"><select :id="fid" v-model="stageForm(d.id).presence" class="input"><option v-for="v in ['online', 'offline', 'hybrid']" :key="v" :value="v">{{ t(`reg.presence.${v}` as never) }}</option></select></template></FormField>
-              <FormField :id="`st-from-${d.id}`" :label="t('evm.fromStage')"><template #default="{ id: fid }"><select :id="fid" v-model="stageForm(d.id).from" class="input"><option value="">—</option><option v-for="s in m.stages.filter((x) => x.disciplineId === d.id)" :key="s.id" :value="s.id">{{ s.name }}</option></select></template></FormField>
-              <FormField :id="`st-lk-${d.id}`" :label="t('evm.linkKind')"><template #default="{ id: fid }"><select :id="fid" v-model="stageForm(d.id).kind" class="input"><option v-for="k in ['qualifier', 'invite', 'seed', 'quota']" :key="k" :value="k">{{ t(`evm.link.${k}` as never) }}</option></select></template></FormField>
-              <FormField :id="`st-sl-${d.id}`" :label="t('evm.slots')"><template #default="{ id: fid }"><input :id="fid" v-model.number="stageForm(d.id).slots" type="number" min="0" class="input ltr" /></template></FormField>
-              <FormField :id="`st-pt-${d.id}`" :label="t('evm.pointsCarry')"><template #default="{ id: fid }"><select :id="fid" v-model="stageForm(d.id).points" class="input"><option v-for="k in ['carry', 'reset', 'factor']" :key="k" :value="k">{{ t(`evm.points.${k}` as never) }}</option></select></template></FormField>
-              <FormField v-if="stageForm(d.id).points === 'factor'" :id="`st-fc-${d.id}`" :label="t('evm.factor')"><template #default="{ id: fid }"><input :id="fid" v-model.number="stageForm(d.id).factor" type="number" min="0" max="10" step="0.1" class="input ltr" /></template></FormField>
-            </div>
-            <p class="muted">{{ t('evm.linkHint') }}</p>
-            <button type="submit" class="btn" :disabled="!stageForm(d.id).name">{{ t('evm.addStage') }}</button>
-          </form>
-        </details>
-
-        <details @toggle="($event.target as HTMLDetailsElement).open && loadSlots(d.id)">
-          <summary>{{ t('evm.qualSlots') }}</summary>
-          <ul class="list"><li v-for="q in slotList[d.id] ?? []" :key="String(q._id)"><bdi class="ltr">{{ q.holderKey }}</bdi> — {{ t(`evm.src.${(q.source as Obj).kind}` as never) }} <bdi class="ltr">{{ (q.source as Obj).ref }}</bdi> — <StatusBadge :state="String(q.state)" /></li></ul>
-          <form class="row" novalidate @submit.prevent="act(() => call.createSlot(d.id, slotPayload(d.id)).then(() => loadSlots(d.id)))">
-            <FormField :id="`sl-k-${d.id}`" :label="t('evm.source')"><template #default="{ id: fid }"><select :id="fid" v-model="slotForm(d.id).kind" class="input"><option v-for="k in ['stage', 'event', 'invite', 'season']" :key="k" :value="k">{{ t(`evm.src.${k}` as never) }}</option></select></template></FormField>
-            <FormField :id="`sl-r-${d.id}`" :label="t('evm.sourceRef')"><template #default="{ id: fid }"><input :id="fid" v-model="slotForm(d.id).ref" class="input ltr" /></template></FormField>
-            <FormField :id="`sl-rk-${d.id}`" :label="t('evm.rank')"><template #default="{ id: fid }"><input :id="fid" v-model.number="slotForm(d.id).rank" type="number" min="1" class="input ltr" /></template></FormField>
-            <FormField :id="`sl-h-${d.id}`" :label="t('evm.holderKey')" :hint="t('evm.holderKeyHint')"><template #default="{ id: fid, describedBy }"><input :id="fid" v-model="slotForm(d.id).holderKey" class="input ltr" :aria-describedby="describedBy" /></template></FormField>
-            <FormField :id="`sl-t-${d.id}`" :label="t('evm.targetStage')"><template #default="{ id: fid }"><select :id="fid" v-model="slotForm(d.id).target" class="input"><option value="">—</option><option v-for="s in m.stages.filter((x) => x.disciplineId === d.id)" :key="s.id" :value="s.id">{{ s.name }}</option></select></template></FormField>
-            <FormField :id="`sl-w-${d.id}`" :label="t('evm.reason')"><template #default="{ id: fid }"><input :id="fid" v-model="slotForm(d.id).reason" class="input" dir="auto" /></template></FormField>
-            <button type="submit" class="btn btn-sm" :disabled="!slotForm(d.id).ref || !slotForm(d.id).holderKey || slotForm(d.id).reason.length < 3">{{ t('evm.addSlot') }}</button>
-          </form>
-          <p class="muted">{{ t('evm.slotHint') }}</p>
-        </details>
-
-        <h3>{{ t('evm.registrations') }}</h3>
-        <div class="row">
-          <button type="button" class="btn btn-sm" @click="loadRegs(d.id)">{{ t('evm.loadRegs') }}</button>
-          <a class="btn btn-sm" :href="csvUrl(d.id)" download>{{ t('evm.exportCsv') }}</a>
-          <label class="btn btn-sm">{{ t('evm.importCsv') }} <input type="file" accept=".csv,text/csv" class="sr-only" @change="importCsv(d.id, $event)" /></label>
-          <button type="button" class="btn btn-sm" @click="genCodes(d.id)">{{ t('evm.entryCodes') }}</button>
-        </div>
-        <p v-if="importResult" class="muted" role="status">{{ importResult }}</p>
-        <ul v-if="codes[d.id]?.length" class="list"><li v-for="c in codes[d.id]" :key="c"><bdi class="ltr code">{{ c }}</bdi></li></ul>
-        <div v-if="regs[d.id]" class="table-wrap">
-          <table class="tbl">
-            <caption class="sr-only">{{ t('evm.registrations') }}</caption>
-            <thead><tr><th scope="col">{{ t('reg.tracking') }}</th><th scope="col">{{ t('events.name') }}</th><th scope="col">{{ t('events.state') }}</th><th scope="col">{{ t('evm.issues') }}</th><th scope="col">{{ t('evm.actions') }}</th></tr></thead>
-            <tbody>
-              <tr v-if="!regs[d.id]!.length"><td colspan="5" class="muted">—</td></tr>
-              <tr v-for="r in regs[d.id]" :key="r.id">
-                <td><bdi class="ltr">{{ r.trackingCode }}</bdi></td>
-                <th scope="row"><bdi>{{ r.displayName }}</bdi></th>
-                <td><StatusBadge :state="r.state" /><span v-if="r.waitlisted" class="muted"> #{{ num(r.waitlistSeq ?? 0) }}</span></td>
-                <td><span v-for="i in r.eligibility.issues" :key="i.code + (i.clause ?? '')" dir="auto" class="issue">{{ i.message }}</span></td>
-                <td>
-                  <div class="row">
-                    <input v-model="reason[r.id]" class="input input-sm" :aria-label="t('evm.reason')" :placeholder="t('evm.reason')" dir="auto" />
-                    <button v-if="r.state === 'awaiting_review'" type="button" class="btn btn-sm" @click="decide(d.id, r, 'approve')">{{ t('evm.approve') }}</button>
-                    <button v-if="r.state === 'awaiting_review'" type="button" class="btn btn-sm" @click="decide(d.id, r, 'mark_incomplete')">{{ t('evm.incomplete') }}</button>
-                    <button v-if="['awaiting_review', 'awaiting_capacity'].includes(r.state)" type="button" class="btn btn-sm btn-danger" @click="decide(d.id, r, 'reject')">{{ t('evm.reject') }}</button>
-                    <button v-if="r.state === 'confirmed'" type="button" class="btn btn-sm btn-danger" @click="decide(d.id, r, 'remove')">{{ t('evm.remove') }}</button>
+      <QTabs v-model="tab" variant="line" overflow="scroll" :items="tabs" :aria-label="ev.name">
+        <template #panel="{ item }">
+          <!-- publication gate (EVT-004) and lifecycle -->
+          <div v-if="item.key === 'overview'" class="k-stack">
+            <QCard v-if="['draft', 'in_review'].includes(ev.state)">
+              <div class="k-stack">
+                <h2 class="h4 p-oe-p">{{ t('oe.publishGate') }}</h2>
+                <QAlert v-if="m.publishCheck.ok" tone="success" icon="check-circle">{{ t('evm.readyToPublish') }}</QAlert>
+                <ul v-else class="p-oe-checks" :aria-label="t('evm.problems')">
+                  <li v-for="p in m.publishCheck.problems" :key="p.code + (p.ref ?? '')"><QIcon name="x-circle" :size="18" class="p-oe-bad" /> <bdi>{{ p.message }}</bdi></li>
+                </ul>
+                <div class="p-oe-bar">
+                  <QButton :disabled="!m.publishCheck.ok" @click="act(() => call.publish(id))">{{ t('evm.publish') }}</QButton>
+                  <QDateField id="em-sched" v-model="sched" :label="t('evm.scheduleAt')" with-time disable-past />
+                  <QButton variant="secondary" icon="clock" :disabled="!sched || !m.publishCheck.ok" @click="act(() => call.schedule(id, tz(sched)!, ev!.version))">{{ t('evm.schedule') }}</QButton>
+                </div>
+              </div>
+            </QCard>
+            <QCard v-if="(transitionsFor[ev.state] ?? []).length">
+              <div class="k-stack">
+                <h2 class="h4 p-oe-p">{{ t('evm.lifecycle') }}</h2>
+                <div class="k-row"><QButton v-for="tr in transitionsFor[ev.state] ?? []" :key="tr" variant="secondary" @click="transition(tr)">{{ t(`evm.tr.${tr}` as never) }}</QButton></div>
+              </div>
+            </QCard>
+            <QCard>
+              <div class="k-stack">
+                <QFileUpload id="em-poster" :label="t('evm.poster')" :hint="ev.config.posterFileId ? t('evm.posterSet') : t('evm.posterHint')" accept="image/png,image/jpeg,image/webp" :multiple="false" @files="uploadPoster" />
+                <QAlert v-if="ev.visibility === 'link_only' && ev.config.linkToken" tone="info">{{ t('evm.linkOnly') }} <bdi class="q-ltr">/events/{{ ev.id }}?t={{ ev.config.linkToken }}</bdi></QAlert>
+              </div>
+            </QCard>
+            <QCard>
+              <details class="p-oe-more">
+                <summary>{{ t('evm.affiliation') }} <QStatusBadge v-if="ev.config.affiliation" :state="ev.config.affiliation.state" /></summary>
+                <div class="k-stack">
+                  <p v-if="ev.config.affiliation?.note" class="p-oe-muted"><bdi>{{ ev.config.affiliation.note }}</bdi></p>
+                  <form class="k-stack" novalidate @submit.prevent="claimAffiliation">
+                    <div class="p-oe-grid">
+                      <QSelect id="af-k" v-model="aff.kind" :label="t('mgmt.kind')" :options="opts(['publisher_licensed', 'federation_sanctioned', 'official_partner'], (k) => t(`evm.aff.${k}` as never))" />
+                      <QTextField id="af-b" v-model="aff.body" :label="t('evm.affBody')" />
+                    </div>
+                    <QFileUpload id="af-e" :label="t('evm.affEvidence')" :hint="t('reg.docPrivate')" accept="application/pdf,image/png,image/jpeg" :multiple="false" :files="aff.file ? [{ name: aff.file.name, size: aff.file.size, scanState: 'pending' }] : []" @files="(fs) => (aff.file = fs[0] ?? null)" />
+                    <div><QButton type="submit" size="sm" variant="secondary" :disabled="aff.body.length < 2 || !aff.file">{{ t('evm.affClaim') }}</QButton></div>
+                  </form>
+                  <p class="p-oe-muted">{{ t('evm.affHint') }}</p>
+                </div>
+              </details>
+            </QCard>
+            <QCard>
+              <details class="p-oe-more">
+                <summary>{{ t('evm.duplicate') }}</summary>
+                <form class="p-oe-grid" novalidate @submit.prevent="duplicate">
+                  <QTextField id="em-dn" v-model="dup.name" :label="t('events.name')" />
+                  <QTextField id="em-ds" v-model="dup.slug" :label="t('adm.slug')" ltr />
+                  <QCheckbox v-bind="b(dup, 'asTemplate')" :label="t('evm.asTemplate')" />
+                  <div><QButton type="submit" variant="secondary" icon="copy" :disabled="!dup.name || !dup.slug">{{ t('evm.duplicate') }}</QButton></div>
+                </form>
+              </details>
+            </QCard>
+            <QCard v-if="!['cancelled', 'archived', 'closed', 'finished'].includes(ev.state)">
+              <details class="p-oe-more">
+                <summary class="p-oe-bad">{{ t('evm.cancel') }}</summary>
+                <form class="k-stack" novalidate @submit.prevent="act(() => call.cancelEvent(id, cancel.approvalId, cancel.reason))">
+                  <QAlert tone="danger">{{ t('evm.cancelHelp') }}</QAlert>
+                  <QTextField id="em-cr" v-model="cancel.reason" :label="t('evm.reason')" multiline :rows="2" />
+                  <div class="p-oe-bar">
+                    <QButton variant="secondary" :disabled="cancel.reason.length < 5" @click="requestCancel">{{ t('evm.requestApproval') }}</QButton>
+                    <QTextField id="em-ca" v-model="cancel.approvalId" :label="t('evm.approvalId')" ltr />
+                    <QButton type="submit" variant="danger" :disabled="!cancel.approvalId || cancel.reason.length < 5">{{ t('evm.cancelNow') }}</QButton>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+                </form>
+              </details>
+            </QCard>
+          </div>
 
-      <form v-if="['draft', 'in_review'].includes(ev.state)" class="card stack block" novalidate @submit.prevent="addDiscipline">
-        <h2>{{ t('evm.addDiscipline') }}</h2>
-        <div class="grid">
-          <FormField id="dc-n" :label="t('events.name')" required><template #default="{ id: fid }"><input :id="fid" v-model="dsc.name" class="input" dir="auto" /></template></FormField>
-          <FormField id="dc-g" :label="t('evm.gameId')" required><template #default="{ id: fid }"><input :id="fid" v-model="dsc.gameId" class="input ltr" /></template></FormField>
-          <FormField id="dc-gv" :label="t('evm.gameVersion')" required><template #default="{ id: fid }"><input :id="fid" v-model="dsc.gameVersion" class="input ltr" /></template></FormField>
-          <FormField id="dc-p" :label="t('evm.platform')"><template #default="{ id: fid }"><input :id="fid" v-model="dsc.platform" class="input ltr" /></template></FormField>
-          <FormField id="dc-m" :label="t('evm.mode')" required><template #default="{ id: fid }"><input :id="fid" v-model="dsc.mode" class="input ltr" /></template></FormField>
-          <FormField id="dc-r" :label="t('evm.rulesPackage')" :hint="t('evm.rulesPackageHint')"><template #default="{ id: fid, describedBy }"><input :id="fid" v-model="dsc.rulesPackageId" class="input ltr" :aria-describedby="describedBy" /></template></FormField>
-          <FormField id="dc-k" :label="t('reg.kind')"><template #default="{ id: fid }"><select :id="fid" v-model="dsc.participantKind" class="input"><option value="team">{{ t('reg.kind.team') }}</option><option value="player">{{ t('reg.kind.player') }}</option></select></template></FormField>
-          <FormField id="dc-c" :label="t('reg.capacity')"><template #default="{ id: fid }"><input :id="fid" v-model.number="dsc.capacity" type="number" min="1" class="input ltr" /></template></FormField>
-          <FormField id="dc-mn" :label="t('evm.minParticipants')"><template #default="{ id: fid }"><input :id="fid" v-model.number="dsc.minParticipants" type="number" min="0" class="input ltr" /></template></FormField>
-          <FormField id="dc-f" :label="t('evm.feeRial')"><template #default="{ id: fid }"><input :id="fid" v-model.number="dsc.feeRial" type="number" min="0" step="10" class="input ltr" /></template></FormField>
-          <FormField id="dc-o" :label="t('reg.opens')"><template #default="{ id: fid }"><input :id="fid" v-model="dsc.opens" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="dc-cl" :label="t('reg.closes')" required><template #default="{ id: fid }"><input :id="fid" v-model="dsc.closes" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="dc-w" :label="t('reg.withdrawBy')"><template #default="{ id: fid }"><input :id="fid" v-model="dsc.withdrawal" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="dc-cp" :label="t('evm.checkinPolicy')"><template #default="{ id: fid }"><select :id="fid" v-model="dsc.checkinPolicy" class="input"><option v-for="p in ['captain', 'all_members']" :key="p" :value="p">{{ t(`evm.ci.${p}` as never) }}</option></select></template></FormField>
-          <FormField id="dc-co" :label="t('evm.checkinOpens')"><template #default="{ id: fid }"><input :id="fid" v-model.number="dsc.checkinOpens" type="number" min="0" class="input ltr" /></template></FormField>
-          <FormField id="dc-cc" :label="t('evm.checkinCloses')"><template #default="{ id: fid }"><input :id="fid" v-model.number="dsc.checkinCloses" type="number" min="0" class="input ltr" /></template></FormField>
-        </div>
-        <label class="row"><input v-model="dsc.autoApprove" type="checkbox" /> {{ t('evm.autoApprove') }}</label>
-        <button type="submit" class="btn btn-primary" :disabled="!dsc.name || !dsc.gameId || !dsc.gameVersion || !dsc.mode || !dsc.closes">{{ t('evm.addDiscipline') }}</button>
-      </form>
+          <!-- disciplines, stages, registrations -->
+          <div v-else-if="item.key === 'disciplines'" class="k-stack">
+            <QCard v-for="d in m.disciplines" :key="d.id">
+              <div class="k-stack">
+                <div class="p-oe-head">
+                  <h2 class="h4 p-oe-p"><bdi>{{ d.name }}</bdi></h2>
+                  <code class="q-mono q-ltr p-oe-muted">{{ d.platform }} / {{ d.mode }} / {{ d.gameVersion }}</code>
+                </div>
+                <p class="p-oe-muted">{{ t('reg.kind') }}: {{ t(`reg.kind.${d.config.participantKind}` as never) }} · {{ t('reg.capacity') }}: {{ fa(d.config.capacity) }} · {{ t('reg.fee') }}: <QMoney :rial="d.config.feeRial" kind="fee" size="sm" /> · <QBadge :tone="d.rulesFrozen ? 'green' : 'neutral'">{{ d.rulesFrozen ? t('evm.rulesFrozen') : t('evm.rulesNotFrozen') }}</QBadge></p>
 
-      <!-- seasons and series (STG-005) -->
-      <section class="card stack block">
-        <h2>{{ t('evm.seasons') }}</h2>
-        <button type="button" class="btn btn-sm" @click="loadSeasons">{{ t('evm.loadSeasons') }}</button>
-        <ul class="list"><li v-for="s in seasons" :key="String(s._id)"><bdi>{{ s.name }}</bdi> — <bdi class="ltr">{{ s._id }}</bdi></li></ul>
-        <form class="row" novalidate @submit.prevent="act(() => call.createSeason({ gameId: m!.disciplines[0]?.gameId ?? '', name: season.name, from: tz(season.from), to: tz(season.to), pointsPolicy: season.policy, nextEventQuotas: [] }).then(loadSeasons))">
-          <FormField id="ss-n" :label="t('events.name')"><template #default="{ id: fid }"><input :id="fid" v-model="season.name" class="input" dir="auto" /></template></FormField>
-          <FormField id="ss-f" :label="t('fin.from')"><template #default="{ id: fid }"><input :id="fid" v-model="season.from" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="ss-t" :label="t('fin.to')"><template #default="{ id: fid }"><input :id="fid" v-model="season.to" type="datetime-local" class="input" /></template></FormField>
-          <FormField id="ss-p" :label="t('evm.pointsPolicy')"><template #default="{ id: fid }"><input :id="fid" v-model="season.policy" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!m.disciplines.length || !season.name || !season.from || !season.to || !season.policy">{{ t('evm.addSeason') }}</button>
-        </form>
-      </section>
+                <ul class="p-oe-rows">
+                  <li v-for="s in stagesOf(d.id)" :key="s.id">
+                    <div class="p-oe-head">
+                      <span>{{ fa(s.order) }}. <strong><bdi>{{ s.name }}</bdi></strong> — <code class="q-mono q-ltr">{{ s.format }}</code> — {{ t(`reg.presence.${s.presence}` as never) }} <QStatusBadge :state="s.state" /></span>
+                      <QButton size="sm" variant="ghost" @click="checkStart(s.id)">{{ t('evm.canStart') }}</QButton>
+                    </div>
+                    <span v-for="l in s.links" :key="l.kind + (l.fromStageId ?? '')" class="p-oe-muted">→ {{ t(`evm.link.${l.kind}` as never) }} × {{ fa(l.slots) }} — {{ t(`evm.points.${l.points}` as never) }}<template v-if="l.factor !== null"> ×{{ fa(l.factor) }}</template></span>
+                    <template v-if="startInfo[s.id]">
+                      <QAlert :tone="startInfo[s.id]!.ok ? 'success' : 'warning'">{{ startInfo[s.id]!.ok ? t('evm.canStartYes') : startInfo[s.id]!.reasons.join('؛ ') }}</QAlert>
+                      <form v-if="!startInfo[s.id]!.ok" class="p-oe-bar" novalidate @submit.prevent="act(() => call.startException(s.id, exc.approvalId, exc.reason))">
+                        <QTextField :id="`ex-r-${s.id}`" v-model="exc.reason" :label="t('evm.impact')" />
+                        <QButton size="sm" variant="secondary" :disabled="exc.reason.length < 5" @click="requestStageException(s.id)">{{ t('evm.requestApproval') }}</QButton>
+                        <QTextField :id="`ex-a-${s.id}`" v-model="exc.approvalId" :label="t('evm.approvalId')" ltr />
+                        <QButton type="submit" size="sm" :disabled="!exc.approvalId || exc.reason.length < 5">{{ t('evm.startException') }}</QButton>
+                      </form>
+                    </template>
+                  </li>
+                </ul>
 
-      <!-- roster lock and check-in (ROS-003, CHK-002..004) -->
-      <section v-if="!['draft', 'in_review'].includes(ev.state)" class="card stack block">
-        <h2>{{ t('evm.rosterCheckin') }}</h2>
-        <div class="row">
-          <button type="button" class="btn" @click="act(() => call.lockRoster('event', id), t('evm.locked'))">{{ t('evm.lockRoster') }}</button>
-          <button type="button" class="btn" @click="loadCheckins">{{ t('evm.loadCheckins') }}</button>
-          <button type="button" class="btn btn-danger" @click="act(() => call.finalizeCheckins('event', id).then(loadCheckins))">{{ t('evm.finalizeNoShows') }}</button>
-        </div>
-        <ul class="list"><li v-for="c in checkins" :key="String(c._id)"><bdi class="ltr">{{ c.registrationId }}</bdi> — <StatusBadge :state="String(c.state)" /></li></ul>
-        <form class="row" novalidate @submit.prevent="act(() => call.manualCheckin({ level: 'event', ref: id, ...manual }).then(loadCheckins))">
-          <FormField id="mc-r" :label="t('evm.registrationId')"><template #default="{ id: fid }"><input :id="fid" v-model="manual.registrationId" class="input ltr" /></template></FormField>
-          <FormField id="mc-o" :label="t('events.state')"><template #default="{ id: fid }"><select :id="fid" v-model="manual.outcome" class="input"><option v-for="o in ['checked_in', 'late', 'no_show', 'excused']" :key="o" :value="o">{{ t(`evm.co.${o}` as never) }}</option></select></template></FormField>
-          <FormField id="mc-why" :label="t('evm.reason')"><template #default="{ id: fid }"><input :id="fid" v-model="manual.reason" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn" :disabled="!manual.registrationId || manual.reason.length < 3">{{ t('evm.manualCheckin') }}</button>
-        </form>
-      </section>
+                <details v-if="['draft', 'in_review'].includes(ev.state)" class="p-oe-more">
+                  <summary>{{ t('evm.addStage') }}</summary>
+                  <form class="k-stack" novalidate @submit.prevent="act(() => call.addStage(d.id, stagePayload(d.id)))">
+                    <div class="p-oe-grid">
+                      <QTextField :id="`st-n-${d.id}`" v-model="stageForm(d.id).name" :label="t('events.stage')" />
+                      <QTextField :id="`st-o-${d.id}`" v-bind="n(stageForm(d.id), 'order')" label="#" type="number" ltr />
+                      <QSelect :id="`st-f-${d.id}`" v-model="stageForm(d.id).format" :label="t('events.format')" :options="opts(FORMATS, (f) => f)" />
+                      <QSelect :id="`st-p-${d.id}`" v-model="stageForm(d.id).presence" :label="t('reg.presence')" :options="opts(['online', 'offline', 'hybrid'], (v) => t(`reg.presence.${v}` as never))" />
+                      <QSelect :id="`st-from-${d.id}`" v-model="stageForm(d.id).from" :label="t('evm.fromStage')" :options="stageOpts(d.id)" />
+                      <QSelect :id="`st-lk-${d.id}`" v-model="stageForm(d.id).kind" :label="t('evm.linkKind')" :options="opts(['qualifier', 'invite', 'seed', 'quota'], (k) => t(`evm.link.${k}` as never))" />
+                      <QTextField :id="`st-sl-${d.id}`" v-bind="n(stageForm(d.id), 'slots')" :label="t('evm.slots')" type="number" ltr />
+                      <QSelect :id="`st-pt-${d.id}`" v-model="stageForm(d.id).points" :label="t('evm.pointsCarry')" :options="opts(['carry', 'reset', 'factor'], (k) => t(`evm.points.${k}` as never))" />
+                      <QTextField v-if="stageForm(d.id).points === 'factor'" :id="`st-fc-${d.id}`" v-bind="n(stageForm(d.id), 'factor')" :label="t('evm.factor')" input-mode="decimal" ltr />
+                    </div>
+                    <p class="p-oe-muted">{{ t('evm.linkHint') }}</p>
+                    <div><QButton type="submit" variant="green" icon="plus" :disabled="!stageForm(d.id).name">{{ t('evm.addStage') }}</QButton></div>
+                  </form>
+                </details>
 
-      <!-- money: financial report, prizes, tickets, sponsors -->
-      <section class="card stack block">
-        <h2>{{ t('evm.money') }}</h2>
-        <button type="button" class="btn btn-sm" @click="loadFinance">{{ t('evm.loadFinance') }}</button>
-        <dl v-if="fin" class="kv">
-          <div><dt>{{ t('evm.entryGross') }}</dt><dd><MoneyLabel :rial="Number((fin.ordersByKind as Obj)?.entry ? ((fin.ordersByKind as Record<string, Obj>).entry!.grossRial) : 0)" /></dd></div>
-          <div><dt>{{ t('evm.ticketGross') }}</dt><dd><MoneyLabel :rial="Number((fin.ordersByKind as Obj)?.ticket ? ((fin.ordersByKind as Record<string, Obj>).ticket!.grossRial) : 0)" /></dd></div>
-          <div><dt>{{ t('pay.fee') }}</dt><dd><MoneyLabel :rial="Number(fin.feesRial)" /></dd></div>
-          <div><dt>{{ t('pay.discount') }}</dt><dd><MoneyLabel :rial="Number(fin.discountsRial)" /></dd></div>
-          <div><dt>{{ t('pay.refunded') }}</dt><dd><MoneyLabel :rial="Number(fin.refundedRial)" /></dd></div>
-          <div><dt>{{ t('evm.openOrders') }}</dt><dd>{{ num(Number(fin.openOrders)) }}</dd></div>
-          <div><dt>{{ t('evm.payable') }}</dt><dd><MoneyLabel :rial="Number(fin.organizerPayableRial)" /></dd></div>
-        </dl>
-        <template v-if="prizes.length">
-          <h3>{{ t('reg.prizes') }}</h3>
-          <p class="muted">{{ t('reg.prizesNotGuaranteed') }}</p>
-          <div v-for="p in prizes" :key="String(p._id)" class="stack prize">
-            <p><bdi>{{ p.title }}</bdi> — <MoneyLabel :rial="Number(p.amountRial)" /> <StatusBadge :state="String(p.state)" /></p>
-            <form v-if="['defined', 'recipient_verified'].includes(String(p.state))" class="row" novalidate @submit.prevent="act(() => call.prizeRecipient(String(p._id), { kind: rcpForm(String(p._id)).kind, ref: rcpForm(String(p._id)).ref, payeePrincipalId: rcpForm(String(p._id)).payee, shares: [], expectedVersion: Number(p.version), approvalId: null }).then(loadFinance))">
-              <FormField :id="`pr-k-${p._id}`" :label="t('reg.kind')"><template #default="{ id: fid }"><select :id="fid" v-model="rcpForm(String(p._id)).kind" class="input"><option value="team">{{ t('reg.kind.team') }}</option><option value="player">{{ t('reg.kind.player') }}</option></select></template></FormField>
-              <FormField :id="`pr-r-${p._id}`" :label="t('evm.recipientRef')"><template #default="{ id: fid }"><input :id="fid" v-model="rcpForm(String(p._id)).ref" class="input ltr" /></template></FormField>
-              <FormField :id="`pr-p-${p._id}`" :label="t('evm.payee')"><template #default="{ id: fid }"><input :id="fid" v-model="rcpForm(String(p._id)).payee" class="input ltr" /></template></FormField>
-              <button type="submit" class="btn btn-sm">{{ t('evm.setRecipient') }}</button>
-            </form>
+                <details class="p-oe-more" @toggle="($event.target as HTMLDetailsElement).open && loadSlots(d.id)">
+                  <summary>{{ t('evm.qualSlots') }}</summary>
+                  <div class="k-stack">
+                    <ul class="p-oe-list"><li v-for="q in slotList[d.id] ?? []" :key="String(q._id)"><code class="q-mono q-ltr">{{ q.holderKey }}</code> — {{ t(`evm.src.${(q.source as Obj).kind}` as never) }} <code class="q-mono q-ltr">{{ (q.source as Obj).ref }}</code> — <QStatusBadge :state="String(q.state)" /></li></ul>
+                    <form class="k-stack" novalidate @submit.prevent="act(() => call.createSlot(d.id, slotPayload(d.id)).then(() => loadSlots(d.id)))">
+                      <div class="p-oe-grid">
+                        <QSelect :id="`sl-k-${d.id}`" v-model="slotForm(d.id).kind" :label="t('evm.source')" :options="opts(['stage', 'event', 'invite', 'season'], (k) => t(`evm.src.${k}` as never))" />
+                        <QTextField :id="`sl-r-${d.id}`" v-model="slotForm(d.id).ref" :label="t('evm.sourceRef')" ltr />
+                        <QTextField :id="`sl-rk-${d.id}`" v-bind="n(slotForm(d.id), 'rank')" :label="t('evm.rank')" type="number" ltr />
+                        <QTextField :id="`sl-h-${d.id}`" v-model="slotForm(d.id).holderKey" :label="t('evm.holderKey')" :hint="t('evm.holderKeyHint')" ltr />
+                        <QSelect :id="`sl-t-${d.id}`" v-model="slotForm(d.id).target" :label="t('evm.targetStage')" :options="stageOpts(d.id)" />
+                        <QTextField :id="`sl-w-${d.id}`" v-model="slotForm(d.id).reason" :label="t('evm.reason')" />
+                      </div>
+                      <div><QButton type="submit" size="sm" variant="secondary" :disabled="!slotForm(d.id).ref || !slotForm(d.id).holderKey || slotForm(d.id).reason.length < 3">{{ t('evm.addSlot') }}</QButton></div>
+                    </form>
+                    <p class="p-oe-muted">{{ t('evm.slotHint') }}</p>
+                  </div>
+                </details>
+
+                <h3 class="p-oe-h3">{{ t('evm.registrations') }}</h3>
+                <div class="k-row">
+                  <QButton size="sm" variant="secondary" icon="refresh" @click="loadRegs(d.id)">{{ t('evm.loadRegs') }}</QButton>
+                  <QButton size="sm" variant="ghost" icon="download" :href="csvUrl(d.id)" download>{{ t('evm.exportCsv') }}</QButton>
+                  <QButton size="sm" variant="ghost" icon="ticket" @click="genCodes(d.id)">{{ t('evm.entryCodes') }}</QButton>
+                </div>
+                <QFileUpload :id="`imp-${d.id}`" :label="t('evm.importCsv')" accept=".csv,text/csv" :multiple="false" @files="(fs) => importCsv(d.id, fs)" />
+                <p v-if="importResult" class="p-oe-muted" role="status">{{ importResult }}</p>
+                <div v-if="codes[d.id]?.length" class="k-stack"><QCode v-for="c in codes[d.id]" :key="c" copy>{{ c }}</QCode></div>
+                <QDataTable v-if="regs[d.id]" :caption="t('evm.registrations')" caption-hidden row-key="id" row-header="displayName" :columns="regCols" :rows="regs[d.id]!" :empty-text="'—'">
+                  <template #cell-trackingCode="{ row }"><code class="q-mono q-ltr">{{ row.trackingCode }}</code></template>
+                  <template #cell-displayName="{ row }"><bdi>{{ row.displayName }}</bdi></template>
+                  <template #cell-state="{ row }"><QStatusBadge :state="row.state" /><span v-if="row.waitlisted" class="p-oe-muted"> #{{ fa(row.waitlistSeq ?? 0) }}</span></template>
+                  <template #cell-issues="{ row }"><span v-for="i in row.eligibility.issues" :key="i.code + (i.clause ?? '')" class="p-oe-issue"><bdi>{{ i.message }}</bdi></span></template>
+                  <template #row-actions="{ row }">
+                    <QTextField :id="`rr-${row.id}`" v-model="reason[row.id]" :label="t('evm.reason')" hide-label :placeholder="t('evm.reason')" class="p-oe-sm" />
+                    <QButton v-if="row.state === 'awaiting_review'" size="sm" variant="green" @click="decide(d.id, row, 'approve')">{{ t('evm.approve') }}</QButton>
+                    <QButton v-if="row.state === 'awaiting_review'" size="sm" variant="secondary" @click="decide(d.id, row, 'mark_incomplete')">{{ t('evm.incomplete') }}</QButton>
+                    <QButton v-if="['awaiting_review', 'awaiting_capacity'].includes(row.state)" size="sm" variant="danger" @click="decide(d.id, row, 'reject')">{{ t('evm.reject') }}</QButton>
+                    <QButton v-if="row.state === 'confirmed'" size="sm" variant="danger" @click="decide(d.id, row, 'remove')">{{ t('evm.remove') }}</QButton>
+                  </template>
+                </QDataTable>
+              </div>
+            </QCard>
+
+            <QCard v-if="['draft', 'in_review'].includes(ev.state)">
+              <form class="k-stack" novalidate @submit.prevent="addDiscipline">
+                <h2 class="h4 p-oe-p">{{ t('evm.addDiscipline') }}</h2>
+                <div class="p-oe-grid">
+                  <QTextField id="dc-n" v-model="dsc.name" :label="t('events.name')" required />
+                  <QTextField id="dc-g" v-model="dsc.gameId" :label="t('evm.gameId')" required ltr />
+                  <QTextField id="dc-gv" v-model="dsc.gameVersion" :label="t('evm.gameVersion')" required ltr />
+                  <QTextField id="dc-p" v-model="dsc.platform" :label="t('evm.platform')" ltr />
+                  <QTextField id="dc-m" v-model="dsc.mode" :label="t('evm.mode')" required ltr />
+                  <QTextField id="dc-r" v-model="dsc.rulesPackageId" :label="t('evm.rulesPackage')" :hint="t('evm.rulesPackageHint')" ltr />
+                  <QSelect id="dc-k" v-model="dsc.participantKind" :label="t('reg.kind')" :options="opts(['team', 'player'], (k) => t(`reg.kind.${k}` as never))" />
+                  <QTextField id="dc-c" v-bind="n(dsc, 'capacity')" :label="t('reg.capacity')" type="number" ltr />
+                  <QTextField id="dc-mn" v-bind="n(dsc, 'minParticipants')" :label="t('evm.minParticipants')" type="number" ltr />
+                  <QTextField id="dc-f" v-bind="n(dsc, 'feeRial')" :label="t('evm.feeRial')" type="number" ltr :hint="dsc.feeRial ? toman(dsc.feeRial) : undefined" />
+                  <QDateField id="dc-o" v-model="dsc.opens" :label="t('reg.opens')" with-time />
+                  <QDateField id="dc-cl" v-model="dsc.closes" :label="t('reg.closes')" with-time required />
+                  <QDateField id="dc-w" v-model="dsc.withdrawal" :label="t('reg.withdrawBy')" with-time />
+                  <QSelect id="dc-cp" v-model="dsc.checkinPolicy" :label="t('evm.checkinPolicy')" :options="opts(['captain', 'all_members'], (p) => t(`evm.ci.${p}` as never))" />
+                  <QTextField id="dc-co" v-bind="n(dsc, 'checkinOpens')" :label="t('evm.checkinOpens')" type="number" ltr />
+                  <QTextField id="dc-cc" v-bind="n(dsc, 'checkinCloses')" :label="t('evm.checkinCloses')" type="number" ltr />
+                </div>
+                <QCheckbox v-bind="b(dsc, 'autoApprove')" :label="t('evm.autoApprove')" />
+                <div><QButton type="submit" variant="green" icon="plus" :disabled="!dsc.name || !dsc.gameId || !dsc.gameVersion || !dsc.mode || !dsc.closes">{{ t('evm.addDiscipline') }}</QButton></div>
+              </form>
+            </QCard>
+          </div>
+
+          <!-- seasons and series (STG-005) -->
+          <QCard v-else-if="item.key === 'seasons'">
+            <div class="k-stack">
+              <ul class="p-oe-list"><li v-for="s in seasons" :key="String(s._id)"><bdi>{{ s.name }}</bdi> — <code class="q-mono q-ltr">{{ s._id }}</code></li><li v-if="!seasons.length" class="p-oe-muted">—</li></ul>
+              <form class="p-oe-grid" novalidate @submit.prevent="act(() => call.createSeason({ gameId: m!.disciplines[0]?.gameId ?? '', name: season.name, from: tz(season.from), to: tz(season.to), pointsPolicy: season.policy, nextEventQuotas: [] }).then(loadSeasons))">
+                <QTextField id="ss-n" v-model="season.name" :label="t('events.name')" />
+                <QDateField id="ss-f" v-model="season.from" :label="t('fin.from')" with-time />
+                <QDateField id="ss-t" v-model="season.to" :label="t('fin.to')" with-time />
+                <QTextField id="ss-p" v-model="season.policy" :label="t('evm.pointsPolicy')" />
+                <div><QButton type="submit" size="sm" variant="green" icon="plus" :disabled="!m.disciplines.length || !season.name || !season.from || !season.to || !season.policy">{{ t('evm.addSeason') }}</QButton></div>
+              </form>
+            </div>
+          </QCard>
+
+          <!-- roster lock and check-in (ROS-003, CHK-002..004) -->
+          <div v-else-if="item.key === 'checkin'" class="k-stack">
+            <QAlert v-if="['draft', 'in_review'].includes(ev.state)" tone="info">{{ t('oe.checkinLater') }}</QAlert>
+            <template v-else>
+              <div class="k-row">
+                <QButton variant="secondary" icon="lock" @click="act(() => call.lockRoster('event', id), t('evm.locked'))">{{ t('evm.lockRoster') }}</QButton>
+                <QButton variant="ghost" icon="refresh" @click="loadCheckins">{{ t('evm.loadCheckins') }}</QButton>
+                <QButton variant="danger" @click="act(() => call.finalizeCheckins('event', id).then(loadCheckins))">{{ t('evm.finalizeNoShows') }}</QButton>
+              </div>
+              <QCard padding="none">
+                <ul class="p-oe-rows p-oe-pad"><li v-for="c in checkins" :key="String(c._id)"><span><code class="q-mono q-ltr">{{ c.registrationId }}</code> <QStatusBadge :state="String(c.state)" /></span></li><li v-if="!checkins.length" class="p-oe-muted">—</li></ul>
+              </QCard>
+              <QCard>
+                <form class="p-oe-grid" novalidate @submit.prevent="act(() => call.manualCheckin({ level: 'event', ref: id, ...manual }).then(loadCheckins))">
+                  <QTextField id="mc-r" v-model="manual.registrationId" :label="t('evm.registrationId')" ltr />
+                  <QSelect id="mc-o" v-model="manual.outcome" :label="t('events.state')" :options="opts(['checked_in', 'late', 'no_show', 'excused'], (o) => t(`evm.co.${o}` as never))" />
+                  <QTextField id="mc-why" v-model="manual.reason" :label="t('evm.reason')" />
+                  <div><QButton type="submit" variant="secondary" :disabled="!manual.registrationId || manual.reason.length < 3">{{ t('evm.manualCheckin') }}</QButton></div>
+                </form>
+              </QCard>
+            </template>
+          </div>
+
+          <!-- money: financial report, prizes, tickets, sponsors -->
+          <div v-else class="k-stack">
+            <div><QButton size="sm" variant="ghost" icon="refresh" @click="loadFinance">{{ t('evm.loadFinance') }}</QButton></div>
+            <QCard v-if="fin"><QFacts :items="finFacts" :columns="4" dense /></QCard>
+            <QCard v-if="prizes.length">
+              <div class="k-stack">
+                <h3 class="p-oe-h3">{{ t('reg.prizes') }}</h3>
+                <p class="p-oe-muted">{{ t('reg.prizesNotGuaranteed') }}</p>
+                <div v-for="p in prizes" :key="String(p._id)" class="k-stack p-oe-prize">
+                  <p class="p-oe-p"><bdi>{{ p.title }}</bdi> — <QMoney :rial="Number(p.amountRial)" kind="prize" size="sm" /> <QStatusBadge :state="String(p.state)" /></p>
+                  <form v-if="['defined', 'recipient_verified'].includes(String(p.state))" class="p-oe-grid" novalidate @submit.prevent="act(() => call.prizeRecipient(String(p._id), { kind: rcpForm(String(p._id)).kind, ref: rcpForm(String(p._id)).ref, payeePrincipalId: rcpForm(String(p._id)).payee, shares: [], expectedVersion: Number(p.version), approvalId: null }).then(loadFinance))">
+                    <QSelect :id="`pr-k-${p._id}`" v-model="rcpForm(String(p._id)).kind" :label="t('reg.kind')" :options="opts(['team', 'player'], (k) => t(`reg.kind.${k}` as never))" />
+                    <QTextField :id="`pr-r-${p._id}`" v-model="rcpForm(String(p._id)).ref" :label="t('evm.recipientRef')" ltr />
+                    <QTextField :id="`pr-p-${p._id}`" v-model="rcpForm(String(p._id)).payee" :label="t('evm.payee')" ltr />
+                    <div><QButton type="submit" size="sm" variant="secondary">{{ t('evm.setRecipient') }}</QButton></div>
+                  </form>
+                </div>
+              </div>
+            </QCard>
+            <QCard>
+              <div class="k-stack">
+                <h3 class="p-oe-h3">{{ t('reg.tickets') }}</h3>
+                <form class="p-oe-grid" novalidate @submit.prevent="act(() => call.configureTickets(id, tickets.capacity, tickets.priceRial))">
+                  <QTextField id="tc-c" v-bind="n(tickets, 'capacity')" :label="t('reg.capacity')" type="number" ltr />
+                  <QTextField id="tc-p" v-bind="n(tickets, 'priceRial')" :label="t('evm.amountRial')" type="number" ltr :hint="tickets.priceRial ? toman(tickets.priceRial) : undefined" />
+                  <div><QButton type="submit" size="sm" variant="secondary">{{ t('mgmt.save') }}</QButton></div>
+                </form>
+                <form class="p-oe-grid" novalidate @submit.prevent="act(() => call.useTicket(ticketCode.trim()), t('evm.ticketUsed')).then(() => (ticketCode = ''))">
+                  <QTextField id="tu-c" v-model="ticketCode" :label="t('evm.ticketCode')" ltr auto-complete="off" />
+                  <div><QButton type="submit" size="sm" icon="check" :disabled="ticketCode.trim().length < 6">{{ t('evm.useTicket') }}</QButton></div>
+                </form>
+              </div>
+            </QCard>
+            <QCard>
+              <div class="k-stack">
+                <h3 class="p-oe-h3">{{ t('reg.sponsors') }}</h3>
+                <ul class="p-oe-rows">
+                  <li v-for="s in sponsors" :key="String(s._id)">
+                    <span><bdi>{{ s.sponsorName }}</bdi> — {{ t(`reg.label.${s.label}` as never) }} — <QStatusBadge :state="String(s.state)" /></span>
+                    <QButton v-if="s.state === 'draft'" size="sm" variant="green" @click="act(() => call.approveSponsor(String(s._id), sp.note).then(loadFinance))">{{ t('evm.approve') }}</QButton>
+                  </li>
+                </ul>
+                <form class="p-oe-grid" novalidate @submit.prevent="act(() => call.addSponsor(id, { sponsorName: sp.sponsorName, placement: sp.placement, label: sp.label, publisherRestrictionNote: sp.note || null }).then(loadFinance))">
+                  <QTextField id="sp-n" v-model="sp.sponsorName" :label="t('evm.sponsorName')" />
+                  <QSelect id="sp-p" v-model="sp.placement" :label="t('evm.placement')" :options="opts(['event_header', 'live_center', 'stream_overlay', 'news_sidebar'], (p) => p)" />
+                  <QSelect id="sp-l" v-model="sp.label" :label="t('evm.label')" :options="opts(['sponsor', 'advertisement'], (k) => t(`reg.label.${k}` as never))" />
+                  <QTextField id="sp-x" v-model="sp.note" :label="t('evm.publisherNote')" />
+                  <div><QButton type="submit" size="sm" variant="green" icon="plus" :disabled="!sp.sponsorName">{{ t('evm.addSponsor') }}</QButton></div>
+                </form>
+              </div>
+            </QCard>
           </div>
         </template>
-        <h3>{{ t('reg.tickets') }}</h3>
-        <form class="row" novalidate @submit.prevent="act(() => call.configureTickets(id, tickets.capacity, tickets.priceRial))">
-          <FormField id="tc-c" :label="t('reg.capacity')"><template #default="{ id: fid }"><input :id="fid" v-model.number="tickets.capacity" type="number" min="1" class="input ltr" /></template></FormField>
-          <FormField id="tc-p" :label="t('evm.amountRial')"><template #default="{ id: fid }"><input :id="fid" v-model.number="tickets.priceRial" type="number" min="0" step="10" class="input ltr" /></template></FormField>
-          <button type="submit" class="btn btn-sm">{{ t('mgmt.save') }}</button>
-        </form>
-        <form class="row" novalidate @submit.prevent="act(() => call.useTicket(ticketCode.trim()), t('evm.ticketUsed')).then(() => (ticketCode = ''))">
-          <FormField id="tu-c" :label="t('evm.ticketCode')"><template #default="{ id: fid }"><input :id="fid" v-model="ticketCode" class="input ltr" autocomplete="off" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="ticketCode.trim().length < 6">{{ t('evm.useTicket') }}</button>
-        </form>
-        <h3>{{ t('reg.sponsors') }}</h3>
-        <ul class="list"><li v-for="s in sponsors" :key="String(s._id)"><bdi>{{ s.sponsorName }}</bdi> — {{ t(`reg.label.${s.label}` as never) }} — <StatusBadge :state="String(s.state)" /> <button v-if="s.state === 'draft'" type="button" class="btn btn-sm" @click="act(() => call.approveSponsor(String(s._id), sp.note).then(loadFinance))">{{ t('evm.approve') }}</button></li></ul>
-        <form class="row" novalidate @submit.prevent="act(() => call.addSponsor(id, { sponsorName: sp.sponsorName, placement: sp.placement, label: sp.label, publisherRestrictionNote: sp.note || null }).then(loadFinance))">
-          <FormField id="sp-n" :label="t('evm.sponsorName')"><template #default="{ id: fid }"><input :id="fid" v-model="sp.sponsorName" class="input" dir="auto" /></template></FormField>
-          <FormField id="sp-p" :label="t('evm.placement')"><template #default="{ id: fid }"><select :id="fid" v-model="sp.placement" class="input ltr"><option v-for="p in ['event_header', 'live_center', 'stream_overlay', 'news_sidebar']" :key="p" :value="p">{{ p }}</option></select></template></FormField>
-          <FormField id="sp-l" :label="t('evm.label')"><template #default="{ id: fid }"><select :id="fid" v-model="sp.label" class="input"><option value="sponsor">{{ t('reg.label.sponsor') }}</option><option value="advertisement">{{ t('reg.label.advertisement') }}</option></select></template></FormField>
-          <FormField id="sp-x" :label="t('evm.publisherNote')"><template #default="{ id: fid }"><input :id="fid" v-model="sp.note" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!sp.sponsorName">{{ t('evm.addSponsor') }}</button>
-        </form>
-      </section>
-    </template>
-  </DataState>
+      </QTabs>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.block { margin-block-end: var(--sp-4); }
-.row { flex-wrap: wrap; gap: var(--sp-2); align-items: flex-end; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--sp-3); }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-2); margin: 0; }
-dt { color: var(--text-muted); font-size: var(--fs-sm); }
-dd { margin: 0; font-weight: 600; }
-.ok { color: var(--ok); font-weight: 700; }
-.warn { color: var(--warn); }
-.danger { color: var(--danger); }
-.notice { color: var(--ok); }
-.table-wrap { overflow-x: auto; }
-.tbl { inline-size: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.tbl th, .tbl td { padding: var(--sp-1) var(--sp-2); border-block-end: 1px solid var(--border); text-align: start; vertical-align: top; }
-.issue { display: block; color: var(--warn); }
-.input-sm { max-inline-size: 10rem; }
-.code { font-family: monospace; }
-.prize { border-block-start: 1px solid var(--border); padding-block-start: var(--sp-2); }
-h2, h3, p { margin: 0; }
+.p-oe-p { margin: 0; }
+.p-oe-h3 { margin: 0; font-size: 15px; font-weight: 800; }
+.p-oe-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-oe-bar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
+.p-oe-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: var(--space-3); align-items: end; }
+.p-oe-list { margin: 0; padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
+.p-oe-rows { margin: 0; padding: 0; list-style: none; }
+.p-oe-rows > li { display: flex; flex-direction: column; gap: var(--space-2); padding-block: var(--space-3); border-block-end: 1px solid var(--line); }
+.p-oe-pad > li { padding-inline: var(--space-4); }
+.p-oe-checks { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--space-2); }
+.p-oe-checks li { display: flex; align-items: center; gap: var(--space-2); }
+.p-oe-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-oe-bad { color: var(--danger-text); }
+.p-oe-issue { display: block; color: var(--warning-text); font-size: 13px; }
+.p-oe-sm { max-inline-size: 10rem; }
+.p-oe-prize { padding-block-start: var(--space-3); border-block-start: 1px solid var(--line); }
+.p-oe-more > summary { cursor: pointer; font-weight: 800; }
+.p-oe-more[open] > summary { margin-block-end: var(--space-3); }
+.p-oe-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.p-oe-tool { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-pill); color: var(--ink); font-size: 13px; font-weight: 700; text-decoration: none; }
+.p-oe-tool:hover { background: var(--surface-sunken); }
+.p-oe-tool:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 </style>
