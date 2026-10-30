@@ -4,6 +4,7 @@ export * from './locale';
 export { ICONS, ICON_NAMES, type IconName } from './icons';
 export { QLinkKey } from './link';
 export { useToast } from './composables/useToast';
+export { EVENT_STATUS, MATCH_STATE, STAGE_STATUS, statusBadge } from './maps/competition';
 export type { QDataTableColumn, QDataTableSort, QDataTableKey } from './maps/data';
 export { default as QAccordion } from './components/QAccordion.vue';
 export { default as QActionBar } from './components/QActionBar.vue';

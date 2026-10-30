@@ -107,9 +107,8 @@ const stateBadge = (s: string) => (s === 'approved' ? { tone: 'success' as const
       <QPageHeader
         compact :title="t('mq.title')" :description="t('qr.lead')"
         :breadcrumb="[{ label: t('mq.myRegs'), href: '/account/registrations' }, ...(eventName ? [{ label: eventName, href: `/events/${eventId}` }] : []), { label: t('mq.title') }]"
-      >
-        <template v-if="card" #status><QBadge tone="success" icon="check">{{ t('mq.valid') }}</QBadge></template>
-      </QPageHeader>
+        :status="card ? { label: t('mq.valid'), tone: 'success', icon: 'check' } : undefined"
+      />
       <QDataState
         v-if="error || (loading && !cards.length) || !card"
         :state="error ? (error.code === 'NETWORK' ? 'offline' : error.code === 'FORBIDDEN' ? 'forbidden' : 'error') : loading ? 'loading' : 'empty'"
