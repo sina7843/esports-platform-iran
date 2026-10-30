@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { QAlert, QButton, QCard, QContainer, QDataState, QEmptyState, QPageHeader, QSection, QSelect, QStatusBadge, QTextField, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp07 as esp07Api } from '../api/esp07';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
 import { t } from '../i18n';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 
 /** ADM-008 requester side: open a ticket (optionally linked to my payment/match/registration), follow replies. */
@@ -54,68 +51,91 @@ async function send() {
   }
 }
 const CATS = ['account', 'payment', 'registration', 'match', 'result', 'content', 'technical', 'other'];
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 4000 }); });
+const ds = useDataState({ loading: computed(() => loading.value && !data.value), error, empty: () => !!data.value && !data.value.items.length });
+// a broken-link report from the not-found page arrives as ?topic=broken-link&path=…
+const route = useRoute();
+if (route.query['topic'] === 'broken-link') {
+  f.category = 'technical';
+  f.subject = t('su.broken');
+  f.text = `${t('su.brokenPath')} ${String(route.query['path'] ?? '')}${route.query['ref'] ? `\n${t('su.brokenRef')} ${String(route.query['ref'])}` : ''}`;
+}
 </script>
 
 <template>
-  <PageHeader :title="t('a7.support.title')" :lead="t('a7.support.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
-  <section class="card stack" aria-labelledby="st-new">
-    <h2 id="st-new">{{ t('a7.support.new') }}</h2>
-    <form class="stack" @submit.prevent="open">
-      <div class="grid">
-        <FormField id="st-s" :label="t('a7.support.subject')"><template #default="{ id: fid }"><input :id="fid" v-model="f.subject" class="input" dir="auto" maxlength="200" /></template></FormField>
-        <FormField id="st-c" :label="t('a7.support.category')"><template #default="{ id: fid }"><select :id="fid" v-model="f.category" class="input"><option v-for="c in CATS" :key="c" :value="c">{{ t(`a7.cat.${c}` as never) }}</option></select></template></FormField>
-        <FormField id="st-p" :label="t('a7.priority')" :hint="t('a7.support.prioHint')"><template #default="{ id: fid, describedBy }"><select :id="fid" v-model="f.priority" class="input" :aria-describedby="describedBy"><option v-for="p in ['low', 'normal', 'high']" :key="p" :value="p">{{ t(`a7.prio.${p}` as never) }}</option></select></template></FormField>
-      </div>
-      <FormField id="st-t" :label="t('a7.support.text')"><template #default="{ id: fid }"><textarea :id="fid" v-model="f.text" class="input" rows="4" dir="auto" maxlength="4000" /></template></FormField>
-      <details>
-        <summary>{{ t('a7.support.links') }}</summary>
-        <div class="grid">
-          <FormField id="st-pay" :label="t('a7.support.payment')"><template #default="{ id: fid }"><input :id="fid" v-model="f.paymentId" class="input ltr" /></template></FormField>
-          <FormField id="st-m" :label="t('a7.support.match')"><template #default="{ id: fid }"><input :id="fid" v-model="f.matchId" class="input ltr" /></template></FormField>
-          <FormField id="st-r" :label="t('a7.support.registration')"><template #default="{ id: fid }"><input :id="fid" v-model="f.registrationId" class="input ltr" /></template></FormField>
+  <QContainer>
+    <div class="k-stack p-sup">
+      <QPageHeader compact :title="t('a7.support.title')" :description="t('a7.support.lead')" />
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+      <div class="p-sup-grid">
+        <div class="k-stack p-sup-col">
+          <QSection id="mine" small :title="t('a7.support.mine')">
+            <QDataState v-if="ds.state.value !== 'content' || !data" v-bind="ds.props.value" skeleton="rows" icon="inbox" :empty-title="t('su.none')" @retry="load" />
+            <QCard v-else padding="none">
+              <ul class="p-sup-list">
+                <li v-for="x in data.items" :key="x._id">
+                  <button type="button" class="p-sup-item" :aria-current="current?._id === x._id ? 'true' : undefined" @click="show(x._id)">
+                    <strong><bdi>{{ x.subject }}</bdi></strong>
+                    <span class="p-sup-meta"><QStatusBadge :state="x.state" machine="ticket" /> {{ t(`a7.cat.${x.category}` as never) }} · {{ formatJalali(x.updatedAt) }}</span>
+                  </button>
+                </li>
+              </ul>
+            </QCard>
+          </QSection>
+          <QCard v-if="current" aria-live="polite">
+            <div class="k-stack">
+              <div class="p-sup-head"><h2 class="h4 p-sup-h"><bdi>{{ current.subject }}</bdi></h2><QStatusBadge :state="current.state" machine="ticket" /></div>
+              <p class="p-sup-meta">{{ t('a7.support.sla') }}: {{ formatJalali(current.slaDueAt) }}</p>
+              <ol class="p-sup-thread">
+                <li v-for="(m, i) in current.messages" :key="i"><span class="p-sup-meta">{{ formatJalali(m.at) }}</span><p dir="auto">{{ m.text }}</p></li>
+              </ol>
+              <form v-if="current.state !== 'closed'" class="p-sup-reply" novalidate @submit.prevent="send">
+                <QTextField v-model="reply" :label="t('a7.support.reply')" hide-label multiline :rows="2" />
+                <QButton type="submit" variant="green" icon="send" :disabled="!reply.trim()">{{ t('a7.support.reply') }}</QButton>
+              </form>
+            </div>
+          </QCard>
         </div>
-      </details>
-      <button type="submit" class="btn btn-primary" :disabled="f.subject.trim().length < 3 || f.text.trim().length < 5">{{ t('a7.support.send') }}</button>
-    </form>
-  </section>
-
-  <section class="block" aria-labelledby="st-mine">
-    <h2 id="st-mine">{{ t('a7.support.mine') }}</h2>
-    <DataState :loading="loading" :error="error" :empty="!!data && data.items.length === 0" @retry="load">
-      <ul v-if="data" class="plain stack">
-        <li v-for="x in data.items" :key="x._id" class="card row between">
-          <button type="button" class="link" @click="show(x._id)"><bdi>{{ x.subject }}</bdi></button>
-          <span class="row small"><StatusBadge :state="x.state" /> {{ t(`a7.cat.${x.category}` as never) }} · <JalaliDate :iso="x.updatedAt" /></span>
-        </li>
-      </ul>
-    </DataState>
-  </section>
-
-  <section v-if="current" class="card stack block" aria-live="polite" :aria-label="current.subject">
-    <div class="row between"><h2><bdi>{{ current.subject }}</bdi></h2><StatusBadge :state="current.state" /></div>
-    <p class="small muted">{{ t('a7.support.sla') }}: <JalaliDate :iso="current.slaDueAt" /></p>
-    <ol class="plain stack">
-      <li v-for="(m, i) in current.messages" :key="i" class="msg"><span class="small muted"><JalaliDate :iso="m.at" /></span><p dir="auto">{{ m.text }}</p></li>
-    </ol>
-    <form v-if="current.state !== 'closed'" class="row" @submit.prevent="send">
-      <textarea v-model="reply" class="input grow" rows="2" dir="auto" :aria-label="t('a7.support.reply')" />
-      <button type="submit" class="btn" :disabled="!reply.trim()">{{ t('a7.support.reply') }}</button>
-    </form>
-  </section>
+        <QSection id="new" small :title="t('a7.support.new')">
+          <QCard>
+            <form class="k-stack" novalidate @submit.prevent="open">
+              <QTextField id="st-s" v-model="f.subject" :label="t('a7.support.subject')" :max-length="200" required />
+              <QSelect id="st-c" v-model="f.category" :label="t('a7.support.category')" :options="CATS.map((c) => ({ value: c, label: t(`a7.cat.${c}` as never) }))" />
+              <QSelect id="st-p" v-model="f.priority" :label="t('a7.priority')" :hint="t('a7.support.prioHint')" :options="['low', 'normal', 'high'].map((p) => ({ value: p, label: t(`a7.prio.${p}` as never) }))" />
+              <QTextField id="st-t" v-model="f.text" :label="t('a7.support.text')" multiline :rows="4" :max-length="4000" required />
+              <details class="p-sup-more">
+                <summary>{{ t('a7.support.links') }}</summary>
+                <div class="k-stack">
+                  <QTextField id="st-pay" v-model="f.paymentId" :label="t('a7.support.payment')" ltr />
+                  <QTextField id="st-m" v-model="f.matchId" :label="t('a7.support.match')" ltr />
+                  <QTextField id="st-r" v-model="f.registrationId" :label="t('a7.support.registration')" ltr />
+                </div>
+              </details>
+              <div><QButton type="submit" variant="primary" icon="send" :disabled="f.subject.trim().length < 3 || f.text.trim().length < 5">{{ t('a7.support.send') }}</QButton></div>
+            </form>
+          </QCard>
+        </QSection>
+      </div>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.between { justify-content: space-between; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--sp-2); align-items: end; }
-.plain { list-style: none; margin: 0; padding: 0; }
-.block { margin-block-start: var(--sp-4); }
-.grow { flex: 1 1 16rem; }
-.link { background: none; border: 0; color: var(--accent); cursor: pointer; text-decoration: underline; padding: 0; font: inherit; }
-.msg { border-inline-start: 3px solid var(--border); padding-inline-start: var(--sp-2); }
-.small { font-size: var(--fs-xs); }
-.ok { color: var(--ok); }
-h2, p { margin: 0; }
+.p-sup { gap: var(--space-6); }
+.p-sup-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.p-sup-col { gap: var(--space-6); }
+.p-sup-list { margin: 0; padding: 0; list-style: none; }
+.p-sup-item { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); inline-size: 100%; padding: var(--space-3) var(--space-4); border: 0; border-block-end: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; text-align: start; cursor: pointer; min-block-size: 56px; }
+.p-sup-item:hover { background: var(--surface-hover); }
+.p-sup-item[aria-current='true'] { background: var(--green-soft); }
+.p-sup-meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; font-size: 13px; color: var(--ink-subtle); }
+.p-sup-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-sup-h { margin: 0; }
+.p-sup-thread { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+.p-sup-thread li { padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface-sunken); }
+.p-sup-thread p { margin: var(--space-1) 0 0; white-space: pre-wrap; }
+.p-sup-reply { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; }
+.p-sup-more summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; font-weight: 700; color: var(--green-text); }
+@media (max-width: 1000px) { .p-sup-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
