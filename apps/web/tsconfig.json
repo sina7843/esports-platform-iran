@@ -8,7 +8,8 @@
     "jsx": "preserve",
     "noEmit": true,
     "declaration": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "exactOptionalPropertyTypes": false
   },
   "include": ["src", "env.d.ts", "vite.config.ts"]
 }
