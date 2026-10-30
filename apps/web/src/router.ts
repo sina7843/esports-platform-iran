@@ -47,7 +47,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/games/:id', name: 'game', component: () => import('./views/GameView.vue'), meta: { title: 'nav.games', layout: 'public', nav: 'games', redesigned: true } },
   { path: '/rules', name: 'rules', component: () => import('./views/RulesView.vue'), meta: { title: 'nav.rules', layout: 'public', redesigned: true } },
   { path: '/rules/:id', name: 'rules-package', component: () => import('./views/RulesPackageView.vue'), meta: { title: 'nav.rules', layout: 'public', redesigned: true } },
-  { path: '/search', name: 'search', component: () => import('./views/SearchView.vue'), meta: { title: 'nav.search', layout: 'public' } },
+  { path: '/search', name: 'search', component: () => import('./views/SearchView.vue'), meta: { title: 'nav.search', layout: 'public', redesigned: true } },
   { path: '/messages', name: 'messages', component: () => import('./views/MessagesView.vue'), meta: { requiresAuth: true, title: 'msg.title', layout: 'panel', side: 'messages' } },
   { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { title: 'nav.login', layout: 'auth', redesigned: true } },
   { path: '/403', name: 'forbidden', component: () => import('./views/ForbiddenView.vue'), meta: { title: 'forbidden.title', layout: 'public', redesigned: true } },
@@ -84,7 +84,7 @@ export const routes: RouteRecordRaw[] = [
 
   { path: '/support', name: 'support', component: () => import('./views/SupportView.vue'), meta: { requiresAuth: true, title: 'a7.nav.support', layout: 'panel', side: 'support' } },
   { path: '/account/privacy', name: 'my-privacy', component: () => import('./views/PrivacyView.vue'), meta: { requiresAuth: true, title: 'a7.nav.myPrivacy', layout: 'panel', side: 'privacy' } },
-  { path: '/legal/:kind', name: 'legal', component: () => import('./views/LegalView.vue'), meta: { title: 'a7.nav.myPrivacy', layout: 'public' } },
+  { path: '/legal/:kind', name: 'legal', component: () => import('./views/LegalView.vue'), meta: { title: 'a7.nav.myPrivacy', layout: 'public', redesigned: true } },
   { path: '/organizer/events/:id/ops', name: 'event-ops', component: () => import('./views/EventOpsView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'a7.nav.eventOps', layout: 'panel', side: 'organizer' } },
   { path: '/admin/users', name: 'admin-users', component: () => import('./views/AdminUsersView.vue'), meta: { requiresAuth: true, permission: 'admin.users', title: 'a7.nav.users', layout: 'panel', side: 'admin-users' } },
   { path: '/admin/tasks', name: 'admin-tasks', component: () => import('./views/AdminTasksView.vue'), meta: { requiresAuth: true, permission: 'admin.tasks', title: 'a7.nav.tasks', layout: 'panel', side: 'admin-tasks' } },
