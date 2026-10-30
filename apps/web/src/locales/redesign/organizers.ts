@@ -1,6 +1,36 @@
-/** New copy for the redesigned `organizers` page (docs/redesign/03-specs/organizers.md § Copy, rows marked new). fa and en side by side. */
+/** New copy for the redesigned `organizers` page (docs/redesign/03-specs/organizers.md § Copy). */
 export const fa = {
+  'og.eyebrow': "جامعه",
+  'og.desc': "برگزارکنندگانی که هویت و سابقه‌شان بررسی شده است؛ امتیاز از بازخورد شرکت‌کنندگان رویدادهای بسته‌شده است.",
+  'og.search': "جست‌وجوی برگزارکننده",
+  'og.searchPh': "نام برگزارکننده…",
+  'og.count': "{n} برگزارکننده",
+  'og.empty': "هنوز برگزارکننده‌ی تأییدشده‌ای نیست.",
+  'og.noMatch': "برگزارکننده‌ای با این نام پیدا نشد.",
+  'og.verified': "برگزارکننده‌ی تأییدشده",
+  'og.open': "صفحه برگزارکننده",
+  'og.mine': "درخواست‌های من",
+  'og.noMine': "درخواستی ثبت نکرده‌اید.",
+  'og.applyDesc': "درخواست برای سازمانی که در آن نقش دارید؛ پس از بررسی، رویدادهایتان نشان تأیید می‌گیرند.",
+  'og.descErr': "توضیح حداقل ۲۰ نویسه است.",
+  'og.orgErr': "شناسه سازمان را وارد کنید.",
+  'og.sent': "درخواست ثبت شد.",
 } satisfies Record<string, string>;
 
 export const en: Record<keyof typeof fa, string> = {
+  'og.eyebrow': "Community",
+  'og.desc': "Organizers whose identity and record were reviewed; ratings come from participants of closed events.",
+  'og.search': "Search organizers",
+  'og.searchPh': "Organizer name…",
+  'og.count': "{n} organizers",
+  'og.empty': "No verified organizers yet.",
+  'og.noMatch': "No organizer matches this name.",
+  'og.verified': "Verified organizer",
+  'og.open': "Organizer page",
+  'og.mine': "My applications",
+  'og.noMine': "You have not applied yet.",
+  'og.applyDesc': "Apply for an organization you belong to; once reviewed, your events carry the verified badge.",
+  'og.descErr': "The description needs at least 20 characters.",
+  'og.orgErr': "Enter the organization ID.",
+  'og.sent': "Application submitted.",
 };

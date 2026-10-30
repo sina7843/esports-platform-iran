@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { QAlert, QBadge, QBreadcrumb, QButton, QCard, QContainer, QDataState, QIcon, QSection, QTextField, formatJalali, isRtl } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp06 as esp06Api } from '../api/esp06';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import LivePost from '../components/LivePost.vue';
 import { toClientError } from '../errors';
-import { t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
 import { session } from '../session';
+import { settings } from '../settings';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 
 /**
@@ -61,6 +60,11 @@ async function send() {
     failure.value = toClientError(e);
   }
 }
+const ds = useDataState({ loading: computed(() => loading.value && !data.value), error });
+const sent = ref('');
+watch(failure, (f) => { sent.value = f ? f.message : ''; });
+const images = computed(() => (data.value?.post.media ?? []).filter((m) => m.kind === 'image' && m.url));
+const fmtLabel = (f: string) => t(`news.fmt.${f}` as MessageKey);
 async function report(id: string) {
   try {
     await esp06.report('comment', id, 'reported by reader');
@@ -71,33 +75,80 @@ async function report(id: string) {
 </script>
 
 <template>
-  <DataState :loading="loading" :error="error" @retry="load">
-    <article v-if="data" class="stack">
-      <LivePost :post="data.post" show-actions />
-      <p class="muted small">{{ t('news.byline') }} <bdi>{{ data.post.author?.nickname ?? t(`live.src.${data.post.source}` as never) }}</bdi> · <JalaliDate :iso="data.post.publishedAt" /></p>
-      <img v-if="data.post.seo.shareImageFileId || data.post.result" :src="esp06.cardUrl(data.post.slug)" :alt="t('news.shareImage')" class="card-img" width="600" height="315" loading="lazy" />
-      <RouterLink v-if="data.post.eventId" :to="`/events/${data.post.eventId}/live`">{{ t('news.toLive') }}</RouterLink>
-      <section class="card stack" aria-labelledby="cm-h">
-        <h2 id="cm-h">{{ t('news.comments') }}</h2>
-        <p class="muted small">{{ t('news.commentsNote') }}</p>
-        <ErrorNote :error="failure" />
-        <ul class="list"><li v-for="c in data.comments" :key="c._id"><strong><bdi>{{ c.nickname ?? '—' }}</bdi></strong>: <span v-if="c.removed" class="muted">{{ t('live.removed') }}</span><span v-else dir="auto">{{ c.text }}</span>
-          <button v-if="session.me && !c.removed" type="button" class="btn btn-sm" @click="report(c._id)">{{ t('live.report') }}</button></li></ul>
-        <form v-if="session.me" class="row" novalidate @submit.prevent="send">
-          <label class="sr-only" for="cm-t">{{ t('news.comment') }}</label>
-          <input id="cm-t" v-model="text" class="input grow" dir="auto" maxlength="1000" :placeholder="t('news.comment')" />
-          <button type="submit" class="btn btn-sm" :disabled="!text.trim()">{{ t('live.send') }}</button>
-        </form>
-      </section>
+  <QContainer>
+    <QDataState v-if="ds.state.value !== 'content' || !data" v-bind="ds.props.value" @retry="load" />
+    <article v-else class="p-article">
+      <QBreadcrumb :items="[{ label: t('shell.home'), href: '/' }, { label: t('shell.news'), href: '/news' }, { label: data.post.title }]" />
+      <header class="p-article-head">
+        <div class="p-article-tags">
+          <QBadge tone="green">{{ fmtLabel(data.post.format) }}</QBadge>
+          <QBadge v-if="data.post.category" tone="neutral">{{ data.post.category }}</QBadge>
+          <QBadge v-if="data.post.source === 'official'" tone="success" icon="shield">{{ t('live.src.official') }}</QBadge>
+        </div>
+        <h1 class="p-article-title" dir="auto">{{ data.post.title }}</h1>
+        <p class="p-article-meta">
+          <span><QIcon name="user" :size="16" />{{ t('news.byline') }} <bdi>{{ data.post.author?.nickname ?? t(`live.src.${data.post.source}` as MessageKey) }}</bdi></span>
+          <span><QIcon name="calendar" :size="16" />{{ formatJalali(data.post.publishedAt ?? data.post.occurredAt) }}</span>
+          <span v-if="data.post.edited"><QIcon name="edit" :size="16" />{{ t('live.edited') }} · {{ formatJalali(data.post.edited.at) }}</span>
+        </p>
+      </header>
+      <QAlert v-if="data.post.withdrawal" tone="danger" icon="x-circle" :title="t('live.withdrawn')">{{ data.post.withdrawal.reason }}</QAlert>
+      <QAlert v-else-if="data.post.correction" tone="warning" icon="alert">{{ data.post.correction.notice }}</QAlert>
+      <figure v-if="images.length && !settings.lowData" class="p-article-figure">
+        <img :src="images[0]!.url!" :alt="images[0]!.caption ?? ''" loading="lazy" />
+        <figcaption v-if="images[0]!.caption || images[0]!.credit" dir="auto">{{ images[0]!.caption }} <span v-if="images[0]!.credit">· {{ images[0]!.credit }}</span></figcaption>
+      </figure>
+      <div v-if="!data.post.withdrawal" class="p-article-body" dir="auto">{{ data.post.body }}</div>
+      <blockquote v-if="data.post.quote" class="p-article-quote" dir="auto">
+        <p>{{ data.post.quote.text }}</p>
+        <cite>— <bdi>{{ data.post.quote.speaker }}</bdi></cite>
+      </blockquote>
+      <p v-if="data.post.link"><a :href="data.post.link.url" rel="noopener noreferrer nofollow" target="_blank" dir="auto">{{ data.post.link.label }} <QIcon name="external" :size="14" /></a></p>
+      <div class="p-article-actions">
+        <QButton v-if="data.post.eventId" variant="secondary" icon="broadcast" :href="`/events/${data.post.eventId}/live`">{{ t('news.toLive') }}</QButton>
+        <QButton variant="ghost" :icon="isRtl() ? 'arrow-right' : 'arrow-left'" href="/news">{{ t('shell.news') }}</QButton>
+      </div>
+
+      <QSection id="comments" small :title="t('news.comments')" :description="t('news.commentsNote')">
+        <QCard>
+          <div class="k-stack">
+            <QAlert v-if="sent" tone="danger">{{ sent }}</QAlert>
+            <ul v-if="data.comments.length" class="p-article-comments">
+              <li v-for="c in data.comments" :key="c._id">
+                <strong><bdi>{{ c.nickname ?? '—' }}</bdi></strong>
+                <span v-if="c.removed" class="p-article-muted">{{ t('live.removed') }}</span><span v-else dir="auto">{{ c.text }}</span>
+                <QButton v-if="session.me && !c.removed" variant="ghost" size="sm" icon="flag" @click="report(c._id)">{{ t('live.report') }}</QButton>
+              </li>
+            </ul>
+            <form v-if="session.me" class="p-article-form" novalidate @submit.prevent="send">
+              <QTextField id="cm-t" v-model="text" :label="t('news.comment')" hide-label :placeholder="t('news.comment')" :max-length="1000" />
+              <QButton type="submit" variant="green" icon="send" :disabled="!text.trim()">{{ t('live.send') }}</QButton>
+            </form>
+          </div>
+        </QCard>
+      </QSection>
     </article>
-  </DataState>
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.grow { flex: 1 1 14rem; }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.card-img { max-inline-size: 100%; block-size: auto; border-radius: var(--radius, 6px); }
-.small { font-size: var(--fs-xs); }
-h2, p { margin: 0; }
+.p-article { display: flex; flex-direction: column; gap: var(--space-6); max-inline-size: 760px; margin-inline: auto; }
+.p-article-head { display: flex; flex-direction: column; gap: var(--space-4); }
+.p-article-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.p-article-title { margin: 0; font-size: 40px; line-height: 56px; font-weight: 900; text-wrap: balance; }
+.p-article-meta { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin: 0; font-size: 14px; color: var(--ink-muted); }
+.p-article-meta span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.p-article-figure { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.p-article-figure img { inline-size: 100%; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+.p-article-figure figcaption { font-size: 13px; color: var(--ink-subtle); }
+.p-article-body { font-size: 17px; line-height: 32px; white-space: pre-line; overflow-wrap: anywhere; }
+.p-article-quote { margin: 0; padding: var(--space-4) var(--space-5); border-inline-start: 3px solid var(--green); background: var(--surface); border-radius: var(--radius-sm); }
+.p-article-quote p { margin: 0 0 var(--space-2); font-size: 18px; line-height: 32px; font-weight: 700; }
+.p-article-quote cite { font-style: normal; color: var(--ink-muted); font-size: 14px; }
+.p-article-actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.p-article-comments { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+.p-article-comments li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 14px; }
+.p-article-muted { color: var(--ink-subtle); }
+.p-article-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; }
+@media (max-width: 640px) { .p-article-title { font-size: 30px; line-height: 44px; } }
 </style>
