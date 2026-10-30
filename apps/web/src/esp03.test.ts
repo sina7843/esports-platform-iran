@@ -56,7 +56,7 @@ describe('public event page (EVT-005/007, REG-001/002, FIN-001)', () => {
       .mockResolvedValueOnce(json(201, { id: 'reg_1', trackingCode: 'RG-1', state: 'awaiting_payment', orderId: 'ord_1' }))
       .mockResolvedValueOnce(json(200, { paymentId: 'pay_1', redirectUrl: null }));
     const w = await mountEvent(fetchMock, 'usr_1');
-    await w.get('button.btn-primary').trigger('click');
+    await w.get('.q-discipline-card button.q-btn--primary').trigger('click');
     const submit = w.get('form button[type=submit]');
     expect(submit.attributes('disabled')).toBeDefined();
     await w.get('form input[type=checkbox]').setValue(true);
@@ -79,7 +79,7 @@ describe('registration documents (REG-001/008)', () => {
       .mockResolvedValueOnce(json(201, { id: 'file_1', scanState: 'clean' }))
       .mockResolvedValueOnce(json(201, { id: 'reg_1', trackingCode: 'RG-2', state: 'awaiting_review', orderId: null }));
     const w = await mountEvent(fetchMock, 'usr_1');
-    await w.get('button.btn-primary').trigger('click');
+    await w.get('.q-discipline-card button.q-btn--primary').trigger('click');
     await w.get('form input[type=checkbox]').setValue(true);
     expect(w.get('form button[type=submit]').attributes('disabled')).toBeDefined();
     const input = w.get<HTMLInputElement>('input[type=file]');

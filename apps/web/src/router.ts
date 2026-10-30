@@ -26,7 +26,7 @@ const Shell = () => import('./views/ShellPage.vue');
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./views/HomeView.vue'), meta: { title: 'nav.home', layout: 'public', nav: 'home', redesigned: true } },
   { path: '/events', name: 'events', component: () => import('./views/EventsView.vue'), meta: { title: 'nav.events', layout: 'public', nav: 'events', redesigned: true } },
-  { path: '/events/:id', name: 'event', component: () => import('./views/EventDetailView.vue'), meta: { title: 'nav.events', layout: 'public', nav: 'events' } },
+  { path: '/events/:id', name: 'event', component: () => import('./views/EventDetailView.vue'), meta: { title: 'nav.events', layout: 'public', nav: 'events', redesigned: true } },
   { path: '/matches/:id', name: 'match', component: () => import('./views/MatchRoomView.vue'), meta: { title: 'match.title', layout: 'public', nav: 'events' } },
   { path: '/stages/:id', name: 'stage', component: () => import('./views/StageView.vue'), meta: { title: 'stg.title', layout: 'public', nav: 'events', redesigned: true } },
   { path: '/events/:id/hall', name: 'hall', component: () => import('./views/HallDisplayView.vue'), meta: { title: 'hall.title', layout: 'bare' } },

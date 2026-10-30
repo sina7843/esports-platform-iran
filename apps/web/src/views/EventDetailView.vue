@@ -1,21 +1,18 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import {
+  QAlert, QButton, QCard, QCheckbox, QContainer, QDataState, QDisciplineCard, QEventHeader, QFileUpload, QSection, QSelect, QTextField,
+  EVENT_STATUS, fa, formatJalali, statusBadge, toman,
+} from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02, type MyTeam } from '../api/esp02';
 import { esp03, type PublicDiscipline } from '../api/esp03';
-import DataState from '../components/DataState.vue';
-import DataTable from '../components/DataTable.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import MoneyLabel from '../components/MoneyLabel.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import EventResultsPanel from '../components/EventResultsPanel.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
 import { session } from '../session';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 import { startPayment } from '../payment';
 
@@ -48,8 +45,8 @@ const teams = ref<MyTeam[]>([]);
 const form = reactive<{ open: string | null; teamId: string; entryCode: string; accept: boolean; answers: Record<string, string | number | boolean>; files: Record<string, string> }>({ open: null, teamId: '', entryCode: '', accept: false, answers: {}, files: {} });
 const uploading = ref('');
 // REG-001/008: documents are uploaded private to this event's scope, scanned, and readable only by authorized staff
-async function uploadDocument(key: string, retentionClass: string, e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0];
+async function uploadDocument(key: string, retentionClass: string, files: File[]) {
+  const file = files[0];
   if (!file || !data.value) return;
   failure.value = null;
   uploading.value = key;
@@ -95,18 +92,43 @@ async function register(d: PublicDiscipline) {
   }
 }
 
-const ticketQty = ref(1);
+const ticketQty = ref('1');
 async function buyTicket() {
   if (!data.value) return;
   failure.value = null;
   try {
-    const { orderId } = await esp03.buyTickets(data.value.event.id, ticketQty.value);
+    const { orderId } = await esp03.buyTickets(data.value.event.id, Math.min(10, Math.max(1, Number(ticketQty.value) || 1)));
     await startPayment(orderId);
   } catch (e) {
     failure.value = toClientError(e);
   }
 }
 
+const ds = useDataState({ loading: computed(() => loading.value && !data.value), error });
+const status = computed(() => statusBadge(EVENT_STATUS, data.value?.event.state));
+const facts = computed(() => {
+  const e = data.value?.event;
+  if (!e) return [];
+  return [
+    { label: t('ed.start'), value: formatJalali(e.startsAt, 'datetime', { timeZone: e.timeZone }) },
+    { label: t('ed.end'), value: formatJalali(e.endsAt, 'datetime', { timeZone: e.timeZone }) },
+    { label: t('ed.tz'), value: e.timeZone, ltr: true },
+    { label: t('ed.presence'), value: t(`reg.presence.${e.presence}` as MessageKey) },
+    ...(e.contact ? [{ label: t('ed.contact'), value: e.contact }] : []),
+  ];
+});
+const badges = computed(() => {
+  const b = data.value?.badges;
+  if (!b) return [];
+  return [
+    ...(b.rated ? [{ label: t('reg.badge.rated'), tone: 'info' as const, icon: 'chart' as const }] : []),
+    ...(b.organizerVerified ? [{ label: t('reg.badge.organizer'), tone: 'success' as const, icon: 'shield' as const }] : []),
+    ...(b.affiliation ? [{ label: `${t(`evm.aff.${b.affiliation.kind}` as MessageKey)}: ${b.affiliation.body}`, tone: 'neutral' as const }] : []),
+  ];
+});
+const tq = computed(() => (token.value ? `?t=${token.value}` : ''));
+const stages = (d: PublicDiscipline) => d.stages.map((x) => ({ id: x.id, name: x.name, format: x.format, state: x.state, href: `/stages/${encodeURIComponent(x.id)}${tq.value}` }));
+const answer = (k: string) => computed({ get: () => String(form.answers[k] ?? ''), set: (v: string) => { form.answers[k] = v; } });
 const isOpen = (d: PublicDiscipline) => data.value?.event.state === 'registration_open' && !!d.rules;
 function login() {
   void router.push({ name: 'login', query: { redirect: route.fullPath } });
@@ -114,151 +136,143 @@ function login() {
 </script>
 
 <template>
-  <DataState :loading="loading" :error="error" @retry="load">
-    <template v-if="data">
-      <PageHeader :title="data.event.name">
-        <template #title><bdi>{{ data.event.name }}</bdi></template>
-        <template #actions><StatusBadge :state="data.event.state" /></template>
-      </PageHeader>
-      <img v-if="data.event.posterUrl" :src="data.event.posterUrl" :alt="t('evm.poster') + ': ' + data.event.name" class="poster" loading="lazy" />
-      <ul v-if="data.badges.rated || data.badges.organizerVerified || data.badges.affiliation" class="badges" :aria-label="t('reg.badges')">
-        <li v-if="data.badges.rated">{{ t('reg.badge.rated') }}</li>
-        <li v-if="data.badges.organizerVerified">{{ t('reg.badge.organizer') }}</li>
-        <li v-if="data.badges.affiliation">{{ t(`evm.aff.${data.badges.affiliation.kind}` as never) }}: <bdi>{{ data.badges.affiliation.body }}</bdi></li>
-      </ul>
-      <p v-if="data.badges.organizerVerified || data.badges.affiliation" class="muted small">{{ t('reg.badgeNote') }}</p>
-      <p v-if="data.event.description" dir="auto" class="desc">{{ data.event.description }}</p>
-      <div v-if="data.event.presence !== 'online'" class="row links">
-        <RouterLink class="btn btn-sm btn-primary" :to="`/events/${data.event.id}/live${token ? `?t=${token}` : ''}`">{{ t('live.title') }}</RouterLink> <RouterLink class="btn btn-sm" :to="`/events/${data.event.id}/hall${token ? `?t=${token}` : ''}`">{{ t('hall.title') }}</RouterLink>
-        <RouterLink v-if="session.me" class="btn btn-sm" :to="`/events/${data.event.id}/my-qr`">{{ t('qr.title') }}</RouterLink>
+  <QContainer>
+    <QDataState v-if="ds.state.value !== 'content' || !data" v-bind="ds.props.value" @retry="load" />
+    <div v-else class="k-stack p-event">
+      <QEventHeader
+        :title="data.event.name" :cover="data.event.posterUrl ?? undefined" :status="(data.event.state === 'active' ? 'live' : data.event.state) as never" :status-label="status.label"
+        :verified="data.badges.organizerVerified" :badges="badges.map((b) => b.label)" :starts-at="data.event.startsAt ?? undefined" :ends-at="data.event.endsAt ?? undefined"
+        :time-zone="data.event.timeZone" :presence="data.event.presence as never" :facts="facts" :note="data.badges.organizerVerified || data.badges.affiliation ? t('reg.badgeNote') : undefined"
+      />
+      <div class="p-event-links">
+        <QButton v-if="data.event.presence !== 'online' || ['active', 'paused', 'finished'].includes(data.event.state)" variant="primary" icon="broadcast" :href="`/events/${data.event.id}/live${tq}`">{{ t('ed.live') }}</QButton>
+        <QButton v-if="data.event.presence !== 'online'" variant="secondary" icon="monitor" :href="`/events/${data.event.id}/hall${tq}`">{{ t('ed.hall') }}</QButton>
+        <QButton v-if="session.me && data.event.presence !== 'online'" variant="ghost" icon="qr" :href="`/events/${data.event.id}/my-qr`">{{ t('ed.pass') }}</QButton>
       </div>
-      <dl class="meta">
-        <div><dt>{{ t('events.startsAt') }}</dt><dd><JalaliDate :iso="data.event.startsAt" :time-zone="data.event.timeZone" /></dd></div>
-        <div><dt>{{ t('events.endsAt') }}</dt><dd><JalaliDate :iso="data.event.endsAt" :time-zone="data.event.timeZone" /></dd></div>
-        <div><dt>{{ t('events.timeZone') }}</dt><dd><bdi class="ltr">{{ data.event.timeZone }}</bdi></dd></div>
-        <div><dt>{{ t('reg.presence') }}</dt><dd>{{ t(`reg.presence.${data.event.presence}` as never) }}</dd></div>
-        <div v-if="data.event.contact"><dt>{{ t('reg.contact') }}</dt><dd><bdi>{{ data.event.contact }}</bdi></dd></div>
-      </dl>
 
-      <section v-if="data.sponsors.length" class="card stack block" :aria-label="t('reg.sponsors')">
-        <p v-for="s in data.sponsors" :key="s.id"><span class="badge-lbl">{{ t(`reg.label.${s.label}` as never) }}</span> <bdi>{{ s.sponsorName }}</bdi></p>
-      </section>
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+      <QAlert v-if="done" tone="success" :title="t('ed.registered')" :actions="[{ label: t('reg.mine'), href: '/account/registrations' }]">
+        {{ t('reg.created', { code: done.trackingCode }) }} — {{ t(`reg.next.${done.state}` as MessageKey) }}
+      </QAlert>
 
-      <section v-if="data.prizes.length" class="card stack block">
-        <h2>{{ t('reg.prizes') }}</h2>
-        <p class="muted" role="note">{{ t('reg.prizesNotGuaranteed') }}</p>
-        <ul class="list">
-          <li v-for="p in data.prizes" :key="p.id"><bdi>{{ p.title }}</bdi> — <MoneyLabel v-if="p.kind === 'cash'" :rial="p.amountRial" /><span v-else>{{ t('reg.nonCash') }}</span> <span class="muted">({{ t('reg.responsible') }}: {{ t(`reg.resp.${p.responsible}` as never) }})</span></li>
-        </ul>
-      </section>
+      <div class="p-event-grid">
+        <div class="p-event-main">
+          <QSection v-if="data.event.description" id="about" small :title="t('ed.about')">
+            <p class="p-event-desc" dir="auto">{{ data.event.description }}</p>
+          </QSection>
 
-      <section class="card stack block">
-        <h2>{{ t('reg.terms') }}</h2>
-        <template v-if="data.event.refundPolicy">
-          <h3>{{ t('reg.refundPolicy') }}</h3>
-          <ul class="list">
-            <li>{{ t('reg.refundBefore', { p: num(data.event.refundPolicy.beforeDeadlinePercent) }) }}</li>
-            <li>{{ t('reg.refundAfter', { p: num(data.event.refundPolicy.afterDeadlinePercent) }) }}</li>
-            <li>{{ t('reg.refundCancel', { p: num(data.event.refundPolicy.onEventCancelPercent) }) }}</li>
-            <li>{{ t('reg.refundDq', { p: num(data.event.refundPolicy.onDisqualificationPercent) }) }}</li>
-          </ul>
-          <p dir="auto">{{ data.event.refundPolicy.text }}</p>
-        </template>
-        <p v-if="data.event.cancellationTerms" dir="auto"><strong>{{ t('reg.cancelTerms') }}:</strong> {{ data.event.cancellationTerms }}</p>
-        <p v-if="data.event.disputeTerms" dir="auto"><strong>{{ t('reg.disputeTerms') }}:</strong> {{ data.event.disputeTerms }}</p>
-      </section>
-
-      <ErrorNote :error="failure" />
-      <p v-if="done" class="card ok" role="status">{{ t('reg.created', { code: done.trackingCode }) }} — <strong>{{ t(`reg.next.${done.state}` as never) }}</strong> <RouterLink to="/account/registrations">{{ t('reg.mine') }}</RouterLink></p>
-
-      <h2>{{ t('events.disciplines') }}</h2>
-      <p v-if="data.disciplines.length === 0" class="muted">{{ t('events.noDisciplines') }}</p>
-      <section v-for="d in data.disciplines" :key="d.id" class="card stack disc">
-        <h3><bdi>{{ d.name }}</bdi> <span class="muted"><bdi class="ltr">{{ d.platform }} / {{ d.mode }} / {{ d.gameVersion }}</bdi></span></h3>
-        <dl class="meta">
-          <div><dt>{{ t('reg.kind') }}</dt><dd>{{ t(`reg.kind.${d.participantKind}` as never) }}</dd></div>
-          <div><dt>{{ t('reg.capacity') }}</dt><dd>{{ t('reg.remaining', { r: num(d.remaining), c: num(d.capacity) }) }}</dd></div>
-          <div v-if="d.waitlisted"><dt>{{ t('reg.waitlist') }}</dt><dd>{{ num(d.waitlisted) }}</dd></div>
-          <div><dt>{{ t('reg.fee') }}</dt><dd><MoneyLabel v-if="d.feeRial > 0" :rial="d.feeRial" /><span v-else>{{ t('reg.free') }}</span></dd></div>
-          <div><dt>{{ t('reg.opens') }}</dt><dd><JalaliDate :iso="d.registrationOpensAt" /></dd></div>
-          <div><dt>{{ t('reg.closes') }}</dt><dd><JalaliDate :iso="d.registrationClosesAt" /></dd></div>
-          <div v-if="d.lateRegistrationUntil"><dt>{{ t('reg.late') }}</dt><dd><JalaliDate :iso="d.lateRegistrationUntil" /></dd></div>
-          <div><dt>{{ t('reg.withdrawBy') }}</dt><dd><JalaliDate :iso="d.withdrawalDeadline" /></dd></div>
-        </dl>
-        <details v-if="d.rules">
-          <summary>{{ t('reg.rules') }}: <bdi>{{ d.rules.label }}</bdi> <bdi class="ltr">v{{ d.rules.version }}</bdi></summary>
-          <RouterLink :to="`/rules/${d.rules.packageId}`">{{ t('reg.rulesFull') }}</RouterLink>
-          <ul class="list"><li v-for="c in d.rules.clauses" :key="c.key"><bdi class="ltr">{{ c.key }}</bdi>: <bdi>{{ typeof c.value === 'object' ? JSON.stringify(c.value) : String(c.value) }}</bdi></li></ul>
-        </details>
-        <DataTable :caption="d.name" :columns="stageCols()" :rows="d.stages" row-key="id" row-header="name">
-          <template #cell-state="{ row }"><StatusBadge :state="(row as { state: string }).state" /></template>
-          <template #cell-name="{ row }"><RouterLink :to="`/stages/${(row as { id: string }).id}${token ? `?t=${token}` : ''}`"><bdi>{{ (row as { name: string }).name }}</bdi></RouterLink></template>
-          <template #cell-format="{ row }">{{ t(`fmt.${(row as { format: string }).format}` as never) }}</template>
-        </DataTable>
-
-        <template v-if="isOpen(d)">
-          <button v-if="!session.me" type="button" class="btn btn-primary" @click="login">{{ t('reg.loginToRegister') }}</button>
-          <button v-else-if="form.open !== d.id" type="button" class="btn btn-primary" @click="openForm(d)">{{ d.remaining > 0 ? t('reg.register') : t('reg.joinWaitlist') }}</button>
-          <form v-else class="stack" novalidate @submit.prevent="register(d)">
-            <FormField v-if="d.participantKind === 'team'" :id="`rg-team-${d.id}`" :label="t('reg.team')" required>
-              <template #default="{ id: fid }">
-                <select :id="fid" v-model="form.teamId" class="input" required>
-                  <option value="" disabled>—</option>
-                  <option v-for="tm in teams" :key="tm.teamId" :value="tm.teamId">{{ tm.name }} ({{ tm.tag }})</option>
-                </select>
+          <QSection id="disciplines" small :title="t('ed.disciplines')">
+            <p v-if="data.disciplines.length === 0" class="p-event-muted">{{ t('events.noDisciplines') }}</p>
+            <QDisciplineCard
+              v-for="d in data.disciplines" :key="d.id" :name="d.name" :platform="d.platform" :mode="d.mode" :game-version="d.gameVersion"
+              :participant-kind="d.participantKind" :capacity="d.capacity" :remaining="d.remaining" :waitlisted="d.waitlisted || undefined" :fee-rial="d.feeRial"
+              :opens-at="d.registrationOpensAt ?? undefined" :closes-at="d.registrationClosesAt ?? undefined" :late-until="d.lateRegistrationUntil ?? undefined"
+              :withdraw-by="d.withdrawalDeadline ?? undefined" :rules="d.rules ? { label: d.rules.label, version: d.rules.version, href: `/rules/${d.rules.packageId}` } : undefined"
+              :stages="stages(d)"
+            >
+              <template v-if="isOpen(d)">
+                <QButton v-if="!session.me" variant="primary" @click="login">{{ t('reg.loginToRegister') }}</QButton>
+                <QButton v-else-if="form.open !== d.id" variant="primary" @click="openForm(d)">{{ d.remaining > 0 ? t('reg.register') : t('reg.joinWaitlist') }}</QButton>
+                <form v-else class="p-event-form" novalidate @submit.prevent="register(d)">
+                  <QSelect
+                    v-if="d.participantKind === 'team'" :id="`rg-team-${d.id}`" v-model="form.teamId" :label="t('reg.team')" required
+                    :options="teams.map((tm) => ({ value: tm.teamId, label: `${tm.name} (${tm.tag})` }))"
+                  />
+                  <template v-for="f in d.formFields" :key="f.key">
+                    <QSelect v-if="f.type === 'select'" :id="`rg-${d.id}-${f.key}`" v-model="answer(f.key).value" :label="f.label" :required="f.required" :options="(f.options ?? []).map((o) => ({ value: o, label: o }))" />
+                    <QCheckbox v-else-if="f.type === 'checkbox'" :model-value="!!form.answers[f.key]" :label="f.label" @update:model-value="(v) => (form.answers[f.key] = !!v)" />
+                    <QTextField v-else :id="`rg-${d.id}-${f.key}`" v-model="answer(f.key).value" :label="f.label" :required="f.required" :type="f.type === 'number' ? 'number' : 'text'" :ltr="f.type === 'number'" />
+                  </template>
+                  <QFileUpload
+                    v-for="doc in d.requiredDocuments" :key="doc.key" :label="doc.label" :hint="form.files[doc.key] ? t('reg.docUploaded') : t('reg.docPrivate')" required
+                    accept="application/pdf,image/png,image/jpeg" :disabled="uploading === doc.key" @files="(fs) => uploadDocument(doc.key, doc.retentionClass, fs)"
+                  />
+                  <QTextField :id="`rg-code-${d.id}`" v-model="form.entryCode" :label="t('reg.entryCode')" :hint="t('reg.entryCodeHint')" ltr />
+                  <QCheckbox v-model="form.accept" :label="t('reg.accept', { v: d.rules!.version })" required />
+                  <p v-if="d.feeRial > 0" class="p-event-muted">{{ t('reg.payNote') }} · {{ toman(d.feeRial) }}</p>
+                  <div class="k-row">
+                    <QButton
+                      type="submit" variant="primary" :loading="busy"
+                      :disabled="!!uploading || !form.accept || (d.participantKind === 'team' && !form.teamId) || d.requiredDocuments.some((x) => !form.files[x.key])"
+                    >{{ d.feeRial > 0 ? t('reg.registerAndPay') : t('reg.register') }}</QButton>
+                    <QButton variant="secondary" @click="form.open = null">{{ t('ed.cancel') }}</QButton>
+                  </div>
+                </form>
               </template>
-            </FormField>
-            <FormField v-for="f in d.formFields" :id="`rg-${d.id}-${f.key}`" :key="f.key" :label="f.label" :required="f.required">
-              <template #default="{ id: fid }">
-                <select v-if="f.type === 'select'" :id="fid" v-model="form.answers[f.key]" class="input" :required="f.required"><option v-for="o in f.options ?? []" :key="o" :value="o">{{ o }}</option></select>
-                <input v-else-if="f.type === 'checkbox'" :id="fid" v-model="form.answers[f.key]" type="checkbox" />
-                <input v-else-if="f.type === 'number'" :id="fid" v-model.number="form.answers[f.key]" type="number" class="input ltr" :required="f.required" />
-                <input v-else :id="fid" v-model="form.answers[f.key]" class="input" dir="auto" :required="f.required" />
-              </template>
-            </FormField>
-            <FormField v-for="doc in d.requiredDocuments" :id="`rg-doc-${d.id}-${doc.key}`" :key="doc.key" :label="doc.label" :hint="form.files[doc.key] ? t('reg.docUploaded') : t('reg.docPrivate')" required>
-              <template #default="{ id: fid, describedBy }"><input :id="fid" type="file" class="input" accept="application/pdf,image/png,image/jpeg" :aria-describedby="describedBy" :disabled="uploading === doc.key" @change="uploadDocument(doc.key, doc.retentionClass, $event)" /></template>
-            </FormField>
-            <FormField :id="`rg-code-${d.id}`" :label="t('reg.entryCode')" :hint="t('reg.entryCodeHint')">
-              <template #default="{ id: fid, describedBy }"><input :id="fid" v-model="form.entryCode" class="input ltr" :aria-describedby="describedBy" /></template>
-            </FormField>
-            <label class="row"><input v-model="form.accept" type="checkbox" required /> {{ t('reg.accept', { v: d.rules!.version }) }}</label>
-            <p v-if="d.feeRial > 0" class="muted">{{ t('reg.payNote') }}</p>
-            <div class="row">
-              <button type="submit" class="btn btn-primary" :disabled="busy || !!uploading || !form.accept || (d.participantKind === 'team' && !form.teamId) || d.requiredDocuments.some((x) => !form.files[x.key])">{{ d.feeRial > 0 ? t('reg.registerAndPay') : t('reg.register') }}</button>
-              <button type="button" class="btn" @click="form.open = null">{{ t('mgmt.close') }}</button>
+              <p v-else-if="!d.rules" class="p-event-muted">{{ t('reg.noRules') }}</p>
+            </QDisciplineCard>
+          </QSection>
+
+          <QSection v-if="['active', 'paused', 'finished', 'closed', 'archived'].includes(data.event.state)" id="results" small :title="t('ed.results')">
+            <!-- LEGACY region: honours, decisions and feedback still use the old results panel (inside .legacy-view) -->
+            <div class="legacy-view"><EventResultsPanel :event-id="data.event.id" :token="token" :state="data.event.state" /></div>
+          </QSection>
+        </div>
+
+        <aside class="p-event-side">
+          <QCard v-if="data.prizes.length">
+            <div class="k-stack">
+              <h2 class="h4 p-event-h">{{ t('ed.prizes') }}</h2>
+              <QAlert tone="info">{{ t('reg.prizesNotGuaranteed') }}</QAlert>
+              <ul class="p-event-list">
+                <li v-for="p in data.prizes" :key="p.id">
+                  <strong><bdi>{{ p.title }}</bdi></strong>
+                  <span>{{ p.kind === 'cash' ? toman(p.amountRial) : t('reg.nonCash') }}</span>
+                  <small>{{ t('reg.responsible') }}: {{ t(`reg.resp.${p.responsible}` as MessageKey) }}</small>
+                </li>
+              </ul>
             </div>
-          </form>
-        </template>
-        <p v-else-if="!d.rules" class="muted">{{ t('reg.noRules') }}</p>
-      </section>
-
-      <section v-if="session.me && ['published', 'registration_open', 'registration_closed', 'ready'].includes(data.event.state)" class="card stack block">
-        <h2>{{ t('reg.tickets') }}</h2>
-        <form class="row" novalidate @submit.prevent="buyTicket">
-          <FormField id="tk-q" :label="t('reg.quantity')"><template #default="{ id: fid }"><input :id="fid" v-model.number="ticketQty" type="number" min="1" max="10" class="input ltr" /></template></FormField>
-          <button type="submit" class="btn">{{ t('reg.buyTicket') }}</button>
-        </form>
-      </section>
-      <EventResultsPanel v-if="['active', 'paused', 'finished', 'closed', 'archived'].includes(data.event.state)" class="block" :event-id="data.event.id" :token="token" :state="data.event.state" />
-    </template>
-  </DataState>
+          </QCard>
+          <QCard>
+            <div class="k-stack">
+              <h2 class="h4 p-event-h">{{ t('ed.terms') }}</h2>
+              <template v-if="data.event.refundPolicy">
+                <h3 class="p-event-sub">{{ t('reg.refundPolicy') }}</h3>
+                <ul class="p-event-list p-event-bullets">
+                  <li>{{ t('reg.refundBefore', { p: fa(data.event.refundPolicy.beforeDeadlinePercent) }) }}</li>
+                  <li>{{ t('reg.refundAfter', { p: fa(data.event.refundPolicy.afterDeadlinePercent) }) }}</li>
+                  <li>{{ t('reg.refundCancel', { p: fa(data.event.refundPolicy.onEventCancelPercent) }) }}</li>
+                  <li>{{ t('reg.refundDq', { p: fa(data.event.refundPolicy.onDisqualificationPercent) }) }}</li>
+                </ul>
+                <p class="p-event-muted" dir="auto">{{ data.event.refundPolicy.text }}</p>
+              </template>
+              <p v-if="data.event.cancellationTerms" class="p-event-muted" dir="auto"><strong>{{ t('reg.cancelTerms') }}:</strong> {{ data.event.cancellationTerms }}</p>
+              <p v-if="data.event.disputeTerms" class="p-event-muted" dir="auto"><strong>{{ t('reg.disputeTerms') }}:</strong> {{ data.event.disputeTerms }}</p>
+            </div>
+          </QCard>
+          <QCard v-if="data.sponsors.length">
+            <div class="k-stack">
+              <h2 class="h4 p-event-h">{{ t('ed.sponsors') }}</h2>
+              <p v-for="s in data.sponsors" :key="s.id" class="p-event-muted"><strong>{{ t(`reg.label.${s.label}` as MessageKey) }}</strong> <bdi>{{ s.sponsorName }}</bdi></p>
+            </div>
+          </QCard>
+          <QCard v-if="session.me && ['published', 'registration_open', 'registration_closed', 'ready'].includes(data.event.state)">
+            <form class="k-stack" novalidate @submit.prevent="buyTicket">
+              <h2 class="h4 p-event-h">{{ t('reg.tickets') }}</h2>
+              <QTextField id="tk-q" v-model="ticketQty" :label="t('reg.quantity')" type="number" input-mode="numeric" ltr />
+              <div><QButton type="submit" variant="green" icon="ticket">{{ t('reg.buyTicket') }}</QButton></div>
+            </form>
+          </QCard>
+        </aside>
+      </div>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-3); margin: 0; }
-dt { color: var(--text-muted); font-size: var(--fs-sm); }
-dd { margin: 0; font-weight: 600; }
-.disc, .block { margin-block-end: var(--sp-4); }
-.desc { margin-block-end: var(--sp-4); }
-.links { gap: var(--sp-2); margin-block-end: var(--sp-4); }
-.poster { display: block; inline-size: 100%; max-inline-size: 40rem; max-block-size: 20rem; object-fit: cover; border-radius: var(--radius-lg); margin-block-end: var(--sp-4); }
-.badges { list-style: none; display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: 0; margin: 0 0 var(--sp-2); }
-.badges li { padding: 0 var(--sp-3); border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); font-size: var(--fs-sm); font-weight: 600; }
-.small { font-size: var(--fs-sm); margin-block-end: var(--sp-4); }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.ok { border-inline-start: 4px solid var(--ok); }
-.badge-lbl { font-size: var(--fs-xs); padding: 0 var(--sp-2); border: 1px solid var(--border); border-radius: 999px; }
-.row { flex-wrap: wrap; gap: var(--sp-3); align-items: flex-end; }
-p, h3 { margin: 0; }
+.p-event { gap: var(--space-6); }
+.p-event-h { margin: 0; }
+.p-event-sub { margin: 0; font-size: 14px; font-weight: 800; }
+.p-event-links { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.p-event-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.p-event-main, .p-event-side { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+.p-event-desc { margin: 0; font-size: 16px; line-height: 30px; color: var(--ink-muted); white-space: pre-line; }
+.p-event-muted { margin: 0; font-size: 14px; line-height: 24px; color: var(--ink-muted); }
+.p-event-form { display: flex; flex-direction: column; gap: var(--space-4); inline-size: 100%; }
+.p-event-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); font-size: 14px; }
+.p-event-list li { display: flex; flex-direction: column; gap: 2px; }
+.p-event-list small { color: var(--ink-subtle); }
+.p-event-bullets { padding-inline-start: var(--space-5); list-style: disc; gap: var(--space-1); color: var(--ink-muted); }
+.p-event-bullets li { display: list-item; }
+@media (max-width: 960px) { .p-event-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
