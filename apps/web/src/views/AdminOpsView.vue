@@ -1,16 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { OutboxRecord, ProviderHealth } from '@esp/contracts';
+import { computed, ref, watch } from 'vue';
+import type { OutboxRecord } from '@esp/contracts';
+import { QAlert, QButton, QContainer, QDataState, QEmptyState, QPageHeader, QSection, QServiceHealth, QStatTile, fa, formatJalali, num, useToast } from '@esp/ui';
 import { api, type ApiClientError } from '../api/client';
-import DataState from '../components/DataState.vue';
-import DataTable from '../components/DataTable.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t, type MessageKey } from '../i18n';
+import { t, type MessageKey } from '../i18n';
 import { useLoad } from '../useLoad';
+import { QDataTable, type QDataTableColumn } from '@esp/ui';
 
 const providers = useLoad(() => api.providers());
 const outbox = useLoad(() => api.outbox());
@@ -34,84 +30,61 @@ async function replay(id: string) {
   }
 }
 
-const provCols = () => [
-  { key: 'kind', label: t('ops.kind') },
-  { key: 'adapter', label: t('ops.adapter') },
-  { key: 'mode', label: t('ops.mode') },
-  { key: 'status', label: t('ops.status') },
-  { key: 'checkedAt', label: t('ops.checkedAt') },
-];
-const dlCols = () => [
-  { key: 'type', label: t('ops.deadLetters') },
-  { key: 'attempts', label: t('ops.attempts') },
-  { key: 'lastError', label: t('ops.lastError') },
-  { key: 'actions', label: '' },
-];
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 4000 }); });
+watch(failure, (f) => { if (f) push({ tone: 'danger', message: f.message }); });
+const health = (s: string) => (['healthy', 'ok', 'up'].includes(s) ? 'ok' : ['degraded', 'slow'].includes(s) ? 'degraded' : ['down', 'failed', 'unhealthy'].includes(s) ? 'down' : 'unconfigured') as 'ok' | 'degraded' | 'down' | 'unconfigured';
+const dlCols = computed<QDataTableColumn<OutboxRecord>[]>(() => [
+  { key: 'type', header: t('ops.deadLetters') }, { key: 'attempts', header: t('ops.attempts') }, { key: 'lastError', header: t('ops.lastError') },
+]);
 </script>
 
 <template>
-  <PageHeader :title="t('ops.title')" />
+  <QContainer>
+    <div class="k-stack p-ops">
+      <QPageHeader compact :title="t('ops.title')" :breadcrumb="[{ label: t('shell.platform_admin'), href: '/admin' }, { label: t('ops.title') }]" />
 
-  <section class="block" aria-labelledby="p-h">
-    <h2 id="p-h">{{ t('ops.providers') }}</h2>
-    <DataState :loading="providers.loading.value" :error="providers.error.value" :empty="!!providers.data.value && providers.data.value.items.length === 0" @retry="providers.load">
-      <DataTable v-if="providers.data.value" :caption="t('ops.providers')" :columns="provCols()" :rows="providers.data.value.items" row-key="kind" row-header="kind">
-        <template #cell-kind="{ row }"><bdi class="ltr">{{ (row as ProviderHealth).kind }}</bdi></template>
-        <template #cell-adapter="{ row }"><bdi class="ltr">{{ (row as ProviderHealth).adapter }}</bdi></template>
-        <template #cell-mode="{ row }">{{ t(`ops.mode.${(row as ProviderHealth).mode}` as MessageKey) }}</template>
-        <template #cell-status="{ row }">
-          <StatusBadge :state="(row as ProviderHealth).status" />
-          <span v-if="(row as ProviderHealth).detail" class="muted"> <bdi>{{ (row as ProviderHealth).detail }}</bdi></span>
-        </template>
-        <template #cell-checkedAt="{ row }"><JalaliDate :iso="(row as ProviderHealth).checkedAt" /></template>
-      </DataTable>
-    </DataState>
-  </section>
+      <QSection id="providers" small :title="t('ops.providers')">
+        <QDataState v-if="!providers.data.value || !providers.data.value.items.length" :state="providers.error.value ? 'error' : providers.loading.value ? 'loading' : 'empty'" skeleton="cards" @retry="providers.load" />
+        <div v-else class="p-ops-grid">
+          <QServiceHealth
+            v-for="p in providers.data.value.items" :key="p.kind" :name="p.kind" :kind="p.adapter" :status="health(p.status)"
+            :detail="[t(`ops.mode.${p.mode}` as MessageKey), p.detail].filter(Boolean).join(' · ')" :checked-at="p.checkedAt ? formatJalali(p.checkedAt, 'time') : undefined"
+          />
+        </div>
+      </QSection>
 
-  <section class="block" aria-labelledby="o-h">
-    <h2 id="o-h">{{ t('ops.outbox') }}</h2>
-    <p v-if="notice" class="ok" role="status">{{ notice }}</p>
-    <ErrorNote :error="failure" />
-    <DataState :loading="outbox.loading.value" :error="outbox.error.value" @retry="outbox.load">
-      <template v-if="outbox.data.value">
-        <ul class="stats">
-          <li v-for="(n, k) in outbox.data.value.stats" :key="k" class="card"><bdi class="ltr muted">{{ k }}</bdi><strong class="num">{{ num(n) }}</strong></li>
-        </ul>
-        <DataState :empty="outbox.data.value.deadLetters.length === 0">
-          <template #empty><p>{{ t('ops.noDeadLetters') }}</p></template>
-          <DataTable :caption="t('ops.deadLetters')" :columns="dlCols()" :rows="outbox.data.value.deadLetters" row-key="id" row-header="type">
-            <template #cell-type="{ row }"><bdi class="ltr">{{ (row as OutboxRecord).type }}</bdi></template>
-            <template #cell-attempts="{ row }">{{ num((row as OutboxRecord).attempts) }} / {{ num((row as OutboxRecord).maxAttempts) }}</template>
-            <template #cell-lastError="{ row }"><bdi>{{ (row as OutboxRecord).lastError ?? '—' }}</bdi></template>
-            <template #cell-actions="{ row }">
-              <button type="button" class="btn btn-sm" :disabled="busyId === (row as OutboxRecord).id" @click="replay((row as OutboxRecord).id)">{{ t('ops.replay') }}</button>
-            </template>
-          </DataTable>
-        </DataState>
-      </template>
-    </DataState>
-  </section>
+      <QSection id="outbox" small :title="t('ops.outbox')">
+        <QDataState v-if="!outbox.data.value" :state="outbox.error.value ? 'error' : 'loading'" skeleton="rows" @retry="outbox.load" />
+        <div v-else class="k-stack">
+          <div class="p-ops-stats">
+            <QStatTile v-for="(n, k) in outbox.data.value.stats" :key="k" :label="String(k)" :value="num(n)" />
+          </div>
+          <QEmptyState v-if="!outbox.data.value.deadLetters.length" compact icon="check-circle" :title="t('ops.noDeadLetters')" />
+          <QDataTable v-else :caption="t('ops.deadLetters')" row-key="id" row-header="type" :columns="dlCols" :rows="outbox.data.value.deadLetters">
+            <template #cell-type="{ row }"><bdi class="q-ltr">{{ row.type }}</bdi></template>
+            <template #cell-attempts="{ row }">{{ fa(row.attempts) }} / {{ fa(row.maxAttempts) }}</template>
+            <template #cell-lastError="{ row }"><bdi>{{ row.lastError ?? '—' }}</bdi></template>
+            <template #row-actions="{ row }"><QButton size="sm" variant="secondary" icon="refresh" :loading="busyId === row.id" @click="replay(row.id)">{{ t('ops.replay') }}</QButton></template>
+          </QDataTable>
+        </div>
+      </QSection>
 
-  <section class="block" aria-labelledby="a-h">
-    <h2 id="a-h">{{ t('ops.audit') }}</h2>
-    <button type="button" class="btn" :disabled="audit.loading.value" @click="audit.load">{{ t('ops.auditVerify') }}</button>
-    <div class="result">
-      <DataState :loading="audit.loading.value" :error="audit.error.value" @retry="audit.load">
-        <p v-if="audit.data.value" role="status" :class="audit.data.value.ok ? 'ok' : 'bad'">
-          {{ audit.data.value.ok ? t('ops.auditOk', { n: num(audit.data.value.checked) }) : t('ops.auditBroken', { n: num(audit.data.value.checked), seq: num(audit.data.value.brokenAtSeq ?? 0) }) }}
-        </p>
-      </DataState>
+      <QSection id="audit" small :title="t('ops.audit')">
+        <div class="k-stack">
+          <div><QButton variant="secondary" icon="shield" :loading="audit.loading.value" @click="audit.load">{{ t('ops.auditVerify') }}</QButton></div>
+          <QDataState v-if="audit.error.value" state="error" @retry="audit.load" />
+          <QAlert v-else-if="audit.data.value" :tone="audit.data.value.ok ? 'success' : 'danger'">
+            {{ audit.data.value.ok ? t('ops.auditOk', { n: num(audit.data.value.checked) }) : t('ops.auditBroken', { n: num(audit.data.value.checked), seq: num(audit.data.value.brokenAtSeq ?? 0) }) }}
+          </QAlert>
+        </div>
+      </QSection>
     </div>
-  </section>
+  </QContainer>
 </template>
 
 <style scoped>
-section { min-block-size: 10rem; } /* reserve space while data loads (CLS) */
-.block { margin-block-end: var(--sp-6); }
-.stats { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--sp-3); }
-.stats .card { display: grid; padding: var(--sp-3) var(--sp-4); }
-.stats strong { font-size: var(--fs-xl); }
-.result { margin-block-start: var(--sp-3); }
-.ok { color: var(--ok); font-weight: 600; }
-.bad { color: var(--danger); font-weight: 600; }
+.p-ops { gap: var(--space-7); }
+.p-ops-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.p-ops-stats { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); }
 </style>

@@ -80,7 +80,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/finance/approvals', name: 'finance-approvals', component: () => import('./views/FinanceApprovalsView.vue'), meta: { requiresAuth: true, permission: 'approval.read', title: 'nav.approvals', layout: 'panel', side: 'finance-approvals', redesigned: true } },
   { path: '/admin', name: 'admin', component: Shell, meta: { requiresAuth: true, permission: 'platform.settings', title: 'nav.admin', shell: true, layout: 'panel', side: 'admin' } },
   { path: '/admin/reviews', name: 'admin-reviews', component: () => import('./views/AdminReviewsView.vue'), meta: { requiresAuth: true, permission: 'account.review', title: 'nav.accountReviews', layout: 'panel', side: 'admin-reviews' } },
-  { path: '/admin/ops', name: 'admin-ops', component: () => import('./views/AdminOpsView.vue'), meta: { requiresAuth: true, permission: 'outbox.read', title: 'nav.ops', layout: 'panel', side: 'admin-ops' } },
+  { path: '/admin/ops', name: 'admin-ops', component: () => import('./views/AdminOpsView.vue'), meta: { requiresAuth: true, permission: 'outbox.read', title: 'nav.ops', layout: 'panel', side: 'admin-ops', redesigned: true } },
 
   { path: '/support', name: 'support', component: () => import('./views/SupportView.vue'), meta: { requiresAuth: true, title: 'a7.nav.support', layout: 'panel', side: 'support' } },
   { path: '/account/privacy', name: 'my-privacy', component: () => import('./views/PrivacyView.vue'), meta: { requiresAuth: true, title: 'a7.nav.myPrivacy', layout: 'panel', side: 'privacy', redesigned: true } },
