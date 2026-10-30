@@ -8,10 +8,12 @@
     "build": "vite build",
     "dev": "vite",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "audit": "node scripts/qesb-audit.mjs"
   },
   "dependencies": {
     "@esp/contracts": "workspace:*",
+    "@esp/ui": "workspace:*",
     "@lucide/vue": "1.60.0",
     "qrcode-generator": "1.4.4",
     "vazirmatn": "33.0.3",

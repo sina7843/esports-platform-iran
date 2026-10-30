@@ -1,0 +1,20 @@
+/* TEMPORARY — old Violet Arena / Graphite names mapped onto QeSB tokens so views without meta.redesigned keep working.
+   Delete in P4 when `node apps/web/scripts/qesb-audit.mjs --legacy-only` reports 0. Never use these names in new code.
+   (docs/redesign/04-claude-code/02-token-migration.md) */
+:root {
+  --sp-1: var(--space-1); --sp-2: var(--space-2); --sp-3: var(--space-3); --sp-4: var(--space-4);
+  --sp-5: var(--space-6); --sp-6: var(--space-7); --sp-7: var(--space-9);
+  --fs-xs: 0.78rem; --fs-sm: 0.875rem; --fs-md: 1rem; --fs-lg: 1.25rem; --fs-xl: 1.625rem; --fs-2xl: 2.25rem;
+  --lh-tight: 1.35; --lh-body: 1.85;
+  --topbar-h: var(--topbar-height); --sidebar-w: var(--sidebar-width); --radius: var(--radius-lg);
+  --text: var(--ink); --text-muted: var(--ink-muted);
+  --border: var(--line); --surface-2: var(--surface-sunken);
+  --accent: var(--green-text); --accent-strong: var(--green-text); --accent-soft: var(--green-soft); --on-accent: var(--on-green);
+  --ok: var(--success-text); --ok-soft: var(--success-soft);
+  --warn: var(--warning-text); --warn-soft: var(--warning-soft);
+  --danger: var(--danger-text); --info: var(--info-text);
+  --focus: var(--focus-ring); --shadow: var(--shadow-raised); --depth-surface: var(--shadow-raised);
+  --background: var(--bg); --foreground: var(--ink); --card: var(--surface); --secondary: var(--surface-sunken);
+  --muted-foreground: var(--ink-muted); --brand: var(--green-text); --brand-foreground: var(--on-green);
+  --destructive: var(--danger-text); --success: var(--success-text); --warning: var(--warning-text); --ring: var(--focus-ring);
+}

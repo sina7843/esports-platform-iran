@@ -1,3 +1,4 @@
+import { enRedesign } from './redesign';
 import type { MessageKey } from './fa';
 import { enEsp02 } from './esp02';
 import { enMgmt } from './esp02-mgmt';
@@ -280,4 +281,5 @@ export const en: Record<MessageKey, string> = {
   ...enEsp05,
   ...enEsp06,
   ...enEsp07,
+  ...enRedesign,
 };

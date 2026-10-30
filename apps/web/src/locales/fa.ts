@@ -1,3 +1,4 @@
+import { faRedesign } from './redesign';
 import { faEsp02 } from './esp02';
 import { faMgmt } from './esp02-mgmt';
 import { faEsp03 } from './esp03';
@@ -279,6 +280,7 @@ export const fa = {
   ...faEsp05,
   ...faEsp06,
   ...faEsp07,
+  ...faRedesign,
 } as const;
 
 export type MessageKey = keyof typeof fa;

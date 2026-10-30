@@ -26,4 +26,9 @@ export default tseslint.config(
       'no-console': 'off',
     },
   },
+  {
+    // @esp/ui mirrors the DS: optional props are intentionally undefined when absent (no default)
+    files: ['packages/ui/**/*.vue'],
+    rules: { 'vue/require-default-prop': 'off' },
+  },
 );

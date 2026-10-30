@@ -70,3 +70,6 @@ pnpm-debug.log*
 
 # ---- runtime data (files, quarantine, dev inbox) ----
 data/
+
+# QeSB redesign handoff (local reference, 31MB with screenshots)
+docs/redesign/

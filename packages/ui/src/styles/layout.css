@@ -1,0 +1,50 @@
+/* QeSB page kit layout — from docs/redesign/02-prototypes/kit/kit.css without the html/body/#app rules (base.css owns them) and the .k-ctl* prototype controls. Tokens only. */
+/* skip link */
+.k-skip { position: absolute; inset-inline-start: var(--space-3); inset-block-start: -60px; z-index: 100; padding: var(--space-2) var(--space-4); background: var(--green); color: var(--on-green); font-weight: 800; border-radius: var(--radius-sm); text-decoration: none; }
+.k-skip:focus { inset-block-start: var(--space-3); outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.k-main:focus { outline: none; }
+
+/* container: content-max, desktop side padding space-7, phones space-4 */
+.k-container { box-sizing: border-box; width: 100%; max-width: var(--content-max); margin-inline: auto; padding-inline: var(--space-7); }
+.k-container--wide { max-width: 1440px; }
+@media (max-width: 640px) { .k-container { padding-inline: var(--space-4); } }
+
+/* public pages: sections are space-10 apart; panels space-7 */
+.k-shell--public .k-main { padding-block: var(--space-9) var(--space-11); display: flex; flex-direction: column; gap: var(--space-10); }
+.k-shell--public .k-main.k-main--flush { padding-block-start: 0; }
+.k-section { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.k-section__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.k-section__titles { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.k-section__titles h2, .k-section__titles h3 { margin: 0; text-wrap: balance; }
+.k-section__eyebrow { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 13px; font-weight: 700; color: var(--green-text); }
+.k-section__desc { margin: 0; color: var(--ink-muted); font-size: 15px; line-height: 26px; max-width: 64ch; }
+.k-section__action { flex: none; }
+
+/* panel layout: side nav rail + content */
+.k-panel { display: flex; align-items: flex-start; min-height: calc(100vh - var(--topbar-height)); }
+.k-panel > .q-side-nav { position: sticky; inset-block-start: 0; flex: none; }
+.k-shell--panel .k-main { flex: 1 1 auto; min-width: 0; padding-block: var(--space-7) var(--space-10); display: flex; flex-direction: column; gap: var(--space-7); }
+.k-shell--panel .k-container { max-width: 1200px; }
+@media (max-width: 640px) { .k-shell--panel .k-main { padding-block: var(--space-5) var(--space-9); gap: var(--space-5); } }
+
+/* page grids */
+.k-grid { display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.k-grid--2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.k-grid--4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+.k-split { display: grid; gap: var(--space-6); grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 960px) { .k-split { grid-template-columns: minmax(0, 1fr); } }
+.k-stack { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.k-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+
+.k-gate { padding-block: var(--space-10); }
+.k-bare { min-height: 100vh; background: var(--bg); }
+
+.k-shell--login .q-top-bar__login { display: none; }
+/* the sticky side nav is only as tall as its links; paint its column down the whole panel so long pages keep the sidebar surface */
+@media (min-width: 900px) {
+  .k-panel { background-image: linear-gradient(to right, var(--surface) calc(var(--sidebar-width) - 1px), var(--line) 0 var(--sidebar-width), transparent 0); }
+  [dir="rtl"] .k-panel { background-image: linear-gradient(to left, var(--surface) calc(var(--sidebar-width) - 1px), var(--line) 0 var(--sidebar-width), transparent 0); }
+}
+/* DS v1.1 defect (EventCard layout="list" under 480px): a long capacity count ran into the entry fee; let the
+   capacity row wrap. Port into EventCard (.q-event-card--list) and drop this rule. */
+@media (max-width: 480px) { .q-event-card--list .q-event-card__cap-row { flex-wrap: wrap; column-gap: var(--space-2); row-gap: 0; } }

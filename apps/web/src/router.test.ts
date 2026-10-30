@@ -68,3 +68,17 @@ describe('safeRedirect', () => {
     expect(safeRedirect(undefined)).toBe('/');
   });
 });
+
+describe('QeSB route meta', () => {
+  it('every route has a kit layout; displays are bare, sign-in is auth, account pages are panel', async () => {
+    const { routes } = await import('./router');
+    for (const r of routes) expect(['public', 'panel', 'auth', 'bare'], r.path).toContain(r.meta?.layout);
+    const layout = (path: string) => routes.find((r) => r.path === path)?.meta?.layout;
+    expect(layout('/events/:id/hall')).toBe('bare');
+    expect(layout('/overlay/:token')).toBe('bare');
+    expect(layout('/login')).toBe('auth');
+    for (const p of ['/account/settings', '/support', '/messages', '/teams']) expect(layout(p)).toBe('panel');
+    expect(routes.find((r) => r.path === '/events')?.meta?.nav).toBe('events');
+    expect(routes.find((r) => r.path === '/account/registrations')?.meta?.side).toBe('registrations');
+  });
+});

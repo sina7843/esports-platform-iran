@@ -1,5 +1,6 @@
 import { reactive } from 'vue';
 import type { Locale } from '@esp/contracts';
+import { setLocale as setUiLocale } from '@esp/ui';
 
 export type ThemeSetting = 'light' | 'dark' | 'system';
 export type DigitsSetting = 'fa' | 'latn';
@@ -35,13 +36,28 @@ function load(): Stored {
 
 export const settings = reactive<Stored>(load());
 
-/** Applies lang/dir/theme to <html>. Persian is RTL; English flips to LTR. */
+/** The OS colour scheme, used when theme === 'system' (the QeSB tokens treat a missing data-theme as dark). */
+function systemTheme(): 'light' | 'dark' {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+let watchingSystem = false;
+function watchSystemTheme(): void {
+  if (watchingSystem || typeof matchMedia !== 'function') return;
+  const mq = matchMedia('(prefers-color-scheme: light)');
+  mq.addEventListener?.('change', () => { if (settings.theme === 'system') applySettings(); });
+  watchingSystem = true;
+}
+
+/** Applies lang/dir/theme to <html> and the @esp/ui locale. Persian is RTL; English flips to LTR. */
 export function applySettings(): void {
   const root = document.documentElement;
   root.lang = settings.locale;
   root.dir = settings.locale === 'fa' ? 'rtl' : 'ltr';
-  if (settings.theme === 'system') root.removeAttribute('data-theme');
-  else root.dataset.theme = settings.theme;
+  setUiLocale(settings.locale, { digits: settings.digits, keepDocument: true });
+  if (settings.theme === 'system') {
+    root.dataset.theme = systemTheme();
+    watchSystemTheme();
+  } else root.dataset.theme = settings.theme;
 }
 
 function persist(): void {
@@ -65,6 +81,7 @@ export function setTheme(t: ThemeSetting): void {
 export function setDigits(d: DigitsSetting): void {
   settings.digits = d;
   persist();
+  applySettings();
 }
 export function setLowData(v: boolean): void {
   settings.lowData = v;

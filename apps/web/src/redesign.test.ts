@@ -21,26 +21,38 @@ async function routerAt(path: string) {
   const router = createRouter({ history: createMemoryHistory(), routes: [
     { path: '/', component: { template: '<div />' } },
     { path: '/events', component: EventsView },
-    { path: '/account', component: { template: '<div />' }, meta: { requiresAuth: true } },
+    { path: '/account', component: { template: '<div />' }, meta: { requiresAuth: true, layout: 'panel' } },
     { path: '/:pathMatch(.*)*', component: { template: '<div />' } },
   ] });
   await router.push(path); await router.isReady(); return router;
 }
 
 describe('arena navigation and event discovery', () => {
-  it('uses public navigation, opens the mobile drawer, closes on Escape, and adds the sidebar only in a panel', async () => {
+  it('public shell: top bar + footer with the eNAMAD seal, no side nav', async () => {
     const router = await routerAt('/');
     const w = mount(AppShell, { attachTo: document.body, global: { plugins: [router] } });
+    expect(w.find('.q-top-bar').exists()).toBe(true);
     expect(w.find('#side-nav').exists()).toBe(false);
-    await w.get('#menu-trigger').trigger('click'); await flushPromises();
-    expect(w.get('#side-nav').classes()).toContain('open');
+    const seal = w.get('.q-footer__seal a');
+    expect(seal.attributes('href')).toContain('trustseal.enamad.ir/?id=8145123');
+    expect(seal.attributes('referrerpolicy')).toBe('origin');
+    expect(w.get('main#main').classes()).toContain('k-main');
+    w.unmount();
+  });
+
+  it('panel shell: side nav drawer on phones opens from the menu button, closes on Escape and returns focus', async () => {
+    const router = await routerAt('/account');
+    const w = mount(AppShell, { attachTo: document.body, global: { plugins: [router] } });
+    await flushPromises();
+    expect(w.find('.k-panel').exists()).toBe(true);
+    expect(w.find('.q-footer').exists()).toBe(false);
+    const trigger = w.get('[aria-controls="side-nav"]');
+    await trigger.trigger('click'); await flushPromises();
     expect(w.get('main').attributes('inert')).toBeDefined();
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); await flushPromises();
-    expect(w.find('#side-nav').exists()).toBe(false);
-    expect(document.activeElement?.id).toBe('menu-trigger');
-    await router.push('/account'); await flushPromises();
-    expect(w.find('#side-nav').exists()).toBe(true);
-    expect(w.find('.public-topbar').exists()).toBe(false);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await flushPromises();
+    expect(w.get('main').attributes('inert')).toBeUndefined();
     w.unmount();
   });
 

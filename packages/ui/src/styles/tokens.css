@@ -1,0 +1,146 @@
+/* QeSB — generated from tokens.json */
+:root, [data-theme="dark"] {
+  --bg: #09090D;
+  --surface: #121218;
+  --surface-sunken: #0D0D12;
+  --surface-raised: #1B1B24;
+  --surface-hover: #1E1E26;
+  --stripe-a: #15151C;
+  --stripe-b: #1B1B24;
+  --line: #24242D;
+  --line-strong: #34343F;
+  --control-border: #62626E;
+  --ink: #F4F4F6;
+  --ink-muted: #A9A9B4;
+  --ink-subtle: #8A8A96;
+  --ink-disabled: #4A4A55;
+  --brand-red: #ED1C24;
+  --brand-green: #00A651;
+  --brand-ink: #231F20;
+  --red: #D7141C;
+  --on-red: #FFFFFF;
+  --red-text: #FF5A62;
+  --red-soft: rgba(237,28,36,0.14);
+  --red-line: rgba(255,90,98,0.35);
+  --green: #00A651;
+  --on-green: #07170E;
+  --green-text: #2BD07A;
+  --green-soft: rgba(0,166,81,0.14);
+  --green-line: rgba(43,208,122,0.35);
+  --focus-ring: #2BD07A;
+  --live: #FF4D5E;
+  --live-text: #FF7A86;
+  --live-soft: rgba(255,77,94,0.16);
+  --success-text: var(--green-text);
+  --success-soft: var(--green-soft);
+  --warning-text: #F5C26B;
+  --warning-soft: rgba(245,181,68,0.14);
+  --danger-text: #FF7A86;
+  --danger-soft: rgba(255,77,94,0.14);
+  --danger-line: rgba(255,122,134,0.55);
+  --info-text: #9CC6FF;
+  --info-soft: rgba(124,180,255,0.14);
+  --rank-gold: #F5C542;
+  --rank-silver: #C9CDD6;
+  --rank-bronze: #D99560;
+  --scrim: rgba(3,3,6,0.72);
+  --shadow-raised: none;
+  --shadow-overlay: 0 20px 50px -20px rgba(0,0,0,0.8);
+  --shadow-live: 0 0 48px -12px rgba(237,28,36,0.40);
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --bg: #F5F5F7;
+  --surface: #FFFFFF;
+  --surface-sunken: #F7F7F9;
+  --surface-raised: #FFFFFF;
+  --surface-hover: #F0F0F3;
+  --stripe-a: #F2F2F5;
+  --stripe-b: #EAEAEE;
+  --line: #E2E2E8;
+  --line-strong: #CFCFD8;
+  --control-border: #8C8C96;
+  --ink: #111116;
+  --ink-muted: #5C5C68;
+  --ink-subtle: #6B6B76;
+  --ink-disabled: #B5B5BE;
+  --red-text: #B3121A;
+  --red-soft: #FCEDED;
+  --red-line: rgba(215,20,28,0.25);
+  --green: #007A3D;
+  --on-green: #FFFFFF;
+  --green-text: #0B6B34;
+  --green-soft: #E3F5EA;
+  --green-line: rgba(0,122,61,0.30);
+  --focus-ring: #007A3D;
+  --live: #ED1C24;
+  --live-text: #A3121A;
+  --live-soft: #FDE4E4;
+  --warning-text: #8A5300;
+  --warning-soft: #FFF1D6;
+  --danger-text: #A3121A;
+  --danger-soft: #FDE4E4;
+  --danger-line: rgba(163,18,26,0.45);
+  --info-text: #1F4E9A;
+  --info-soft: #E3EDFC;
+  --rank-gold: #9A6B00;
+  --rank-silver: #5F6773;
+  --rank-bronze: #8F4E1E;
+  --scrim: rgba(17,17,22,0.45);
+  --shadow-raised: 0 1px 2px rgba(17,17,22,0.04);
+  --shadow-overlay: 0 20px 40px -20px rgba(17,17,22,0.25);
+  --shadow-live: 0 14px 32px -18px rgba(215,20,28,0.35);
+  color-scheme: light;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 56px;
+  --space-11: 64px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-pill: 999px;
+  --chamfer-xs: 6px;
+  --chamfer-sm: 10px;
+  --chamfer-md: 12px;
+  --chamfer-lg: 14px;
+  --chamfer-xl: 20px;
+  --control-sm: 40px;
+  --control-md: 44px;
+  --control-lg: 48px;
+  --control-xl: 52px;
+  --topbar-height: 72px;
+  --sidebar-width: 248px;
+  --content-max: 1280px;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --font-sans: Vazirmatn, Tahoma, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+.display-xl { font-family: var(--font-sans); font-size: 64px; line-height: 80px; font-weight: 900; }
+.display-lg { font-family: var(--font-sans); font-size: 48px; line-height: 60px; font-weight: 900; }
+.score { font-family: var(--font-sans); font-size: 72px; line-height: 72px; font-weight: 900; }
+.h1 { font-family: var(--font-sans); font-size: 36px; line-height: 48px; font-weight: 900; }
+.h2 { font-family: var(--font-sans); font-size: 30px; line-height: 40px; font-weight: 900; }
+.h3 { font-family: var(--font-sans); font-size: 22px; line-height: 32px; font-weight: 900; }
+.h4 { font-family: var(--font-sans); font-size: 18px; line-height: 28px; font-weight: 800; }
+.body-lg { font-family: var(--font-sans); font-size: 18px; line-height: 32px; font-weight: 400; }
+.body { font-family: var(--font-sans); font-size: 16px; line-height: 28px; font-weight: 400; }
+.body-sm { font-family: var(--font-sans); font-size: 14px; line-height: 24px; font-weight: 400; }
+.caption { font-family: var(--font-sans); font-size: 13px; line-height: 22px; font-weight: 400; }
+.micro { font-family: var(--font-sans); font-size: 12px; line-height: 20px; font-weight: 800; }
+.label { font-family: var(--font-sans); font-size: 14px; line-height: 24px; font-weight: 700; }
+.button { font-family: var(--font-sans); font-size: 16px; line-height: 24px; font-weight: 800; }
+.numeral { font-family: var(--font-sans); font-size: 22px; line-height: 26px; font-weight: 800; }
+.code { font-family: var(--font-mono); font-size: 13px; line-height: 20px; font-weight: 400; }
