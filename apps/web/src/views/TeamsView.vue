@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { QAlert, QBadge, QButton, QCard, QContainer, QDataState, QEmptyState, QPageHeader, QSection, QStatusBadge, QTeamCard, QTextField, formatJalali } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02 } from '../api/esp02';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
 import { toClientError } from '../errors';
 import { t, type MessageKey } from '../i18n';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 import { session } from '../session';
 
@@ -68,87 +65,101 @@ async function decide(id: string, action: 'accept' | 'decline') {
     failure.value = toClientError(e);
   }
 }
+const ds = useDataState({ loading: computed(() => teams.loading.value && !teams.data.value), error: teams.error });
+const pendingInvites = computed(() => (invites.data.value?.items ?? []).filter((i) => i.state === 'pending'));
+const pendingTransfers = computed(() => (transfers.data.value?.items ?? []).filter((x) => x.state === 'pending'));
+const req = (v: string) => (touched.value && !v.trim() ? t('common.required') : undefined);
 </script>
 
 <template>
-  <PageHeader :title="t('teams.title')" />
-  <ErrorNote :error="failure" />
+  <QContainer>
+    <div class="k-stack p-myteams">
+      <QPageHeader compact :title="t('teams.title')" :description="t('mt.desc')">
+        <template #actions><QButton variant="secondary" icon="plus" href="#new">{{ t('teams.create') }}</QButton></template>
+      </QPageHeader>
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
 
-  <section class="card stack" aria-labelledby="my-h">
-    <h2 id="my-h">{{ t('teams.title') }}</h2>
-    <DataState :loading="teams.loading.value" :error="teams.error.value" :empty="!!teams.data.value && teams.data.value.items.length === 0" @retry="teams.load">
-      <ul v-if="teams.data.value" class="list">
-        <li v-for="tm in teams.data.value.items" :key="tm.teamId">
-          <RouterLink :to="`/teams/${tm.teamId}`"><bdi>{{ tm.name }}</bdi> <bdi class="ltr">[{{ tm.tag }}]</bdi></RouterLink>
-          — {{ t(`role.${tm.role}` as MessageKey) }}
-        </li>
-      </ul>
-    </DataState>
-  </section>
+      <QSection v-if="pendingInvites.length" id="invites" small :title="t('teams.invitations')">
+        <QCard>
+          <ul class="p-myteams-rows">
+            <li v-for="i in pendingInvites" :key="i.id">
+              <span><RouterLink :to="`/teams/${i.teamId}`"><bdi class="q-ltr">{{ i.teamId }}</bdi></RouterLink> · {{ t(`role.${i.role}` as MessageKey) }}</span>
+              <span class="p-myteams-muted">{{ formatJalali(i.expiresAt) }}</span>
+              <span class="k-row">
+                <QButton size="sm" variant="primary" @click="decide(i.id, 'accept')">{{ t('teams.accept') }}</QButton>
+                <QButton size="sm" variant="secondary" @click="decide(i.id, 'decline')">{{ t('teams.decline') }}</QButton>
+              </span>
+            </li>
+          </ul>
+        </QCard>
+      </QSection>
 
-  <section class="card stack block" aria-labelledby="inv-h">
-    <h2 id="inv-h">{{ t('teams.invitations') }}</h2>
-    <DataState :loading="invites.loading.value" :error="invites.error.value" :empty="!!invites.data.value && invites.data.value.items.filter((i) => i.state === 'pending').length === 0" @retry="invites.load">
-      <ul v-if="invites.data.value" class="list">
-        <li v-for="i in invites.data.value.items.filter((x) => x.state === 'pending')" :key="i.id" class="row">
-          <RouterLink :to="`/teams/${i.teamId}`"><bdi class="ltr">{{ i.teamId }}</bdi></RouterLink>
-          <span>{{ t(`role.${i.role}` as MessageKey) }}</span>
-          <span class="muted"><JalaliDate :iso="i.expiresAt" /></span>
-          <button type="button" class="btn btn-sm btn-primary" @click="decide(i.id, 'accept')">{{ t('teams.accept') }}</button>
-          <button type="button" class="btn btn-sm" @click="decide(i.id, 'decline')">{{ t('teams.decline') }}</button>
-        </li>
-      </ul>
-    </DataState>
-  </section>
+      <QSection id="mine" small :title="t('teams.title')">
+        <QDataState v-if="ds.state.value !== 'content'" v-bind="ds.props.value" skeleton="cards" @retry="teams.load" />
+        <QEmptyState v-else-if="!teams.data.value?.items.length" compact icon="users" :title="t('mt.none')">
+          <template #action><QButton variant="secondary" href="/recruitment">{{ t('mt.find') }}</QButton></template>
+        </QEmptyState>
+        <div v-else class="k-grid">
+          <QTeamCard
+            v-for="tm in teams.data.value.items" :key="tm.teamId" :name="tm.name" :tag="tm.tag" :initial="Array.from(tm.name)[0]"
+            :games="tm.gameId ? [tm.gameId] : undefined" :href="`/teams/${tm.teamId}`" :footer="t(`role.${tm.role}` as MessageKey)" :on-follow-change="false"
+          />
+        </div>
+      </QSection>
 
-  <section class="card stack block" aria-labelledby="tr-h">
-    <h2 id="tr-h">{{ t('mgmt.transfers') }}</h2>
-    <DataState :loading="transfers.loading.value" :error="transfers.error.value" :empty="!!transfers.data.value && transfers.data.value.items.filter((x) => x.state === 'pending').length === 0" @retry="transfers.load">
-      <ul v-if="transfers.data.value" class="list">
-        <li v-for="tr in transfers.data.value.items.filter((x) => x.state === 'pending')" :key="tr.id" class="row">
-          <RouterLink :to="`/teams/${tr.targetId}`"><bdi class="ltr">{{ tr.targetId }}</bdi></RouterLink>
-          <span class="muted">{{ t('mgmt.responsibilities', { r: tr.responsibilities.activeRegistrations, o: tr.responsibilities.openObligations }) }}</span>
-          <template v-if="session.me && tr.toPrincipalId === session.me.principal.id">
-            <button type="button" class="btn btn-sm btn-primary" @click="transferAct(tr.id, 'accept')">{{ t('mgmt.acceptTransfer') }}</button>
-            <button type="button" class="btn btn-sm" @click="transferAct(tr.id, 'decline')">{{ t('teams.decline') }}</button>
-          </template>
-        </li>
-      </ul>
-    </DataState>
-  </section>
+      <div class="p-myteams-two">
+        <QSection id="transfers" small :title="t('mgmt.transfers')">
+          <QCard>
+            <p v-if="!pendingTransfers.length" class="p-myteams-muted">—</p>
+            <ul v-else class="p-myteams-rows">
+              <li v-for="tr in pendingTransfers" :key="tr.id">
+                <RouterLink :to="`/teams/${tr.targetId}`"><bdi class="q-ltr">{{ tr.targetId }}</bdi></RouterLink>
+                <span class="p-myteams-muted">{{ t('mgmt.responsibilities', { r: tr.responsibilities.activeRegistrations, o: tr.responsibilities.openObligations }) }}</span>
+                <span v-if="session.me && tr.toPrincipalId === session.me.principal.id" class="k-row">
+                  <QButton size="sm" variant="primary" @click="transferAct(tr.id, 'accept')">{{ t('mgmt.acceptTransfer') }}</QButton>
+                  <QButton size="sm" variant="secondary" @click="transferAct(tr.id, 'decline')">{{ t('teams.decline') }}</QButton>
+                </span>
+              </li>
+            </ul>
+          </QCard>
+        </QSection>
+        <QSection id="applications" small :title="t('mgmt.myApplications')">
+          <QCard>
+            <p v-if="!applications.data.value?.items.length" class="p-myteams-muted">—</p>
+            <ul v-else class="p-myteams-rows">
+              <li v-for="a in applications.data.value.items" :key="a.id">
+                <bdi class="q-ltr">{{ a.adId }}</bdi><QStatusBadge :state="a.state" />
+                <QButton v-if="!['accepted', 'rejected', 'withdrawn'].includes(a.state)" size="sm" variant="secondary" @click="withdraw(a.id)">{{ t('mgmt.withdraw') }}</QButton>
+              </li>
+            </ul>
+          </QCard>
+        </QSection>
+      </div>
 
-  <section class="card stack block" aria-labelledby="ap-h">
-    <h2 id="ap-h">{{ t('mgmt.myApplications') }}</h2>
-    <DataState :loading="applications.loading.value" :error="applications.error.value" :empty="!!applications.data.value && applications.data.value.items.length === 0" @retry="applications.load">
-      <ul v-if="applications.data.value" class="list">
-        <li v-for="a in applications.data.value.items" :key="a.id" class="row">
-          <bdi class="ltr">{{ a.adId }}</bdi> · {{ a.state }}
-          <button v-if="!['accepted', 'rejected', 'withdrawn'].includes(a.state)" type="button" class="btn btn-sm" @click="withdraw(a.id)">{{ t('mgmt.withdraw') }}</button>
-        </li>
-      </ul>
-    </DataState>
-  </section>
-
-  <form class="card stack block form" novalidate aria-labelledby="new-h" @submit.prevent="create">
-    <h2 id="new-h">{{ t('teams.create') }}</h2>
-    <FormField id="t-name" :label="t('teams.name')" :error="touched && !form.name.trim() ? t('common.required') : ''" required>
-      <template #default="{ id, describedBy }"><input :id="id" v-model="form.name" class="input" dir="auto" :aria-describedby="describedBy" /></template>
-    </FormField>
-    <FormField id="t-tag" :label="t('teams.tag')" :error="touched && !form.tag.trim() ? t('common.required') : ''" required>
-      <template #default="{ id, describedBy }"><input :id="id" v-model="form.tag" class="input ltr" maxlength="6" :aria-describedby="describedBy" /></template>
-    </FormField>
-    <FormField id="t-game" :label="t('teams.gameId')" :error="touched && !form.gameId.trim() ? t('common.required') : ''" required>
-      <template #default="{ id, describedBy }"><input :id="id" v-model="form.gameId" class="input ltr" :aria-describedby="describedBy" /></template>
-    </FormField>
-    <FormField id="t-org" :label="t('teams.orgId')"><template #default="{ id }"><input :id="id" v-model="form.organizationId" class="input ltr" /></template></FormField>
-    <FormField id="t-city" :label="t('profile.city')"><template #default="{ id }"><input :id="id" v-model="form.city" class="input" dir="auto" /></template></FormField>
-    <button type="submit" class="btn btn-primary" :disabled="busy">{{ t('teams.create') }}</button>
-  </form>
+      <QSection id="new" small :title="t('teams.create')">
+        <QCard>
+          <form class="p-myteams-form" novalidate @submit.prevent="create">
+            <QTextField id="t-name" v-model="form.name" :label="t('teams.name')" required :error="req(form.name)" />
+            <QTextField id="t-tag" v-model="form.tag" :label="t('teams.tag')" required ltr :max-length="6" :error="req(form.tag)" />
+            <QTextField id="t-game" v-model="form.gameId" :label="t('teams.gameId')" required ltr :error="req(form.gameId)" />
+            <QTextField id="t-org" v-model="form.organizationId" :label="t('teams.orgId')" ltr />
+            <QTextField id="t-city" v-model="form.city" :label="t('profile.city')" />
+            <div class="p-myteams-span"><QButton type="submit" variant="primary" icon="plus" :loading="busy">{{ t('teams.create') }}</QButton></div>
+          </form>
+        </QCard>
+      </QSection>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.block { margin-block-start: var(--sp-6); }
-.list { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); }
-.row { flex-wrap: wrap; gap: var(--sp-3); align-items: center; }
-.form { max-inline-size: 32rem; }
+.p-myteams { gap: var(--space-7); }
+.p-myteams-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-myteams-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.p-myteams-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding-block: var(--space-3); border-block-end: 1px solid var(--line); font-size: 14px; }
+.p-myteams-rows li:last-child { border-block-end: 0; }
+.p-myteams-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); align-items: start; }
+.p-myteams-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--space-4); }
+.p-myteams-span { grid-column: 1 / -1; }
+@media (max-width: 900px) { .p-myteams-two { grid-template-columns: minmax(0, 1fr); } }
 </style>
