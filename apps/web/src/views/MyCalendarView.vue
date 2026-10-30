@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { zonedWallTimeToUtc } from '@esp/contracts';
-import { QAlert, QBadge, QButton, QCard, QContainer, QDataState, QDateField, QIcon, QMatchCard, QPageHeader, QSection, QStatusBadge, QTextField, dateTag, formatJalali, useToast } from '@esp/ui';
+import { QBadge, QButton, QCard, QContainer, QDataState, QDateField, QIcon, QMatchCard, QPageHeader, QSection, QStatusBadge, QTextField, dateTag, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp04 as esp04Api } from '../api/esp04';
 import { toClientError } from '../errors';

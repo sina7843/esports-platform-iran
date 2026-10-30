@@ -17,7 +17,7 @@ const esp04: typeof esp04Api = esp04Api;
 const esp05: typeof esp05Api = esp05Api;
 const route = useRoute();
 const eventId = computed(() => String(route.params['id']));
-const { data, loading, error, load } = useLoad(async () => {
+const { data, error, load } = useLoad(async () => {
   const [ev, officials, matches, corrections, blockers] = await Promise.all([
     esp03.manage(eventId.value),
     esp05.officials(eventId.value).catch(() => ({ items: [] })),

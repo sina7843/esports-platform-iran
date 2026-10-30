@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { TeamRoles } from '@esp/contracts';
 import {
-  QAlert, QButton, QCard, QConfirmDialog, QContainer, QDataState, QIcon, QProfileHeader, QRosterList, QSection, QSelect, QStatTile, QTextField, fa, formatJalali, useToast,
+  QButton, QCard, QConfirmDialog, QContainer, QDataState, QIcon, QProfileHeader, QRosterList, QSection, QSelect, QStatTile, QTextField, fa, formatJalali, useToast,
 } from '@esp/ui';
 import { request, type ApiClientError } from '../api/client';
 import { esp02, type TeamPage } from '../api/esp02';
@@ -136,8 +136,7 @@ const kickable = (id: string | number | undefined) => {
               </form>
             </QCard>
           </QSection>
-          <!-- LEGACY region: advanced team management (ads, transfers, applications) still uses the old panel -->
-          <div v-if="canManage && myRow && me" class="legacy-view"><TeamManagePanel :team="team" :my-role="myRow.role" :me="me" @changed="load" /></div>
+          <TeamManagePanel v-if="canManage && myRow && me" :team="team" :my-role="myRow.role" :me="me" @changed="load" />
         </div>
 
         <aside class="p-team-side">

@@ -34,12 +34,6 @@ watch(data, (d) => {
   m.setAttribute('content', d?.event.robots === 'noindex' ? 'noindex, nofollow' : 'index, follow');
 });
 
-const stageCols = () => [
-  { key: 'order', label: '#' },
-  { key: 'name', label: t('events.stage') },
-  { key: 'format', label: t('events.format') },
-  { key: 'state', label: t('events.state') },
-];
 
 const teams = ref<MyTeam[]>([]);
 const form = reactive<{ open: string | null; teamId: string; entryCode: string; accept: boolean; answers: Record<string, string | number | boolean>; files: Record<string, string> }>({ open: null, teamId: '', entryCode: '', accept: false, answers: {}, files: {} });
@@ -204,8 +198,7 @@ function login() {
           </QSection>
 
           <QSection v-if="['active', 'paused', 'finished', 'closed', 'archived'].includes(data.event.state)" id="results" small :title="t('ed.results')">
-            <!-- LEGACY region: honours, decisions and feedback still use the old results panel (inside .legacy-view) -->
-            <div class="legacy-view"><EventResultsPanel :event-id="data.event.id" :token="token" :state="data.event.state" /></div>
+            <EventResultsPanel :event-id="data.event.id" :token="token" :state="data.event.state" />
           </QSection>
         </div>
 

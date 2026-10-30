@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { QAlert, QButton, QCard, QContainer, QDataState, QEmptyState, QPageHeader, QSection, QSelect, QStatusBadge, QTextField, formatJalali, useToast } from '@esp/ui';
+import { QAlert, QButton, QCard, QContainer, QDataState, QPageHeader, QSection, QSelect, QStatusBadge, QTextField, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp07 as esp07Api } from '../api/esp07';
 import { toClientError } from '../errors';

@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
-import { CalendarKinds, RecruitmentKinds, TeamRoles, zonedWallTimeToUtc } from '@esp/contracts';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { CalendarKinds, RecruitmentKinds, TeamRoles } from '@esp/contracts';
+import { QBadge, QButton, QCard, QDateField, QEmptyState, QIcon, QSelect, QStatusBadge, QTabs, QTextField, fa, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02, type Application, type CalendarEntry, type JoinRequest, type RecruitmentAd, type Scrim, type TeamPage } from '../api/esp02';
 import { toClientError } from '../errors';
-import { num, stateLabel, t, type MessageKey } from '../i18n';
-import ErrorNote from './ErrorNote.vue';
-import FormField from './FormField.vue';
-import JalaliDate from './JalaliDate.vue';
+import { stateLabel, t, type MessageKey } from '../i18n';
 
 /**
  * TEAM-004/005/007, REC-001/003/004/005 management for team staff. Every action is authorized by the server
@@ -17,12 +15,16 @@ const props = defineProps<{ team: TeamPage; myRole: string; me: string }>();
 const emit = defineEmits<{ changed: [] }>();
 /** Template-facing alias (plain object, not a ref). */
 const call: typeof esp02 = esp02;
+const { push } = useToast();
 const failure = ref<ApiClientError | null>(null);
 const notice = ref('');
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 3000 }); });
+watch(failure, (f) => { if (f) push({ tone: 'danger', message: f.message }); });
 const assignable = TeamRoles.filter((r) => r !== 'owner');
-const toIso = (local: string) => (local ? zonedWallTimeToUtc(local) : '');
+/** QDateField gives Tehran wall time with its offset; the API takes UTC. */
+const toIso = (v: string | null) => (v ? new Date(v).toISOString() : '');
 
-async function act(fn: () => Promise<unknown>, ok = '', reloadTeam = false) {
+async function act(fn: () => Promise<unknown>, ok = t('mg.saved'), reloadTeam = false) {
   failure.value = null;
   notice.value = '';
   try {
@@ -52,146 +54,162 @@ async function loadAll() {
 }
 onMounted(loadAll);
 async function loadApps(adId: string) {
-  await act(async () => (apps[adId] = (await esp02.adApplications(adId)).items));
+  await act(async () => (apps[adId] = (await esp02.adApplications(adId)).items), '');
 }
 
 const roleFor = reactive<Record<string, string>>({});
 const transfer = reactive({ to: '', note: '' });
-const cal = reactive({ kind: 'practice', title: '', startsAt: '', endsAt: '', note: '' });
+const cal = reactive({ kind: 'practice', title: '', startsAt: null as string | null, endsAt: null as string | null, note: '' });
 const ad = reactive({ kind: 'player', role: '', level: '', city: '', activityHours: '', description: '' });
-const scrim = reactive({ level: '', windowStart: '', windowEnd: '', server: '', conditions: '' });
-const result = reactive<Record<string, { mine: number; theirs: number }>>({});
-const res = (id: string) => (result[id] ??= { mine: 0, theirs: 0 });
+const scrim = reactive({ level: '', windowStart: null as string | null, windowEnd: null as string | null, server: '', conditions: '' });
+const result = reactive<Record<string, { mine: string; theirs: string }>>({});
+const res = (id: string) => (result[id] ??= { mine: '0', theirs: '0' });
 const opponentOf = (s: Scrim) => (s.requester.id === props.team.id ? (s.proposal?.teamId ?? '') : s.requester.id);
+
+const tab = ref('members');
+const tabs = computed(() => [
+  { key: 'members', label: t('mgmt.roleChange'), icon: 'users' as const, count: props.team.currentMembers.length },
+  { key: 'joins', label: t('mgmt.joinRequests'), icon: 'inbox' as const, count: joins.value.length },
+  { key: 'calendar', label: t('mgmt.calendar'), icon: 'calendar' as const, count: calendar.value.length },
+  { key: 'ads', label: t('mgmt.ads'), icon: 'flag' as const, count: ads.value.filter((a) => a.state === 'open').length },
+  { key: 'scrims', label: t('mgmt.scrims'), icon: 'swords' as const, count: scrims.value.filter((s) => s.state === 'proposed').length },
+  ...(props.myRole === 'owner' ? [{ key: 'owner', label: t('mgmt.transfer'), icon: 'crown' as const }] : []),
+]);
+const roleOpts = assignable.map((r) => ({ value: r, label: t(`role.${r}` as MessageKey) }));
+const APP_ACTIONS = ['invite_tryout', 'start_review', 'accept', 'reject'] as const;
 </script>
 
 <template>
-  <section class="card stack block" aria-labelledby="mg-h">
-    <h2 id="mg-h">{{ t('nav.team') }}</h2>
-    <ErrorNote :error="failure" />
-    <p v-if="notice" role="status" class="ok">{{ notice }}</p>
+  <QCard as="section" class="p-mg" aria-labelledby="mg-h">
+    <div class="k-stack">
+      <div class="p-mg-head">
+        <h2 id="mg-h" class="h4 p-mg-title"><QIcon name="settings" :size="20" /> {{ t('mg.title') }}</h2>
+        <QBadge tone="green" icon="shield">{{ t('mg.yourRole', { role: t(`role.${myRole}` as MessageKey) }) }}</QBadge>
+      </div>
+      <p class="p-mg-muted">{{ t('mg.note') }}</p>
 
-    <details open>
-      <summary>{{ t('mgmt.roleChange') }}</summary>
-      <ul class="list">
-        <li v-for="m in team.currentMembers.filter((x) => x.role !== 'owner')" :key="m.principalId" class="row">
-          <bdi>{{ m.nickname }}</bdi>
-          <label class="sr-only" :for="`rc-${m.principalId}`">{{ t('teams.role') }}</label>
-          <select :id="`rc-${m.principalId}`" v-model="roleFor[m.principalId]" class="input sm">
-            <option v-for="r in assignable" :key="r" :value="r" :selected="r === m.role">{{ t(`role.${r}` as MessageKey) }}</option>
-          </select>
-          <button type="button" class="btn btn-sm" :disabled="!roleFor[m.principalId] || roleFor[m.principalId] === m.role" @click="act(() => call.changeRole(team.id, m.principalId, roleFor[m.principalId]!), '', true)">{{ t('mgmt.save') }}</button>
-        </li>
-      </ul>
-    </details>
-
-    <details v-if="myRole === 'owner'">
-      <summary>{{ t('mgmt.transfer') }}</summary>
-      <form class="stack" novalidate @submit.prevent="act(() => call.requestTransfer(team.id, transfer.to.trim(), transfer.note.trim() || null), t('mgmt.transferSent'))">
-        <FormField id="tr-to" :label="t('mgmt.transferTo')"><template #default="{ id }"><input :id="id" v-model="transfer.to" class="input ltr" /></template></FormField>
-        <FormField id="tr-note" :label="t('mgmt.transferNote')"><template #default="{ id }"><input :id="id" v-model="transfer.note" class="input" dir="auto" /></template></FormField>
-        <button type="submit" class="btn" :disabled="!transfer.to.trim()">{{ t('mgmt.transfer') }}</button>
-      </form>
-    </details>
-
-    <details>
-      <summary>{{ t('mgmt.joinRequests') }} ({{ num(joins.length) }})</summary>
-      <ul class="list">
-        <li v-for="j in joins" :key="j.id" class="row">
-          <bdi class="ltr">{{ j.principalId }}</bdi> — {{ t(`role.${j.role}` as MessageKey) }}
-          <button type="button" class="btn btn-sm btn-primary" @click="act(() => call.joinRequestAction(j.id, 'accept'), '', true)">{{ t('teams.accept') }}</button>
-          <button type="button" class="btn btn-sm" @click="act(() => call.joinRequestAction(j.id, 'decline'))">{{ t('teams.decline') }}</button>
-        </li>
-      </ul>
-    </details>
-
-    <details>
-      <summary>{{ t('mgmt.calendar') }} ({{ num(calendar.length) }})</summary>
-      <ul class="list">
-        <li v-for="c in calendar" :key="c.id" class="row">
-          <bdi>{{ c.title }}</bdi> · <JalaliDate :iso="c.startsAt" />
-          <button type="button" class="btn btn-sm" @click="act(() => call.deleteCalendar(team.id, c.id))">{{ t('mgmt.delete') }}</button>
-        </li>
-      </ul>
-      <form class="grid4" novalidate @submit.prevent="act(() => call.addCalendar(team.id, { kind: cal.kind, title: cal.title, startsAt: toIso(cal.startsAt), endsAt: toIso(cal.endsAt), note: cal.note || null }))">
-        <FormField id="c-kind" :label="t('mgmt.kind')"><template #default="{ id }"><select :id="id" v-model="cal.kind" class="input"><option v-for="k in CalendarKinds" :key="k" :value="k">{{ k }}</option></select></template></FormField>
-        <FormField id="c-title" :label="t('mgmt.title')"><template #default="{ id }"><input :id="id" v-model="cal.title" class="input" dir="auto" /></template></FormField>
-        <FormField id="c-start" :label="t('mgmt.startsAt')"><template #default="{ id }"><input :id="id" v-model="cal.startsAt" type="datetime-local" class="input" /></template></FormField>
-        <FormField id="c-end" :label="t('mgmt.endsAt')"><template #default="{ id }"><input :id="id" v-model="cal.endsAt" type="datetime-local" class="input" /></template></FormField>
-        <button type="submit" class="btn" :disabled="!cal.title || !cal.startsAt || !cal.endsAt">{{ t('mgmt.addEvent') }}</button>
-      </form>
-    </details>
-
-    <details>
-      <summary>{{ t('mgmt.ads') }} ({{ num(ads.length) }})</summary>
-      <ul class="list">
-        <li v-for="a in ads" :key="a.id" class="stack">
-          <span><bdi class="ltr">{{ a.kind }}</bdi> · <bdi>{{ a.description }}</bdi> · {{ stateLabel(a.state) }}</span>
-          <div class="row">
-            <button type="button" class="btn btn-sm" @click="loadApps(a.id)">{{ t('mgmt.applications') }}</button>
-            <button v-if="a.state === 'open'" type="button" class="btn btn-sm" @click="act(() => call.closeAd(a.id))">{{ t('mgmt.close') }}</button>
-          </div>
-          <ul v-if="apps[a.id]" class="list">
-            <li v-for="ap in apps[a.id]" :key="ap.id" class="row">
-              <bdi>{{ ap.nickname ?? ap.principalId }}</bdi> · {{ ap.state }}
-              <button v-for="action in ['invite_tryout', 'start_review', 'accept', 'reject']" :key="action" type="button" class="btn btn-sm" @click="act(async () => { await call.decideApplication(ap.id, action, ap.version); await loadApps(a.id); })">{{ action }}</button>
+      <QTabs v-model="tab" variant="line" overflow="wrap" :items="tabs" :aria-label="t('mg.title')">
+        <template #panel="{ item }">
+          <ul v-if="item.key === 'members'" class="p-mg-rows">
+            <li v-for="m in team.currentMembers" :key="m.principalId">
+              <span><bdi><strong>{{ m.nickname }}</strong></bdi> <span class="p-mg-muted">{{ t(`role.${m.role}` as MessageKey) }}</span></span>
+              <span v-if="m.principalId === me" class="p-mg-muted">{{ t('mg.you') }}</span>
+              <span v-else-if="m.role === 'owner'" class="p-mg-muted">{{ t('role.owner') }}</span>
+              <span v-else class="p-mg-bar">
+                <QSelect :id="`rc-${m.principalId}`" :model-value="roleFor[m.principalId] ?? m.role" :label="t('teams.role')" hide-label :options="roleOpts" @update:model-value="(v?: string) => (roleFor[m.principalId] = v ?? m.role)" />
+                <QButton size="sm" variant="secondary" :disabled="!roleFor[m.principalId] || roleFor[m.principalId] === m.role" @click="act(() => call.changeRole(team.id, m.principalId, roleFor[m.principalId]!), t('mg.saved'), true)">{{ t('mgmt.save') }}</QButton>
+              </span>
             </li>
           </ul>
-        </li>
-      </ul>
-      <form class="stack" novalidate @submit.prevent="act(() => call.createAd(team.id, { kind: ad.kind, gameId: team.gameId, role: ad.role || null, level: ad.level || null, city: ad.city || null, activityHours: ad.activityHours || null, description: ad.description }))">
-        <h3>{{ t('mgmt.newAd') }}</h3>
-        <div class="grid4">
-          <FormField id="ad-kind" :label="t('mgmt.kind')"><template #default="{ id }"><select :id="id" v-model="ad.kind" class="input"><option v-for="k in RecruitmentKinds" :key="k" :value="k">{{ k }}</option></select></template></FormField>
-          <FormField id="ad-role" :label="t('teams.role')"><template #default="{ id }"><input :id="id" v-model="ad.role" class="input" dir="auto" /></template></FormField>
-          <FormField id="ad-level" :label="t('rec.filterLevel')"><template #default="{ id }"><input :id="id" v-model="ad.level" class="input" dir="auto" /></template></FormField>
-          <FormField id="ad-city" :label="t('rec.filterCity')"><template #default="{ id }"><input :id="id" v-model="ad.city" class="input" dir="auto" /></template></FormField>
-        </div>
-        <FormField id="ad-desc" :label="t('mgmt.description')"><template #default="{ id }"><textarea :id="id" v-model="ad.description" class="input" rows="2" dir="auto" /></template></FormField>
-        <button type="submit" class="btn" :disabled="!ad.description.trim()">{{ t('mgmt.newAd') }}</button>
-      </form>
-    </details>
 
-    <details>
-      <summary>{{ t('mgmt.scrims') }} ({{ num(scrims.length) }})</summary>
-      <p class="muted">{{ t('rec.friendly') }}</p>
-      <ul class="list">
-        <li v-for="s in scrims" :key="s.id" class="stack">
-          <span><JalaliDate :iso="s.windowStart" /> · {{ stateLabel(s.state) }}</span>
-          <div class="row">
-            <template v-if="s.state === 'proposed' && s.requester.id === team.id">
-              <button type="button" class="btn btn-sm btn-primary" @click="act(() => call.scrimAction(s.id, 'accept'))">{{ t('teams.accept') }}</button>
-              <button type="button" class="btn btn-sm" @click="act(() => call.scrimAction(s.id, 'decline'))">{{ t('teams.decline') }}</button>
-            </template>
-            <button v-if="['open', 'proposed', 'accepted'].includes(s.state) && s.requester.id === team.id" type="button" class="btn btn-sm" @click="act(() => call.scrimAction(s.id, 'cancel'))">{{ t('mgmt.close') }}</button>
+          <div v-else-if="item.key === 'joins'">
+            <QEmptyState v-if="!joins.length" compact icon="inbox" :title="t('mg.noJoins')" />
+            <ul v-else class="p-mg-rows">
+              <li v-for="j in joins" :key="j.id">
+                <span><code class="q-mono q-ltr">{{ j.principalId }}</code> — {{ t(`role.${j.role}` as MessageKey) }}<span v-if="j.message" class="p-mg-muted"> · <bdi>{{ j.message }}</bdi></span></span>
+                <span class="k-row">
+                  <QButton size="sm" variant="green" @click="act(() => call.joinRequestAction(j.id, 'accept'), t('mg.saved'), true)">{{ t('teams.accept') }}</QButton>
+                  <QButton size="sm" variant="secondary" @click="act(() => call.joinRequestAction(j.id, 'decline'))">{{ t('teams.decline') }}</QButton>
+                </span>
+              </li>
+            </ul>
           </div>
-          <form v-if="s.state === 'accepted'" class="row" novalidate @submit.prevent="act(() => call.scrimResult(s.id, team.id, [{ teamId: team.id, score: res(s.id).mine }, { teamId: opponentOf(s), score: res(s.id).theirs }], s.version))">
-            <FormField :id="`sm-${s.id}`" :label="t('mgmt.myScore')"><template #default="{ id }"><input :id="id" v-model.number="res(s.id).mine" type="number" min="0" class="input sm ltr" /></template></FormField>
-            <FormField :id="`st-${s.id}`" :label="t('mgmt.theirScore')"><template #default="{ id }"><input :id="id" v-model.number="res(s.id).theirs" type="number" min="0" class="input sm ltr" /></template></FormField>
-            <button type="submit" class="btn btn-sm">{{ t('mgmt.result') }}</button>
+
+          <div v-else-if="item.key === 'calendar'" class="k-stack">
+            <ul v-if="calendar.length" class="p-mg-rows">
+              <li v-for="c in calendar" :key="c.id">
+                <span><bdi>{{ c.title }}</bdi> · <span class="p-mg-muted">{{ formatJalali(c.startsAt) }}</span></span>
+                <QButton size="sm" variant="ghost" icon="trash" @click="act(() => call.deleteCalendar(team.id, c.id))">{{ t('mgmt.delete') }}</QButton>
+              </li>
+            </ul>
+            <form class="p-mg-grid" novalidate @submit.prevent="act(() => call.addCalendar(team.id, { kind: cal.kind, title: cal.title, startsAt: toIso(cal.startsAt), endsAt: toIso(cal.endsAt), note: cal.note || null }))">
+              <QSelect id="c-kind" v-model="cal.kind" :label="t('mgmt.kind')" :options="CalendarKinds.map((k) => ({ value: k, label: k }))" />
+              <QTextField id="c-title" v-model="cal.title" :label="t('mgmt.title')" />
+              <QDateField id="c-start" v-model="cal.startsAt" :label="t('mgmt.startsAt')" with-time disable-past />
+              <QDateField id="c-end" v-model="cal.endsAt" :label="t('mgmt.endsAt')" with-time disable-past />
+              <div><QButton type="submit" variant="green" icon="plus" :disabled="!cal.title || !cal.startsAt || !cal.endsAt">{{ t('mgmt.addEvent') }}</QButton></div>
+            </form>
+          </div>
+
+          <div v-else-if="item.key === 'ads'" class="k-stack">
+            <div v-for="a in ads" :key="a.id" class="k-stack p-mg-item">
+              <div class="p-mg-head"><span><code class="q-mono q-ltr">{{ a.kind }}</code> · <bdi>{{ a.description }}</bdi></span><QStatusBadge :state="a.state" /></div>
+              <div class="k-row">
+                <QButton size="sm" variant="secondary" icon="inbox" @click="loadApps(a.id)">{{ t('mgmt.applications') }}</QButton>
+                <QButton v-if="a.state === 'open'" size="sm" variant="danger" @click="act(() => call.closeAd(a.id))">{{ t('mgmt.close') }}</QButton>
+              </div>
+              <ul v-if="apps[a.id]" class="p-mg-rows">
+                <li v-for="ap in apps[a.id]" :key="ap.id">
+                  <span><bdi>{{ ap.nickname ?? ap.principalId }}</bdi> <QStatusBadge :state="ap.state" /></span>
+                  <span class="k-row">
+                    <QButton v-for="action in APP_ACTIONS" :key="action" size="sm" :variant="action === 'accept' ? 'green' : action === 'reject' ? 'danger' : 'secondary'" @click="act(async () => { await call.decideApplication(ap.id, action, ap.version); await loadApps(a.id); })">{{ t(`mg.app.${action}` as MessageKey) }}</QButton>
+                  </span>
+                </li>
+                <li v-if="!apps[a.id]!.length" class="p-mg-muted">—</li>
+              </ul>
+            </div>
+            <form class="k-stack p-mg-item" novalidate @submit.prevent="act(() => call.createAd(team.id, { kind: ad.kind, gameId: team.gameId, role: ad.role || null, level: ad.level || null, city: ad.city || null, activityHours: ad.activityHours || null, description: ad.description }))">
+              <h3 class="p-mg-h3">{{ t('mgmt.newAd') }}</h3>
+              <div class="p-mg-grid">
+                <QSelect id="ad-kind" v-model="ad.kind" :label="t('mgmt.kind')" :options="RecruitmentKinds.map((k) => ({ value: k, label: k }))" />
+                <QTextField id="ad-role" v-model="ad.role" :label="t('teams.role')" />
+                <QTextField id="ad-level" v-model="ad.level" :label="t('rec.filterLevel')" />
+                <QTextField id="ad-city" v-model="ad.city" :label="t('rec.filterCity')" />
+              </div>
+              <QTextField id="ad-desc" v-model="ad.description" :label="t('mgmt.description')" multiline :rows="2" />
+              <div><QButton type="submit" variant="green" icon="plus" :disabled="!ad.description.trim()">{{ t('mgmt.newAd') }}</QButton></div>
+            </form>
+          </div>
+
+          <div v-else-if="item.key === 'scrims'" class="k-stack">
+            <p class="p-mg-muted">{{ t('rec.friendly') }}</p>
+            <div v-for="s in scrims" :key="s.id" class="k-stack p-mg-item">
+              <div class="p-mg-head"><span>{{ formatJalali(s.windowStart) }}</span><QBadge tone="neutral">{{ stateLabel(s.state) }}</QBadge></div>
+              <div class="k-row">
+                <template v-if="s.state === 'proposed' && s.requester.id === team.id">
+                  <QButton size="sm" variant="green" @click="act(() => call.scrimAction(s.id, 'accept'))">{{ t('teams.accept') }}</QButton>
+                  <QButton size="sm" variant="secondary" @click="act(() => call.scrimAction(s.id, 'decline'))">{{ t('teams.decline') }}</QButton>
+                </template>
+                <QButton v-if="['open', 'proposed', 'accepted'].includes(s.state) && s.requester.id === team.id" size="sm" variant="ghost" @click="act(() => call.scrimAction(s.id, 'cancel'))">{{ t('mgmt.close') }}</QButton>
+              </div>
+              <form v-if="s.state === 'accepted'" class="p-mg-grid" novalidate @submit.prevent="act(() => call.scrimResult(s.id, team.id, [{ teamId: team.id, score: Number(res(s.id).mine) }, { teamId: opponentOf(s), score: Number(res(s.id).theirs) }], s.version))">
+                <QTextField :id="`sm-${s.id}`" v-model="res(s.id).mine" :label="t('mgmt.myScore')" type="number" ltr />
+                <QTextField :id="`st-${s.id}`" v-model="res(s.id).theirs" :label="t('mgmt.theirScore')" type="number" ltr />
+                <div><QButton type="submit" size="sm" variant="secondary">{{ t('mgmt.result') }}</QButton></div>
+              </form>
+            </div>
+            <form class="p-mg-grid p-mg-item" novalidate @submit.prevent="act(() => call.createScrim(team.id, { gameId: team.gameId, level: scrim.level || null, windowStart: toIso(scrim.windowStart), windowEnd: toIso(scrim.windowEnd), server: scrim.server || null, conditions: scrim.conditions || null }))">
+              <QDateField id="s-start" v-model="scrim.windowStart" :label="t('mgmt.startsAt')" with-time disable-past />
+              <QDateField id="s-end" v-model="scrim.windowEnd" :label="t('mgmt.endsAt')" with-time disable-past />
+              <QTextField id="s-level" v-model="scrim.level" :label="t('rec.filterLevel')" />
+              <QTextField id="s-server" v-model="scrim.server" :label="t('rec.server')" ltr />
+              <div><QButton type="submit" variant="green" icon="plus" :disabled="!scrim.windowStart || !scrim.windowEnd">{{ t('mgmt.newScrim') }}</QButton></div>
+            </form>
+          </div>
+
+          <form v-else class="k-stack" novalidate @submit.prevent="act(() => call.requestTransfer(team.id, transfer.to.trim(), transfer.note.trim() || null), t('mgmt.transferSent'))">
+            <div class="p-mg-grid">
+              <QTextField id="tr-to" v-model="transfer.to" :label="t('mgmt.transferTo')" ltr />
+              <QTextField id="tr-note" v-model="transfer.note" :label="t('mgmt.transferNote')" />
+            </div>
+            <div><QButton type="submit" variant="danger" icon="crown" :disabled="!transfer.to.trim()">{{ t('mgmt.transfer') }}</QButton></div>
+            <p class="p-mg-muted">{{ t('mg.transferHint', { n: fa(team.currentMembers.length) }) }}</p>
           </form>
-        </li>
-      </ul>
-      <form class="grid4" novalidate @submit.prevent="act(() => call.createScrim(team.id, { gameId: team.gameId, level: scrim.level || null, windowStart: toIso(scrim.windowStart), windowEnd: toIso(scrim.windowEnd), server: scrim.server || null, conditions: scrim.conditions || null }))">
-        <FormField id="s-start" :label="t('mgmt.startsAt')"><template #default="{ id }"><input :id="id" v-model="scrim.windowStart" type="datetime-local" class="input" /></template></FormField>
-        <FormField id="s-end" :label="t('mgmt.endsAt')"><template #default="{ id }"><input :id="id" v-model="scrim.windowEnd" type="datetime-local" class="input" /></template></FormField>
-        <FormField id="s-level" :label="t('rec.filterLevel')"><template #default="{ id }"><input :id="id" v-model="scrim.level" class="input" dir="auto" /></template></FormField>
-        <FormField id="s-server" :label="t('rec.server')"><template #default="{ id }"><input :id="id" v-model="scrim.server" class="input ltr" /></template></FormField>
-        <button type="submit" class="btn" :disabled="!scrim.windowStart || !scrim.windowEnd">{{ t('mgmt.newScrim') }}</button>
-      </form>
-    </details>
-  </section>
+        </template>
+      </QTabs>
+    </div>
+  </QCard>
 </template>
 
 <style scoped>
-.block { margin-block-start: var(--sp-6); }
-.list { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); }
-.row { flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-form.row { align-items: flex-end; }
-.grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--sp-3); align-items: end; }
-.sm { max-inline-size: 9rem; }
-details { border-block-start: 1px solid var(--border); padding-block: var(--sp-3); }
-summary { cursor: pointer; font-weight: 600; }
-h3 { margin: var(--sp-3) 0 0; font-size: var(--fs-md); }
-.ok { color: var(--accent-strong); }
+.p-mg { border: 1px solid var(--green-line); }
+.p-mg-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-mg-title { margin: 0; display: inline-flex; align-items: center; gap: var(--space-2); color: var(--green-text); }
+.p-mg-h3 { margin: 0; font-size: 15px; font-weight: 800; }
+.p-mg-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-mg-rows { margin: 0; padding: 0; list-style: none; }
+.p-mg-rows > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding-block: var(--space-3); border-block-end: 1px solid var(--line); }
+.p-mg-bar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.p-mg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--space-3); align-items: end; }
+.p-mg-item { padding-block-start: var(--space-4); border-block-start: 1px solid var(--line); }
 </style>

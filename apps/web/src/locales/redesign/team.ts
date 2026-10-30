@@ -10,6 +10,17 @@ export const fa = {
   'tm.kickBody': "عضو از ترکیب فعلی تیم خارج می‌شود؛ سابقه‌اش در تیم باقی می‌ماند.",
   'tm.leaveBody': "از ترکیب این تیم خارج می‌شوید.",
   'tm.cancel': "انصراف",
+  'mg.title': "مدیریت تیم",
+  'mg.note': "فقط برای کاپیتان، مدیر و مالک تیم دیده می‌شود. هر اقدام را سرور دوباره بررسی می‌کند.",
+  'mg.yourRole': "نقش شما: {role}",
+  'mg.you': "شما",
+  'mg.saved': "ثبت شد.",
+  'mg.noJoins': "درخواست عضویتی منتظر نیست.",
+  'mg.app.invite_tryout': "دعوت به تست",
+  'mg.app.start_review': "شروع بررسی",
+  'mg.app.accept': "پذیرش",
+  'mg.app.reject': "رد",
+  'mg.transferHint': "انتقال مالکیت پس از پذیرش مالک جدید انجام می‌شود؛ تیم {n} عضو دارد.",
 } satisfies Record<string, string>;
 
 export const en: Record<keyof typeof fa, string> = {
@@ -23,4 +34,15 @@ export const en: Record<keyof typeof fa, string> = {
   'tm.kickBody': "The member leaves the current roster; their history with the team is kept.",
   'tm.leaveBody': "You will leave this team’s roster.",
   'tm.cancel': "Cancel",
+  'mg.title': "Team management",
+  'mg.note': "Visible only to the captain, manager and owner. The server re-checks every action.",
+  'mg.yourRole': "Your role: {role}",
+  'mg.you': "You",
+  'mg.saved': "Saved.",
+  'mg.noJoins': "No join requests waiting.",
+  'mg.app.invite_tryout': "Invite to tryout",
+  'mg.app.start_review': "Start review",
+  'mg.app.accept': "Accept",
+  'mg.app.reject': "Reject",
+  'mg.transferHint': "Ownership moves once the new owner accepts; the team has {n} members.",
 };

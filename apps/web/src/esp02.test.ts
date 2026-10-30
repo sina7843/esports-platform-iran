@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createMemoryHistory } from 'vue-router';
-import OtpLoginForm from './components/OtpLoginForm.vue';
+import LoginView from './views/LoginView.vue';
 import TeamView from './views/TeamView.vue';
 import { createAppRouter } from './router';
 import { resetSession, setMe } from './session';
@@ -19,34 +19,43 @@ beforeEach(() => {
 });
 
 describe('OTP login (USR-001, UX-004)', () => {
-  it('normalizes a Persian-digit mobile to +98, sends the code, then verifies and emits done', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(json(200, { challengeId: 'c1', expiresAt: '', message: 'اگر شماره معتبر باشد کد ارسال شد', resendAfterSeconds: 60 }))
-      .mockResolvedValueOnce(json(200, { isNewAccount: true, principalId: 'usr_1', mfaVerified: false }));
+  const mountLogin = async () => {
+    const router = createAppRouter(createMemoryHistory());
+    await router.push('/login?redirect=/account');
+    return { router, w: mount(LoginView, { global: { plugins: [router] } }) };
+  };
+  it('normalizes a Persian-digit mobile to +98, sends the code, then verifies and returns to the deep link', async () => {
+    const fetchMock = vi.fn().mockImplementation((u: string) => {
+      const url = String(u);
+      if (url.includes('/otp/request')) return Promise.resolve(json(200, { challengeId: 'c1', expiresAt: '', message: 'ok', resendAfterSeconds: 60 }));
+      if (url.includes('/otp/verify')) return Promise.resolve(json(200, { isNewAccount: true, principalId: 'usr_1', mfaVerified: false }));
+      return Promise.resolve(json(200, me('usr_1')));
+    });
     vi.stubGlobal('fetch', fetchMock);
-    const w = mount(OtpLoginForm);
-    await w.get('input').setValue('۰۹۱۲۳۴۵۶۷۸۹');
+    const { router, w } = await mountLogin();
+    await w.get('#otp-phone').setValue('۰۹۱۲۳۴۵۶۷۸۹');
     await w.get('form').trigger('submit');
     await flushPromises();
-    expect(JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body))).toEqual({ phone: '+989123456789' });
-    expect(w.text()).toContain('اگر شماره معتبر باشد');
-    await w.get('input').setValue('۱۲۳۴۵۶');
-    await w.get('form').trigger('submit');
+    const sent = fetchMock.mock.calls.find(([u]) => String(u).includes('/otp/request'))!;
+    expect(JSON.parse(String((sent[1] as RequestInit).body))).toEqual({ phone: '+989123456789' });
+    await w.get('.p-login-form input').setValue('۱۲۳۴۵۶');
     await flushPromises();
-    expect(JSON.parse(String((fetchMock.mock.calls[1]?.[1] as RequestInit).body))).toEqual({ phone: '+989123456789', code: '123456' });
-    expect(w.emitted('done')).toHaveLength(1);
+    const verified = fetchMock.mock.calls.find(([u]) => String(u).includes('/otp/verify'))!;
+    expect(JSON.parse(String((verified[1] as RequestInit).body))).toEqual({ phone: '+989123456789', code: '123456' });
+    // the lazy /account route resolves asynchronously
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/account'), { timeout: 3000 });
   });
 
   it('rejects a non-Iranian number before calling the API', async () => {
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue(json(401, { error: { code: 'UNAUTHENTICATED', message: 'x' } }));
     vi.stubGlobal('fetch', fetchMock);
-    const w = mount(OtpLoginForm);
-    await w.get('input').setValue('12345');
+    const { w } = await mountLogin();
+    fetchMock.mockClear();
+    await w.get('#otp-phone').setValue('12345');
     await w.get('form').trigger('submit');
     await flushPromises();
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(w.text()).toContain('معتبر نیست');
+    expect(fetchMock.mock.calls.some(([u]) => String(u).includes('/otp/'))).toBe(false);
+    expect(w.find('[aria-invalid="true"]').exists()).toBe(true);
   });
 });
 

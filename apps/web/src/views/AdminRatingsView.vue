@@ -11,7 +11,7 @@ import { useLoad } from '../useLoad';
  * than the author. Also the review queue for declared achievements (AWD-004).
  */
 const esp05: typeof esp05Api = esp05Api;
-const { data, loading, error, load } = useLoad(async () => ({
+const { data, error, load } = useLoad(async () => ({
   systems: (await esp05.systems({ drafts: true })).items,
   queue: (await esp05.declaredQueue().catch(() => ({ items: [] }))).items,
 }));

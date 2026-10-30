@@ -14,7 +14,7 @@ const call: typeof esp03 = esp03;
  * prices, discounts, settlements, prize payouts and the accounting export. Finance authority never grants refereeing.
  */
 type Obj = Record<string, unknown>;
-const { data: q, loading, error, load } = useLoad(() => esp03.reconciliation());
+const { data: q, error, load } = useLoad(() => esp03.reconciliation());
 const failure = ref<ApiClientError | null>(null);
 const notice = ref('');
 async function act(fn: () => Promise<unknown>, msg = '✓') {

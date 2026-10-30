@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { QAlert, QBadge, QButton, QCard, QContainer, QDataState, QEmptyState, QPageHeader, QSection, QStatusBadge, QTeamCard, QTextField, formatJalali } from '@esp/ui';
+import { QAlert, QButton, QCard, QContainer, QDataState, QEmptyState, QPageHeader, QSection, QStatusBadge, QTeamCard, QTextField, formatJalali } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02 } from '../api/esp02';
 import { toClientError } from '../errors';

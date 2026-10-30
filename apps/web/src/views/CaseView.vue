@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { QAlert, QBadge, QButton, QCard, QCaseHeader, QContainer, QDataState, QFacts, QRadioGroup, QSection, QSelect, QTextField, QTimeline, formatJalali, useToast } from '@esp/ui';
+import { QAlert, QBadge, QButton, QCard, QCaseHeader, QContainer, QDataState, QFacts, QRadioGroup, QSection, QSelect, QTextField, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp05 as esp05Api, type Outcome } from '../api/esp05';
 import { toClientError } from '../errors';
@@ -15,7 +15,7 @@ import { useLoad } from '../useLoad';
 const esp05: typeof esp05Api = esp05Api;
 const route = useRoute();
 const id = computed(() => String(route.params['id']));
-const { data: c, loading, error, load } = useLoad(() => esp05.getCase(id.value));
+const { data: c, error, load } = useLoad(() => esp05.getCase(id.value));
 const failure = ref<ApiClientError | null>(null);
 const notice = ref('');
 async function act(fn: () => Promise<unknown>, ok = t('case.saved')) {

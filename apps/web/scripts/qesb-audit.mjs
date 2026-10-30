@@ -106,6 +106,8 @@ for (const root of roots) {
       for (const part of parts) {
         for (const m of part.text.matchAll(r.re)) {
           if (r.ok && r.ok(m[0].trim())) continue;
+          // the DS formatter itself (packages/ui/src/locale.ts dec()) is where fixed-point conversion lives
+          if (r.id === 'raw-number-format' && rel.endsWith('packages/ui/src/locale.ts')) continue;
           const idx = part.offset + (m.index ?? 0);
           findings.push({ rule: r.id, level: r.level, file: rel, line: lineAt(src, idx), match: m[0].trim().slice(0, 80), msg: r.msg });
         }

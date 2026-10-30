@@ -16,7 +16,7 @@ import { useLoad } from '../useLoad';
 const esp06: typeof esp06Api = esp06Api;
 const route = useRoute();
 const eventId = computed(() => String(route.params['id']));
-const { data, loading, error, load } = useLoad(async () => ({
+const { data, error, load } = useLoad(async () => ({
   streams: (await esp06.streams(eventId.value)).items,
   crew: (await esp06.crew(eventId.value)).items,
   overlays: (await esp06.overlays(eventId.value).catch(() => ({ items: [] }))).items,
