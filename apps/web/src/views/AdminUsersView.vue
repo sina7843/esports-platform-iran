@@ -1,26 +1,21 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, ref } from 'vue';
+import { QButton, QCard, QConfirmDialog, QContainer, QDataState, QDataTable, QEmptyState, QPageHeader, QSearchField, QStatusBadge, formatJalali, useToast, type QDataTableColumn } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
-import { esp07 as esp07Api } from '../api/esp07';
-import DataTable from '../components/DataTable.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
+import { esp07 } from '../api/esp07';
 import { toClientError } from '../errors';
 import { t } from '../i18n';
 
-/** ADM-001 users panel: search, then suspend or restore with a recorded reason (sessions end at suspension). */
-const esp07: typeof esp07Api = esp07Api;
+/** Spec docs/redesign/03-specs/admin-users.md — ADM-001: search, then suspend or restore with a recorded reason (sessions end at suspension). */
+const { push } = useToast();
+type Row = Awaited<ReturnType<typeof esp07.users>>['items'][number];
 const q = ref('');
-const rows = ref<Awaited<ReturnType<typeof esp07.users>>['items']>([]);
+const rows = ref<Row[]>([]);
 const searched = ref(false);
 const busy = ref(false);
 const failure = ref<ApiClientError | null>(null);
-const notice = ref('');
-const reason = reactive<Record<string, string>>({});
 async function search() {
+  if (q.value.trim().length < 2) return;
   busy.value = true;
   failure.value = null;
   try {
@@ -32,53 +27,57 @@ async function search() {
     busy.value = false;
   }
 }
-async function setStatus(id: string, status: 'active' | 'suspended') {
-  failure.value = null;
-  notice.value = '';
+const target = ref<{ row: Row; status: 'active' | 'suspended' } | null>(null);
+async function setStatus(reason: string) {
+  const x = target.value;
+  if (!x) return;
   try {
-    await esp07.setUserStatus(id, status, reason[id] ?? '');
-    notice.value = t('a7.users.done');
-    reason[id] = '';
+    await esp07.setUserStatus(x.row.id, x.status, reason);
+    push({ tone: 'success', message: t('a7.users.done'), duration: 4000 });
+    target.value = null;
     await search();
   } catch (e) {
-    failure.value = toClientError(e);
+    push({ tone: 'danger', message: toClientError(e).message });
   }
 }
-const cols = () => [
-  { key: 'displayName', label: t('a7.users.name') },
-  { key: 'status', label: t('a7.users.status') },
-  { key: 'createdAt', label: t('a7.users.created') },
-  { key: 'act', label: t('a7.users.action') },
-];
+const cols = computed<QDataTableColumn<Row>[]>(() => [
+  { key: 'displayName', header: t('a7.users.name') }, { key: 'status', header: t('a7.users.status') }, { key: 'createdAt', header: t('a7.users.created') },
+]);
 </script>
 
 <template>
-  <PageHeader :title="t('a7.users.title')" :lead="t('a7.users.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
-  <form class="card row" role="search" @submit.prevent="search">
-    <FormField id="u-q" :label="t('a7.users.query')" :hint="t('a7.users.queryHint')">
-      <template #default="{ id: fid, describedBy }"><input :id="fid" v-model="q" class="input" dir="auto" minlength="2" :aria-describedby="describedBy" /></template>
-    </FormField>
-    <button type="submit" class="btn btn-primary" :disabled="busy || q.trim().length < 2">{{ t('a7.search') }}</button>
-  </form>
-  <p v-if="searched && !rows.length" class="muted" role="status">{{ t('a7.empty') }}</p>
-  <DataTable v-if="rows.length" :caption="t('a7.users.title')" :columns="cols()" :rows="rows" row-key="id" row-header="displayName">
-    <template #cell-displayName="{ row }"><bdi>{{ (row as (typeof rows)[number]).displayName }}</bdi> <span class="muted small ltr">{{ (row as (typeof rows)[number]).id }}</span></template>
-    <template #cell-status="{ row }"><StatusBadge :state="(row as (typeof rows)[number]).status" /></template>
-    <template #cell-createdAt="{ row }"><JalaliDate :iso="(row as (typeof rows)[number]).createdAt" format="date" /></template>
-    <template #cell-act="{ row }">
-      <div v-if="(row as (typeof rows)[number]).status !== 'deleted'" class="row">
-        <input v-model="reason[(row as (typeof rows)[number]).id]" class="input" dir="auto" :placeholder="t('a7.reason')" :aria-label="t('a7.reason')" />
-        <button v-if="(row as (typeof rows)[number]).status === 'active'" type="button" class="btn btn-sm" :disabled="(reason[(row as (typeof rows)[number]).id] ?? '').length < 5" @click="setStatus((row as (typeof rows)[number]).id, 'suspended')">{{ t('a7.users.suspend') }}</button>
-        <button v-else type="button" class="btn btn-sm" :disabled="(reason[(row as (typeof rows)[number]).id] ?? '').length < 5" @click="setStatus((row as (typeof rows)[number]).id, 'active')">{{ t('a7.users.restore') }}</button>
-      </div>
-    </template>
-  </DataTable>
+  <QContainer>
+    <div class="k-stack p-users">
+      <QPageHeader compact :title="t('a7.users.title')" :description="t('a7.users.lead')" :breadcrumb="[{ label: t('shell.platform_admin'), href: '/admin' }, { label: t('a7.users.title') }]" />
+      <QCard>
+        <QSearchField id="u-q" v-model="q" :label="t('a7.users.query')" :placeholder="t('a7.users.queryHint')" :submit-label="t('a7.search')" @submit="search" />
+      </QCard>
+      <QDataState v-if="failure" :state="failure.code === 'FORBIDDEN' ? 'forbidden' : 'error'" :request-id="failure.requestId ?? undefined" @retry="search" />
+      <QDataState v-else-if="busy && !rows.length" state="loading" skeleton="rows" />
+      <QEmptyState v-else-if="searched && !rows.length" compact icon="search" :title="t('a7.empty')" />
+      <QDataTable v-else-if="rows.length" :caption="t('a7.users.title')" caption-hidden row-key="id" row-header="displayName" :columns="cols" :rows="rows">
+        <template #cell-displayName="{ row }"><span class="p-users-name"><bdi>{{ row.displayName }}</bdi><code class="q-mono q-ltr">{{ row.id }}</code></span></template>
+        <template #cell-status="{ row }"><QStatusBadge :state="row.status" /></template>
+        <template #cell-createdAt="{ row }">{{ formatJalali(row.createdAt, 'date') }}</template>
+        <template #row-actions="{ row }">
+          <template v-if="row.status !== 'deleted'">
+            <QButton v-if="row.status === 'active'" variant="danger" size="sm" @click="target = { row, status: 'suspended' }">{{ t('a7.users.suspend') }}</QButton>
+            <QButton v-else variant="green" size="sm" @click="target = { row, status: 'active' }">{{ t('a7.users.restore') }}</QButton>
+          </template>
+        </template>
+      </QDataTable>
+    </div>
+    <QConfirmDialog
+      :open="!!target" require-reason :min-reason-length="5" :reason-label="t('a7.reason')"
+      :title="target?.status === 'suspended' ? t('a7.users.suspend') : t('a7.users.restore')" :message="target ? target.row.displayName : ''"
+      :confirm-label="target?.status === 'suspended' ? t('a7.users.suspend') : t('a7.users.restore')" :cancel-label="t('au.cancel')"
+      @close="target = null" @confirm="setStatus"
+    />
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: end; }
-.small { font-size: var(--fs-xs); }
-.ok { color: var(--ok); }
+.p-users { gap: var(--space-6); }
+.p-users-name { display: flex; flex-direction: column; gap: 2px; }
+.p-users-name code { font-size: 12px; color: var(--ink-subtle); }
 </style>
