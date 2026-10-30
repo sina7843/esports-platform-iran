@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { QAlert, QBadge, QButton, QCard, QContainer, QDataState, QPageHeader, QSection, QSelect, QStatusBadge, QTextField, fa, num, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp05 as esp05Api } from '../api/esp05';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t } from '../i18n';
 import { useLoad } from '../useLoad';
-
 /**
  * RANK-001/002/005/006 rating systems: draft → publish (starts a resumable build) → owner approval by someone other
  * than the author. Also the review queue for declared achievements (AWD-004).
@@ -48,85 +43,106 @@ async function showBuilds(id: string) {
     failure.value = toClientError(e);
   }
 }
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 3000 }); });
+type NumKey = 'initialRating' | 'initialRd' | 'vol' | 'tau' | 'periodDays' | 'kill' | 'inactivityDays' | 'weight';
+const nf = (k: NumKey) => computed({ get: () => String(f[k]), set: (v: string) => { f[k] = Number(v) || 0; } });
+const N = { initialRating: nf('initialRating'), initialRd: nf('initialRd'), vol: nf('vol'), tau: nf('tau'), periodDays: nf('periodDays'), kill: nf('kill'), inactivityDays: nf('inactivityDays'), weight: nf('weight') };
 </script>
 
 <template>
-  <PageHeader :title="t('rsys.title')" :lead="t('rsys.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
-  <DataState :loading="loading" :error="error" @retry="load">
-    <template v-if="data">
-      <section class="card stack" aria-labelledby="rs-h">
-        <h2 id="rs-h">{{ t('rsys.systems') }}</h2>
-        <p v-if="!data.systems.length" class="muted">{{ t('rsys.none') }}</p>
-        <ul class="cards">
-          <li v-for="s in data.systems" :key="s.id" class="stack item">
-            <div class="row between"><strong>{{ s.gameId }} · {{ s.mode }} · {{ t(`rank.subject.${s.subject}` as never) }} · {{ s.model }} (v{{ num(s.version) }})</strong><StatusBadge :state="s.state" /></div>
-            <p class="small">{{ s.label.official ? t('rank.official') : t('rank.unapproved') }}<span v-if="s.approval"> — <span dir="auto">{{ s.approval.reference }}</span></span></p>
-            <div class="row">
-              <button v-if="s.state === 'draft'" type="button" class="btn btn-sm" @click="act(() => esp05.publishSystem(s.id))">{{ t('rsys.publish') }}</button>
-              <template v-if="s.state === 'published' && !s.approval">
-                <label class="sr-only" :for="`ap-${s.id}`">{{ t('rsys.reference') }}</label>
-                <input :id="`ap-${s.id}`" v-model="approveRef[s.id]" class="input" dir="auto" :placeholder="t('rsys.reference')" />
-                <button type="button" class="btn btn-sm" :disabled="(approveRef[s.id] ?? '').length < 5" @click="act(() => esp05.approveSystem(s.id, approveRef[s.id] ?? ''))">{{ t('rsys.approve') }}</button>
-              </template>
-              <button type="button" class="btn btn-sm" @click="showBuilds(s.id)">{{ t('rsys.builds') }}</button>
-            </div>
-            <ul v-if="builds[s.id]" class="list small"><li v-for="b in builds[s.id]" :key="String(b['_id'])"><bdi class="ltr">{{ b['_id'] }}</bdi> — <StatusBadge :state="String(b['state'])" /> {{ num(Number(b['processed'])) }}<span v-if="b['error']" class="danger" dir="auto"> {{ b['error'] }}</span></li></ul>
-          </li>
-        </ul>
-      </section>
+  <QContainer>
+    <div class="k-stack p-rsys">
+      <QPageHeader compact :title="t('rsys.title')" :description="t('rsys.lead')" :breadcrumb="[{ label: t('shell.platform_admin'), href: '/admin' }, { label: t('rsys.title') }]" />
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+      <QDataState v-if="!data" :state="error ? (error.code === 'FORBIDDEN' ? 'forbidden' : 'error') : 'loading'" skeleton="rows" @retry="load" />
+      <template v-else>
+        <QSection id="systems" small :title="t('rsys.systems')">
+          <p v-if="!data.systems.length" class="p-rsys-muted">{{ t('rsys.none') }}</p>
+          <div class="k-stack">
+            <QCard v-for="s in data.systems" :key="s.id">
+              <div class="k-stack">
+                <div class="p-rsys-head">
+                  <strong class="q-ltr">{{ s.gameId }} · {{ s.mode }} · {{ s.model === 'glicko2' ? 'Glicko-2' : s.model }} (v{{ fa(s.version) }})</strong>
+                  <span class="k-row"><QBadge tone="neutral">{{ t(`rank.subject.${s.subject}` as never) }}</QBadge><QStatusBadge :state="s.state" /></span>
+                </div>
+                <p class="p-rsys-muted">
+                  <QBadge :tone="s.label.official ? 'success' : 'warning'">{{ s.label.official ? t('rank.official') : t('rank.unapproved') }}</QBadge>
+                  <span v-if="s.approval" dir="auto"> {{ s.approval.reference }}</span>
+                </p>
+                <div class="k-row">
+                  <QButton v-if="s.state === 'draft'" size="sm" variant="primary" @click="act(() => esp05.publishSystem(s.id))">{{ t('rsys.publish') }}</QButton>
+                  <template v-if="s.state === 'published' && !s.approval">
+                    <QTextField :id="`ap-${s.id}`" v-model="approveRef[s.id]" :label="t('rsys.reference')" hide-label :placeholder="t('rsys.reference')" />
+                    <QButton size="sm" variant="green" :disabled="(approveRef[s.id] ?? '').length < 5" @click="act(() => esp05.approveSystem(s.id, approveRef[s.id] ?? ''))">{{ t('rsys.approve') }}</QButton>
+                  </template>
+                  <QButton size="sm" variant="ghost" @click="showBuilds(s.id)">{{ t('rsys.builds') }}</QButton>
+                </div>
+                <ul v-if="builds[s.id]" class="p-rsys-log">
+                  <li v-for="b in builds[s.id]" :key="String(b['_id'])"><bdi class="q-ltr q-mono">{{ b['_id'] }}</bdi> <QStatusBadge :state="String(b['state'])" /> {{ num(Number(b['processed'])) }}<span v-if="b['error']" class="p-rsys-err" dir="auto"> {{ b['error'] }}</span></li>
+                </ul>
+              </div>
+            </QCard>
+          </div>
+        </QSection>
 
-      <section class="card stack block" aria-labelledby="new-h">
-        <h2 id="new-h">{{ t('rsys.create') }}</h2>
-        <p class="muted small">{{ t('rsys.createHint') }}</p>
-        <form class="grid" novalidate @submit.prevent="act(() => esp05.createSystem(body()))">
-          <FormField id="rs-g" :label="t('rsys.game')"><template #default="{ id: fid }"><input :id="fid" v-model="f.gameId" class="input ltr" /></template></FormField>
-          <FormField id="rs-m" :label="t('rsys.mode')"><template #default="{ id: fid }"><input :id="fid" v-model="f.mode" class="input ltr" /></template></FormField>
-          <FormField id="rs-p" :label="t('rsys.platform')"><template #default="{ id: fid }"><input :id="fid" v-model="f.platform" class="input ltr" /></template></FormField>
-          <FormField id="rs-s" :label="t('rsys.subject')"><template #default="{ id: fid }"><select :id="fid" v-model="f.subject" class="input"><option value="player">{{ t('rank.subject.player') }}</option><option value="team">{{ t('rank.subject.team') }}</option></select></template></FormField>
-          <FormField id="rs-mo" :label="t('rsys.model')"><template #default="{ id: fid }"><select :id="fid" v-model="f.model" class="input"><option value="glicko2">Glicko-2</option><option value="lobby_points">{{ t('rsys.lobbyPoints') }}</option></select></template></FormField>
-          <template v-if="f.model === 'glicko2'">
-            <FormField id="rs-r" :label="t('rsys.initialRating')"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.initialRating" type="number" class="input ltr" /></template></FormField>
-            <FormField id="rs-rd" label="RD"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.initialRd" type="number" class="input ltr" /></template></FormField>
-            <FormField id="rs-v" :label="t('rsys.volatility')"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.vol" type="number" step="0.01" class="input ltr" /></template></FormField>
-            <FormField id="rs-t" label="τ"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.tau" type="number" step="0.1" class="input ltr" /></template></FormField>
-            <FormField id="rs-pd" :label="t('rsys.periodDays')"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.periodDays" type="number" min="1" class="input ltr" /></template></FormField>
-          </template>
-          <template v-else>
-            <FormField id="rs-pp" :label="t('rsys.placementPoints')" :hint="t('rsys.placementHint')"><template #default="{ id: fid, describedBy }"><input :id="fid" v-model="f.placement" class="input ltr" :aria-describedby="describedBy" /></template></FormField>
-            <FormField id="rs-k" :label="t('rsys.killPoints')"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.kill" type="number" min="0" class="input ltr" /></template></FormField>
-            <FormField id="rs-src" :label="t('rsys.source')"><template #default="{ id: fid }"><input :id="fid" v-model="f.source" class="input" dir="auto" /></template></FormField>
-          </template>
-          <FormField id="rs-in" :label="t('rsys.inactivity')"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.inactivityDays" type="number" min="1" class="input ltr" /></template></FormField>
-          <FormField id="rs-w" :label="t('rsys.weight')"><template #default="{ id: fid }"><input :id="fid" v-model.number="f.weight" type="number" step="0.1" min="0.1" max="3" class="input ltr" /></template></FormField>
-          <FormField id="rs-rb" :label="t('rsys.regionBasis')"><template #default="{ id: fid }"><input :id="fid" v-model="f.regionBasis" class="input" dir="auto" /></template></FormField>
-          <FormField id="rs-el" :label="t('rank.eligibility')"><template #default="{ id: fid }"><input :id="fid" v-model="f.eligibility" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn btn-primary" :disabled="!f.gameId || !f.mode || f.regionBasis.length < 3 || f.eligibility.length < 3">{{ t('rsys.save') }}</button>
-        </form>
-      </section>
+        <QSection id="create" small :title="t('rsys.create')" :description="t('rsys.createHint')">
+          <QCard>
+            <form class="k-stack" novalidate @submit.prevent="act(() => esp05.createSystem(body()))">
+              <div class="p-rsys-form">
+                <QTextField id="rs-g" v-model="f.gameId" :label="t('rsys.game')" ltr />
+                <QTextField id="rs-m" v-model="f.mode" :label="t('rsys.mode')" ltr />
+                <QTextField id="rs-p" v-model="f.platform" :label="t('rsys.platform')" ltr />
+                <QSelect id="rs-s" v-model="f.subject" :label="t('rsys.subject')" :options="[{ value: 'player', label: t('rank.subject.player') }, { value: 'team', label: t('rank.subject.team') }]" />
+                <QSelect id="rs-mo" v-model="f.model" :label="t('rsys.model')" :options="[{ value: 'glicko2', label: 'Glicko-2' }, { value: 'lobby_points', label: t('rsys.lobbyPoints') }]" />
+                <template v-if="f.model === 'glicko2'">
+                  <QTextField id="rs-r" v-model="N.initialRating.value" :label="t('rsys.initialRating')" type="number" ltr />
+                  <QTextField id="rs-rd" v-model="N.initialRd.value" label="RD" type="number" ltr />
+                  <QTextField id="rs-v" v-model="N.vol.value" :label="t('rsys.volatility')" type="number" ltr />
+                  <QTextField id="rs-t" v-model="N.tau.value" label="τ" type="number" ltr />
+                  <QTextField id="rs-pd" v-model="N.periodDays.value" :label="t('rsys.periodDays')" type="number" ltr />
+                </template>
+                <template v-else>
+                  <QTextField id="rs-pp" v-model="f.placement" :label="t('rsys.placementPoints')" :hint="t('rsys.placementHint')" ltr />
+                  <QTextField id="rs-k" v-model="N.kill.value" :label="t('rsys.killPoints')" type="number" ltr />
+                  <QTextField id="rs-src" v-model="f.source" :label="t('rsys.source')" />
+                </template>
+                <QTextField id="rs-in" v-model="N.inactivityDays.value" :label="t('rsys.inactivity')" type="number" ltr />
+                <QTextField id="rs-w" v-model="N.weight.value" :label="t('rsys.weight')" type="number" ltr />
+                <QTextField id="rs-rb" v-model="f.regionBasis" :label="t('rsys.regionBasis')" />
+                <QTextField id="rs-el" v-model="f.eligibility" :label="t('rank.eligibility')" />
+              </div>
+              <div><QButton type="submit" variant="primary" :disabled="!f.gameId || !f.mode || f.regionBasis.length < 3 || f.eligibility.length < 3">{{ t('rsys.save') }}</QButton></div>
+            </form>
+          </QCard>
+        </QSection>
 
-      <section class="card stack block" aria-labelledby="dq-h">
-        <h2 id="dq-h">{{ t('rsys.declaredQueue') }}</h2>
-        <p v-if="!data.queue.length" class="muted">{{ t('rsys.queueEmpty') }}</p>
-        <ul class="list"><li v-for="d in data.queue" :key="d._id"><bdi>{{ d.title }}</bdi> — <bdi>{{ d.eventName }}</bdi> (<bdi class="ltr">{{ d.owner.ref }}</bdi>)
-          <button type="button" class="btn btn-sm" @click="act(() => esp05.reviewDeclared(d._id, 'verified', null))">{{ t('rsys.verify') }}</button>
-          <button type="button" class="btn btn-sm" @click="act(() => esp05.reviewDeclared(d._id, 'rejected', null))">{{ t('rsys.reject') }}</button></li></ul>
-      </section>
-    </template>
-  </DataState>
+        <QSection id="declared" small :title="t('rsys.declaredQueue')">
+          <QCard>
+            <p v-if="!data.queue.length" class="p-rsys-muted">{{ t('rsys.queueEmpty') }}</p>
+            <ul v-else class="p-rsys-rows">
+              <li v-for="d in data.queue" :key="d._id">
+                <span><bdi>{{ d.title }}</bdi> — <bdi>{{ d.eventName }}</bdi> (<bdi class="q-ltr">{{ d.owner.ref }}</bdi>)</span>
+                <span class="k-row">
+                  <QButton size="sm" variant="green" @click="act(() => esp05.reviewDeclared(d._id, 'verified', null))">{{ t('rsys.verify') }}</QButton>
+                  <QButton size="sm" variant="secondary" @click="act(() => esp05.reviewDeclared(d._id, 'rejected', null))">{{ t('rsys.reject') }}</QButton>
+                </span>
+              </li>
+            </ul>
+          </QCard>
+        </QSection>
+      </template>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.cards { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); }
-.item { padding: var(--sp-2); border-block-end: 1px solid var(--border); }
-.between { justify-content: space-between; flex-wrap: wrap; gap: var(--sp-2); }
-.row { flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-3); align-items: end; }
-.block { margin-block-start: var(--sp-4); }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.ok { color: var(--ok); }
-.danger { color: var(--danger); }
-.small { font-size: var(--fs-xs); }
-h2, p { margin: 0; }
+.p-rsys { gap: var(--space-7); }
+.p-rsys-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.p-rsys-muted { margin: 0; color: var(--ink-muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.p-rsys-log { margin: 0; padding-inline-start: var(--space-5); display: flex; flex-direction: column; gap: var(--space-1); font-size: 13px; }
+.p-rsys-err { color: var(--danger-text); }
+.p-rsys-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--space-4); }
+.p-rsys-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.p-rsys-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding-block: var(--space-3); border-block-end: 1px solid var(--line); font-size: 14px; }
 </style>
