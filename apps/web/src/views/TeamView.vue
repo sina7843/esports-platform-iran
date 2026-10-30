@@ -69,7 +69,7 @@ const honors = ref<Honor[]>([]);
 watch(() => team.value?.id, async (id) => {
   if (!id) return;
   career.value = await request<Career>('GET', `/careers/teams/${encodeURIComponent(id)}`).catch(() => null);
-  honors.value = (await esp05.teamHonors(id).catch(() => ({ verified: [] as Honor[] }))).verified;
+  honors.value = (await esp05.teamHonors(id).catch(() => ({ verified: [] as Honor[] })))?.verified ?? [];
 });
 const following = ref(false);
 async function onFollow(v: boolean) {
