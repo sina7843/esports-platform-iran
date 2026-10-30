@@ -84,7 +84,7 @@ describe('match room (ROOM-002/003, CFG-003)', () => {
     const { w } = await mountRoom(null);
     expect(w.text()).toContain('حذف مپ');
     expect(w.text()).toMatch(/ثانیه تا پایان نوبت/);
-    expect(w.text()).not.toContain('بخش خصوصی');
+    expect(w.find('#chat-text').exists()).toBe(false); // guests get the sign-in card, not the private area
     expect(w.findAll('button').some((b) => b.text() === 'm1')).toBe(false);
   });
   it('the side whose turn it is gets the options and sends the step it answers', async () => {
