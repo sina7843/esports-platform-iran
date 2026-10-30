@@ -53,7 +53,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/403', name: 'forbidden', component: () => import('./views/ForbiddenView.vue'), meta: { title: 'forbidden.title', layout: 'public', redesigned: true } },
   { path: '/offline', name: 'offline', component: () => import('./views/OfflineView.vue'), meta: { title: 'offline.title', layout: 'public', redesigned: true } },
 
-  { path: '/account', name: 'account', component: () => import('./views/AccountView.vue'), meta: { requiresAuth: true, title: 'nav.account', layout: 'panel', side: 'account' } },
+  { path: '/account', name: 'account', component: () => import('./views/AccountView.vue'), meta: { requiresAuth: true, title: 'nav.account', layout: 'panel', side: 'account', redesigned: true } },
   { path: '/account/profile', name: 'profile', component: () => import('./views/ProfileView.vue'), meta: { requiresAuth: true, title: 'nav.profile', layout: 'panel', side: 'profile' } },
   { path: '/account/security', name: 'security', component: () => import('./views/SecurityView.vue'), meta: { requiresAuth: true, title: 'nav.security', layout: 'panel', side: 'security' } },
   { path: '/account/notifications', name: 'notifications', component: () => import('./views/NotificationsView.vue'), meta: { requiresAuth: true, title: 'nav.notifications', layout: 'panel', side: 'notifications', redesigned: true } },
