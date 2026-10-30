@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { QBadge, QButton, QCard, QConfirmDialog, QContainer, QDataState, QDataTable, QDateField, QDialog, QEmptyState, QPageHeader, QSearchField, QSelect, QSwitch, QTextField, fa, formatJalali, useToast, type QDataTableColumn } from '@esp/ui';
 import { Roles, roleScopeTypes, ScopeTypes, type Grant, type Role, type ScopeType } from '@esp/contracts';
 import { api, type ApiClientError } from '../api/client';
-import DataState from '../components/DataState.vue';
-import DataTable from '../components/DataTable.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
 import { toClientError } from '../errors';
 import { t } from '../i18n';
-import { isUtcInstant } from '../validators';
+import { session } from '../session';
+
+/**
+ * ACL grants for one scope: list (filter by person/role, show revoked), create with optional expiry, revoke with a reason.
+ * OPEN-QUESTION: spec wants scopes picked by name (`GET /me/acl-scopes`) and people by name (`GET /people?q=`);
+ * neither endpoint exists, so the scope ID and principal ID are still typed.
+ */
+const { push } = useToast();
+const myId = computed(() => session.me?.principal.id ?? '');
+const isAdmin = computed(() => (session.me?.grants ?? []).some((g) => !g.revokedAt && g.scope.type === 'site'));
+const scopeTypes = computed(() => ScopeTypes.filter((s) => isAdmin.value || s !== 'site').map((s) => ({ value: s, label: t(`oa.scope.${s}`) })));
 
 const scopeType = ref<ScopeType>('organization');
 const scopeId = ref('');
@@ -18,17 +23,15 @@ const loaded = ref<{ type: ScopeType; id: string } | null>(null);
 const grants = ref<Grant[]>([]);
 const loading = ref(false);
 const listError = ref<ApiClientError | null>(null);
-const actionError = ref<ApiClientError | null>(null);
-const notice = ref('');
 
 async function loadGrants() {
   if (!scopeId.value.trim()) return;
   loading.value = true;
   listError.value = null;
-  notice.value = '';
   try {
     const scope = { type: scopeType.value, id: scopeId.value.trim() };
     grants.value = (await api.grants(scope.type, scope.id)).items;
+    if (loaded.value?.type !== scope.type || loaded.value.id !== scope.id) roleFilter.value = '';
     loaded.value = scope;
   } catch (e) {
     listError.value = toClientError(e);
@@ -37,151 +40,155 @@ async function loadGrants() {
   }
 }
 
+// ---- filters
+const q = ref('');
+const roleFilter = ref('');
+const showRevoked = ref(false);
+const roleOptions = computed(() => Roles.filter((r) => roleScopeTypes[r].includes(loaded.value?.type ?? scopeType.value)));
+const visible = computed(() =>
+  grants.value.filter((g) => (showRevoked.value || !g.revokedAt) && (!roleFilter.value || g.role === roleFilter.value) && (!q.value.trim() || g.principalId.includes(q.value.trim()))),
+);
+const isOwnTop = (g: Grant) => g.principalId === myId.value && (g.role === 'organizer' || g.role === 'platform_admin');
+const roleTone = (r: string) => (r === 'organizer' || r === 'platform_admin' ? 'green' : 'neutral');
+
 // ---- create
+const createOpen = ref(false);
 const principalId = ref('');
 const role = ref<Role | ''>('');
-const expiresAt = ref('');
+const expiresAt = ref<string | null>(null);
 const reason = ref('');
 const busy = ref(false);
 const submitted = ref(false);
-const roleOptions = computed(() => Roles.filter((r) => roleScopeTypes[r].includes(loaded.value?.type ?? scopeType.value)));
-const expiresError = computed(() => (expiresAt.value && !isUtcInstant(expiresAt.value.trim()) ? t('org.access.expiresInvalid') : ''));
-
+function openCreate() {
+  principalId.value = ''; role.value = ''; expiresAt.value = null; reason.value = ''; submitted.value = false;
+  createOpen.value = true;
+}
 async function create() {
   submitted.value = true;
-  if (!loaded.value || !principalId.value.trim() || !role.value || expiresError.value) return;
+  if (!loaded.value || !principalId.value.trim() || !role.value) return;
+  if (grants.value.some((g) => !g.revokedAt && g.principalId === principalId.value.trim() && g.role === role.value)) {
+    push({ tone: 'danger', message: t('oa.duplicate') });
+    return;
+  }
   busy.value = true;
-  actionError.value = null;
-  notice.value = '';
   try {
     await api.createGrant({
       principalId: principalId.value.trim(),
       role: role.value,
       scope: loaded.value,
-      expiresAt: expiresAt.value.trim() || null,
+      expiresAt: expiresAt.value ? new Date(expiresAt.value).toISOString() : null,
       reason: reason.value.trim() || null,
     });
-    notice.value = t('org.access.created');
-    principalId.value = '';
-    reason.value = '';
-    expiresAt.value = '';
-    submitted.value = false;
+    push({ tone: 'success', message: t('org.access.created') });
+    createOpen.value = false;
     await loadGrants();
   } catch (e) {
-    actionError.value = toClientError(e);
+    push({ tone: 'danger', message: toClientError(e).message });
   } finally {
     busy.value = false;
   }
 }
 
-// ---- revoke (inline reason)
-const revoking = ref<string | null>(null);
-const revokeReason = ref('');
-async function confirmRevoke(id: string) {
+// ---- revoke
+const revoking = ref<Grant | null>(null);
+async function confirmRevoke(r: string) {
+  const g = revoking.value;
+  if (!g) return;
   busy.value = true;
-  actionError.value = null;
-  notice.value = '';
   try {
-    await api.revokeGrant(id, revokeReason.value.trim() || null);
-    notice.value = t('org.access.revoked');
+    await api.revokeGrant(g.id, r.trim());
+    push({ tone: 'success', message: t('org.access.revoked') });
     revoking.value = null;
-    revokeReason.value = '';
     await loadGrants();
   } catch (e) {
-    actionError.value = toClientError(e);
+    push({ tone: 'danger', message: toClientError(e).message });
   } finally {
     busy.value = false;
   }
 }
 
-const cols = () => [
-  { key: 'principalId', label: t('org.access.principalId') },
-  { key: 'role', label: t('org.access.role') },
-  { key: 'grantedBy', label: t('org.access.by') },
-  { key: 'expiresAt', label: t('account.expiresAt') },
-  { key: 'actions', label: '' },
-];
-const active = computed(() => grants.value.filter((g) => !g.revokedAt));
+const cols = computed<QDataTableColumn<Grant>[]>(() => [
+  { key: 'principalId', header: t('oa.person') },
+  { key: 'role', header: t('org.access.role') },
+  { key: 'grantedBy', header: t('org.access.by') },
+  { key: 'grantedAt', header: t('oa.date') },
+  { key: 'expiresAt', header: t('account.expiresAt') },
+]);
 </script>
 
 <template>
-  <PageHeader :title="t('org.access.title')" />
+  <QContainer>
+    <div class="k-stack p-oa">
+      <QPageHeader compact :title="t('oa.title')" :description="t('oa.lead')" :breadcrumb="[{ label: t('oa.crumb'), href: '/organizer' }, { label: t('org.access.title') }]">
+        <template #actions><QButton size="sm" icon="plus" :disabled="!loaded || !!listError" @click="openCreate">{{ t('oa.add') }}</QButton></template>
+      </QPageHeader>
 
-  <form class="card row scope" novalidate @submit.prevent="loadGrants">
-    <FormField id="a-type" :label="t('org.access.scopeType')">
-      <template #default="{ id }">
-        <select :id="id" v-model="scopeType" class="input">
-          <option v-for="s in ScopeTypes" :key="s" :value="s">{{ s }}</option>
-        </select>
-      </template>
-    </FormField>
-    <FormField id="a-scope" :label="t('org.access.scopeId')" required>
-      <template #default="{ id }"><input :id="id" v-model="scopeId" class="input" dir="ltr" /></template>
-    </FormField>
-    <button type="submit" class="btn btn-primary" :disabled="loading || !scopeId.trim()">{{ t('org.access.load') }}</button>
-  </form>
+      <QCard>
+        <form class="p-oa-scope" novalidate @submit.prevent="loadGrants">
+          <QSelect id="a-type" v-model="scopeType" :label="t('org.access.scopeType')" :options="scopeTypes" />
+          <QTextField id="a-scope" v-model="scopeId" :label="t('org.access.scopeId')" required ltr />
+          <QButton type="submit" variant="secondary" :loading="loading" :disabled="!scopeId.trim()">{{ t('org.access.load') }}</QButton>
+        </form>
+      </QCard>
 
-  <p v-if="notice" class="ok" role="status">{{ notice }}</p>
-  <ErrorNote :error="actionError" />
-
-  <section class="block" aria-labelledby="g-h">
-    <DataState :loading="loading" :error="listError" :empty="loaded !== null && active.length === 0" @retry="loadGrants">
-      <p v-if="!loaded" class="muted">{{ t('org.access.pickScope') }}</p>
-      <template v-else>
-        <h2 id="g-h"><bdi class="ltr">{{ loaded.type }}:{{ loaded.id }}</bdi></h2>
-        <DataTable :caption="t('org.access.title')" :columns="cols()" :rows="active" row-key="id" row-header="principalId">
-          <template #cell-principalId="{ row }"><code>{{ (row as Grant).principalId }}</code></template>
-          <template #cell-role="{ row }"><bdi class="ltr">{{ (row as Grant).role }}</bdi></template>
-          <template #cell-grantedBy="{ row }"><code>{{ (row as Grant).grantedBy }}</code></template>
+      <QEmptyState v-if="!loaded && !loading && !listError" compact icon="lock" :title="t('org.access.pickScope')" />
+      <QDataState v-else-if="loading && !loaded" state="loading" skeleton="rows" />
+      <QDataState v-else-if="listError" state="error" :error="listError" @retry="loadGrants" />
+      <template v-else-if="loaded">
+        <div class="p-oa-filters">
+          <QSearchField id="a-q" v-model="q" :label="t('oa.search')" :placeholder="t('oa.search')" />
+          <QSelect id="a-role" v-model="roleFilter" hide-label :label="t('org.access.role')" :options="[{ value: '', label: t('oa.allRoles') }, ...roleOptions.map((r) => ({ value: r, label: r }))]" />
+          <QSwitch id="a-rev" v-model="showRevoked" :label="t('oa.showRevoked')" />
+        </div>
+        <QEmptyState v-if="!grants.filter((g) => !g.revokedAt).length && !showRevoked" icon="lock" :title="t('oa.empty')" :description="t('oa.emptyBody')">
+          <template #action><QButton variant="green" icon="plus" @click="openCreate">{{ t('oa.add') }}</QButton></template>
+        </QEmptyState>
+        <QEmptyState v-else-if="!visible.length" compact icon="search" :title="t('oa.filteredEmpty')" />
+        <QDataTable v-else :caption="`${loaded.type}:${loaded.id}`" row-key="id" row-header="principalId" :columns="cols" :rows="visible">
+          <template #toolbar>{{ t('oa.count', { n: fa(visible.length) }) }}</template>
+          <template #cell-principalId="{ row }">
+            <span><code class="q-mono q-ltr">{{ row.principalId }}</code><span v-if="row.principalId === myId" class="p-oa-muted"> {{ t('oa.you') }}</span></span>
+          </template>
+          <template #cell-role="{ row }"><QBadge :tone="roleTone(row.role)"><bdi class="q-ltr">{{ row.role }}</bdi></QBadge></template>
+          <template #cell-grantedBy="{ row }"><code class="q-mono q-ltr">{{ row.grantedBy }}</code></template>
+          <template #cell-grantedAt="{ row }">{{ row.grantedAt ? formatJalali(row.grantedAt, 'date') : '—' }}</template>
           <template #cell-expiresAt="{ row }">
-            <JalaliDate v-if="(row as Grant).expiresAt" :iso="(row as Grant).expiresAt" />
-            <span v-else class="muted">{{ t('account.never') }}</span>
+            <QBadge v-if="row.revokedAt" tone="danger">{{ t('oa.revokedTag') }}</QBadge>
+            <span v-else-if="row.expiresAt">{{ formatJalali(row.expiresAt) }}</span>
+            <span v-else class="p-oa-muted">{{ t('account.never') }}</span>
           </template>
-          <template #cell-actions="{ row }">
-            <form v-if="revoking === (row as Grant).id" class="row" @submit.prevent="confirmRevoke((row as Grant).id)">
-              <label class="sr-only" :for="`rr-${(row as Grant).id}`">{{ t('org.access.revokeReason') }}</label>
-              <input :id="`rr-${(row as Grant).id}`" v-model="revokeReason" class="input rr" :placeholder="t('org.access.revokeReason')" />
-              <button type="submit" class="btn btn-sm btn-danger" :disabled="busy">{{ t('org.access.revoke') }}</button>
-              <button type="button" class="btn btn-sm" @click="revoking = null">{{ t('common.cancel') }}</button>
-            </form>
-            <button v-else type="button" class="btn btn-sm btn-danger" @click="revoking = (row as Grant).id">{{ t('org.access.revoke') }}</button>
+          <template #row-actions="{ row }">
+            <QButton v-if="!row.revokedAt" size="sm" variant="danger" :disabled="isOwnTop(row)" :title="isOwnTop(row) ? t('oa.selfLock') : undefined" @click="revoking = row">{{ t('org.access.revoke') }}</QButton>
           </template>
-        </DataTable>
+        </QDataTable>
       </template>
-    </DataState>
-  </section>
+    </div>
 
-  <form v-if="loaded" class="card stack create" novalidate @submit.prevent="create">
-    <h2>{{ t('org.access.create') }}</h2>
-    <FormField id="c-pid" :label="t('org.access.principalId')" :error="submitted && !principalId.trim() ? t('common.required') : ''" required>
-      <template #default="{ id, describedBy, invalid }">
-        <input :id="id" v-model="principalId" class="input" dir="ltr" :aria-describedby="describedBy" :aria-invalid="invalid ? 'true' : undefined" />
+    <QDialog :open="createOpen" size="md" :title="t('org.access.create')" @close="createOpen = false">
+      <form id="oa-create" class="k-stack" novalidate @submit.prevent="create">
+        <QTextField id="c-pid" v-model="principalId" :label="t('org.access.principalId')" required ltr :error="submitted && !principalId.trim() ? t('common.required') : ''" />
+        <QSelect id="c-role" v-model="role" :label="t('org.access.role')" required :placeholder="'—'" :options="roleOptions.map((r) => ({ value: r, label: r }))" :error="submitted && !role ? t('common.required') : ''" />
+        <QDateField id="c-exp" v-model="expiresAt" :label="t('org.access.expiresAt')" with-time disable-past />
+        <QTextField id="c-reason" v-model="reason" :label="t('org.access.reason')" :max-length="500" />
+      </form>
+      <template #footer>
+        <QButton variant="secondary" @click="createOpen = false">{{ t('common.cancel') }}</QButton>
+        <QButton type="submit" form="oa-create" :loading="busy">{{ t('org.access.submit') }}</QButton>
       </template>
-    </FormField>
-    <FormField id="c-role" :label="t('org.access.role')" :error="submitted && !role ? t('common.required') : ''" required>
-      <template #default="{ id, describedBy, invalid }">
-        <select :id="id" v-model="role" class="input" :aria-describedby="describedBy" :aria-invalid="invalid ? 'true' : undefined">
-          <option value="" disabled>—</option>
-          <option v-for="r in roleOptions" :key="r" :value="r">{{ r }}</option>
-        </select>
-      </template>
-    </FormField>
-    <FormField id="c-exp" :label="t('org.access.expiresAt')" :error="expiresError">
-      <template #default="{ id, describedBy, invalid }">
-        <input :id="id" v-model="expiresAt" class="input" dir="ltr" placeholder="2026-12-31T00:00:00Z" :aria-describedby="describedBy" :aria-invalid="invalid ? 'true' : undefined" />
-      </template>
-    </FormField>
-    <FormField id="c-reason" :label="t('org.access.reason')">
-      <template #default="{ id }"><input :id="id" v-model="reason" class="input" maxlength="500" /></template>
-    </FormField>
-    <button type="submit" class="btn btn-primary" :disabled="busy">{{ t('org.access.submit') }}</button>
-  </form>
+    </QDialog>
+
+    <QConfirmDialog
+      :open="!!revoking" require-reason :min-reason-length="5" :reason-label="t('org.access.revokeReason')" :loading="busy"
+      :title="t('oa.revokeTitle', { name: revoking?.principalId ?? '' })" :message="revoking ? `${revoking.role} · ${revoking.scope.type}:${revoking.scope.id}` : ''"
+      :confirm-label="t('org.access.revoke')" :cancel-label="t('common.cancel')"
+      @close="revoking = null" @confirm="confirmRevoke"
+    />
+  </QContainer>
 </template>
 
 <style scoped>
-.scope { align-items: flex-end; margin-block-end: var(--sp-4); }
-.block { margin-block: var(--sp-5); }
-.create { max-inline-size: 34rem; }
-.ok { color: var(--ok); font-weight: 600; }
-.rr { min-inline-size: 12rem; }
+.p-oa-scope { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--space-4); align-items: end; }
+.p-oa-filters { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.p-oa-filters > :first-child { flex: 1 1 240px; }
+.p-oa-muted { color: var(--ink-muted); font-size: 13px; }
 </style>
