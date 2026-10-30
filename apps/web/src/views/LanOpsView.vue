@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { QAlert, QButton, QCard, QCheckbox, QContainer, QDataState, QFileUpload, QIcon, QPageHeader, QSegmentedControl, QSelect, QStatusBadge, QTabs, QTextField, fa, formatJalali, num, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp04 as esp04Api, type PublicMatch } from '../api/esp04';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
-
+import { t } from '../i18n';
 /**
  * LAN-001..007 operations: venue and areas, stations (checklist, faults, assignment), equipment and personal equipment,
  * role credentials, the gate (QR and ticket admission — works with keyboard-wedge or camera scanner apps that type the
@@ -96,130 +90,215 @@ async function admit() {
 const offline = reactive({ procedureNo: 'EP-01', kind: 'result', file: null as File | null });
 const decisions = reactive<Record<string, Record<number, boolean>>>({});
 const areaKeys = computed(() => venues.value.flatMap((v) => v.areas.map((a) => a.key)));
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n === '✓' ? t('rv.done') : n, duration: 3000 }); });
+watch(failure, (f) => { if (f) push({ tone: 'danger', message: f.message }); });
+const tab = ref('gate');
+const tabs = computed(() => [
+  { key: 'gate', label: t('lan.gate'), icon: 'qr' as const },
+  { key: 'venue', label: t('lan.venue'), icon: 'map-pin' as const, count: venues.value.length },
+  { key: 'stations', label: t('lan.stations'), icon: 'monitor' as const, count: stations.value.length },
+  { key: 'equipment', label: t('lan.equipment'), icon: 'gamepad' as const, count: equipment.value.length },
+  { key: 'credentials', label: t('lan.credentials'), icon: 'ticket' as const, count: credentials.value.filter((c) => c.state === 'active').length },
+  { key: 'offline', label: t('lan.offline'), icon: 'upload' as const, count: imports.value.length },
+]);
+const gateMode = computed({ get: () => gate.mode, set: (v: string) => { gate.mode = v === 'ticket' ? 'ticket' : 'qr'; } });
+const areaOpts = computed(() => areaKeys.value.map((a) => ({ value: a, label: a })));
+const venueOpts = computed(() => venues.value.map((v) => ({ value: v._id, label: v.name })));
+const stationAreaOpts = computed(() => (venues.value.find((v) => v._id === station.venueId)?.areas ?? []).map((a) => ({ value: a.key, label: a.name })));
+const matchOpts = computed(() => [{ value: '', label: '—' }, ...matches.value.map((m) => ({ value: m.id, label: matchLabel(m) }))]);
+const callable = computed(() => matches.value.filter((x) => ['scheduled', 'awaiting_readiness', 'ready'].includes(x.state)));
+const CRED_ROLES = computed(() => ['player', 'coach', 'media', 'staff', 'spectator'].map((r) => ({ value: r, label: t(`lan.role.${r}` as never) })));
+const setDecision = (impId: string, row: number, v: boolean | null) => { (decisions[impId] ??= {})[row] = !!v; };
 </script>
 
 <template>
-  <DataState :loading="loading && !venues.length" :error="error" @retry="load">
-    <PageHeader :title="t('lan.title')">
-      <template #actions>
-        <RouterLink class="btn btn-sm" :to="`/organizer/events/${eventId}/operations`">{{ t('cops.title') }}</RouterLink>
-        <RouterLink class="btn btn-sm" :to="`/events/${eventId}/hall`">{{ t('hall.title') }}</RouterLink>
-      </template>
-    </PageHeader>
-    <ErrorNote :error="failure" />
-    <p v-if="notice" role="status" class="ok">{{ notice }}</p>
+  <QContainer>
+    <div class="k-stack p-lan">
+      <QPageHeader compact :title="t('lan.title')" :breadcrumb="[{ label: t('oa.crumb'), href: '/organizer' }, { label: t('lan.title') }]">
+        <template #actions>
+          <QButton variant="secondary" size="sm" :href="`/organizer/events/${eventId}/operations`">{{ t('cops.title') }}</QButton>
+          <QButton variant="secondary" size="sm" icon="monitor" :href="`/events/${eventId}/hall`">{{ t('hall.title') }}</QButton>
+        </template>
+      </QPageHeader>
 
-    <section class="card stack block">
-      <h2>{{ t('lan.gate') }}</h2>
-      <form class="row" novalidate @submit.prevent="admit">
-        <FormField id="g-mode" :label="t('lan.mode')"><template #default="{ id }"><select :id="id" v-model="gate.mode" class="input"><option value="qr">{{ t('lan.qr') }}</option><option value="ticket">{{ t('lan.ticket') }}</option></select></template></FormField>
-        <FormField id="g-code" :label="t('lan.code')" :hint="t('lan.codeHint')"><template #default="{ id, describedBy }"><input :id="id" v-model="gate.code" class="input ltr grow" autocomplete="off" :aria-describedby="describedBy" /></template></FormField>
-        <FormField id="g-gate" :label="t('lan.gateName')"><template #default="{ id }"><input :id="id" v-model="gate.gate" class="input ltr input-sm" /></template></FormField>
-        <FormField id="g-area" :label="t('lan.area')"><template #default="{ id }"><select :id="id" v-model="gate.area" class="input"><option v-for="a in areaKeys" :key="a" :value="a">{{ a }}</option></select></template></FormField>
-        <button type="submit" class="btn btn-primary" :disabled="gate.code.trim().length < 6 || !gate.area">{{ t('lan.admit') }}</button>
-      </form>
-      <p v-if="gateResult" :class="gateResult.ok ? 'gate-ok' : 'gate-no'" role="status">{{ gateResult.text }}</p>
-    </section>
+      <QDataState v-if="(loading && !venues.length) || error" :state="error ? 'error' : 'loading'" :error="error" skeleton="rows" @retry="load" />
+      <QTabs v-else v-model="tab" variant="line" overflow="scroll" :items="tabs" :aria-label="t('lan.title')">
+        <template #panel="{ item }">
+          <QCard v-if="item.key === 'gate'">
+            <form class="k-stack" novalidate @submit.prevent="admit">
+              <QSegmentedControl v-model="gateMode" :aria-label="t('lan.mode')" :options="[{ value: 'qr', label: t('lan.qr') }, { value: 'ticket', label: t('lan.ticket') }]" />
+              <div class="p-lan-grid">
+                <QTextField id="g-code" v-model="gate.code" :label="t('lan.code')" :hint="t('lan.codeHint')" ltr auto-complete="off" />
+                <QTextField id="g-gate" v-model="gate.gate" :label="t('lan.gateName')" ltr />
+                <QSelect id="g-area" v-model="gate.area" :label="t('lan.area')" :placeholder="'—'" :options="areaOpts" />
+              </div>
+              <div><QButton type="submit" icon="check" :disabled="gate.code.trim().length < 6 || !gate.area">{{ t('lan.admit') }}</QButton></div>
+              <p v-if="gateResult" :class="['p-lan-gate', gateResult.ok ? 'is-ok' : 'is-no']" role="status">
+                <QIcon :name="gateResult.ok ? 'check-circle' : 'x-circle'" :size="28" /> {{ gateResult.text }}
+              </p>
+            </form>
+          </QCard>
 
-    <section class="card stack block">
-      <h2>{{ t('lan.venue') }}</h2>
-      <article v-for="v in venues" :key="v._id" class="stack"><strong><bdi>{{ v.name }}</bdi></strong><span dir="auto">{{ v.addressText }}</span><span class="muted">{{ v.areas.map((a) => `${a.name} (${num(a.capacity)})`).join('، ') }}</span></article>
-      <details>
-        <summary>{{ t('lan.addVenue') }}</summary>
-        <form class="stack" novalidate @submit.prevent="createVenue">
-          <FormField id="v-n" :label="t('events.name')"><template #default="{ id }"><input :id="id" v-model="venue.name" class="input" dir="auto" /></template></FormField>
-          <FormField id="v-a" :label="t('lan.address')"><template #default="{ id }"><textarea :id="id" v-model="venue.address" class="input" rows="2" dir="auto" /></template></FormField>
-          <FormField id="v-d" :label="t('lan.directions')"><template #default="{ id }"><input :id="id" v-model="venue.directions" class="input" dir="auto" /></template></FormField>
-          <FormField id="v-p" :label="t('lan.parking')"><template #default="{ id }"><input :id="id" v-model="venue.parking" class="input" dir="auto" /></template></FormField>
-          <FormField id="v-g" :label="t('lan.guide')"><template #default="{ id }"><textarea :id="id" v-model="venue.guide" class="input" rows="2" dir="auto" /></template></FormField>
-          <FormField id="v-ar" :label="t('lan.areas')" :hint="t('lan.areasHint')"><template #default="{ id, describedBy }"><textarea :id="id" v-model="venue.areas" class="input" rows="4" dir="auto" :aria-describedby="describedBy" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="venue.name.length < 2 || venue.address.length < 5">{{ t('lan.addVenue') }}</button>
-        </form>
-      </details>
-    </section>
+          <div v-else-if="item.key === 'venue'" class="k-stack">
+            <QCard v-for="v in venues" :key="v._id">
+              <div class="k-stack">
+                <strong><bdi>{{ v.name }}</bdi></strong>
+                <p class="p-lan-p"><bdi>{{ v.addressText }}</bdi></p>
+                <p class="p-lan-muted">{{ v.areas.map((a) => `${a.name} (${num(a.capacity)})`).join('، ') }}</p>
+              </div>
+            </QCard>
+            <QCard>
+              <form class="k-stack" novalidate @submit.prevent="createVenue">
+                <h2 class="h4 p-lan-p">{{ t('lan.addVenue') }}</h2>
+                <div class="p-lan-grid">
+                  <QTextField id="v-n" v-model="venue.name" :label="t('events.name')" required />
+                  <QTextField id="v-d" v-model="venue.directions" :label="t('lan.directions')" />
+                  <QTextField id="v-p" v-model="venue.parking" :label="t('lan.parking')" />
+                </div>
+                <QTextField id="v-a" v-model="venue.address" :label="t('lan.address')" required multiline :rows="2" />
+                <QTextField id="v-g" v-model="venue.guide" :label="t('lan.guide')" multiline :rows="2" />
+                <QTextField id="v-ar" v-model="venue.areas" :label="t('lan.areas')" :hint="t('lan.areasHint')" multiline :rows="4" />
+                <div><QButton type="submit" variant="green" icon="plus" :disabled="venue.name.length < 2 || venue.address.length < 5">{{ t('lan.addVenue') }}</QButton></div>
+              </form>
+            </QCard>
+          </div>
 
-    <section class="card stack block">
-      <h2>{{ t('lan.stations') }}</h2>
-      <ul class="list"><li v-for="s in stations" :key="s._id"><bdi>{{ s.label }}</bdi> ({{ s.areaKey }}) <StatusBadge :state="s.state" /> <span v-if="s.matchId" class="muted">{{ s.matchId }}</span>
-        <button type="button" class="btn btn-sm" @click="act(() => esp04.checklist(s._id, parseChecklist()))">{{ t('lan.applyChecklist') }}</button>
-        <button type="button" class="btn btn-sm btn-danger" :disabled="station.fault.length < 2" @click="act(() => esp04.fault(s._id, station.fault))">{{ t('lan.reportFault') }}</button>
-        <button type="button" class="btn btn-sm" :disabled="!station.matchId" @click="act(() => esp04.assignStation(station.matchId, s._id, 'assignment'))">{{ t('lan.assign') }}</button></li></ul>
-      <div class="grid">
-        <FormField id="st-cl" :label="t('lan.checklist')" :hint="t('lan.checklistHint')"><template #default="{ id, describedBy }"><textarea :id="id" v-model="station.checklist" class="input" rows="4" dir="auto" :aria-describedby="describedBy" /></template></FormField>
-        <FormField id="st-f" :label="t('lan.faultNote')"><template #default="{ id }"><input :id="id" v-model="station.fault" class="input" dir="auto" /></template></FormField>
-        <FormField id="st-m" :label="t('lan.matchToAssign')"><template #default="{ id }"><select :id="id" v-model="station.matchId" class="input"><option value="">—</option><option v-for="m in matches" :key="m.id" :value="m.id">{{ matchLabel(m) }}</option></select></template></FormField>
-      </div>
-      <form class="row" novalidate @submit.prevent="act(() => esp04.addStation(station.venueId, station.areaKey, station.label))">
-        <FormField id="st-v" :label="t('lan.venue')"><template #default="{ id }"><select :id="id" v-model="station.venueId" class="input"><option v-for="v in venues" :key="v._id" :value="v._id">{{ v.name }}</option></select></template></FormField>
-        <FormField id="st-a" :label="t('lan.area')"><template #default="{ id }"><select :id="id" v-model="station.areaKey" class="input"><option v-for="a in venues.find((v) => v._id === station.venueId)?.areas ?? []" :key="a.key" :value="a.key">{{ a.name }}</option></select></template></FormField>
-        <FormField id="st-l" :label="t('lan.label')"><template #default="{ id }"><input :id="id" v-model="station.label" class="input ltr input-sm" /></template></FormField>
-        <button type="submit" class="btn btn-sm" :disabled="!station.venueId || !station.areaKey || !station.label">{{ t('lan.addStation') }}</button>
-      </form>
-      <div class="row"><button v-for="m in matches.filter((x) => ['scheduled', 'awaiting_readiness', 'ready'].includes(x.state))" :key="m.id" type="button" class="btn btn-sm" @click="act(() => esp04.callUp(m.id), t('lan.called'))">{{ t('lan.callUp') }}: <bdi>{{ matchLabel(m) }}</bdi></button></div>
-    </section>
+          <div v-else-if="item.key === 'stations'" class="k-stack">
+            <QCard>
+              <div class="p-lan-grid">
+                <QTextField id="st-cl" v-model="station.checklist" :label="t('lan.checklist')" :hint="t('lan.checklistHint')" multiline :rows="4" />
+                <QTextField id="st-f" v-model="station.fault" :label="t('lan.faultNote')" />
+                <QSelect id="st-m" v-model="station.matchId" :label="t('lan.matchToAssign')" :options="matchOpts" />
+              </div>
+            </QCard>
+            <QCard padding="none">
+              <ul class="p-lan-rows">
+                <li v-for="s in stations" :key="s._id">
+                  <span><strong><bdi>{{ s.label }}</bdi></strong> <span class="p-lan-muted q-ltr">({{ s.areaKey }})</span> <QStatusBadge :state="s.state" /> <code v-if="s.matchId" class="q-mono q-ltr p-lan-muted">{{ s.matchId }}</code></span>
+                  <span class="k-row">
+                    <QButton size="sm" variant="secondary" icon="check" @click="act(() => esp04.checklist(s._id, parseChecklist()))">{{ t('lan.applyChecklist') }}</QButton>
+                    <QButton size="sm" variant="secondary" :disabled="!station.matchId" @click="act(() => esp04.assignStation(station.matchId, s._id, 'assignment'))">{{ t('lan.assign') }}</QButton>
+                    <QButton size="sm" variant="danger" :disabled="station.fault.length < 2" @click="act(() => esp04.fault(s._id, station.fault))">{{ t('lan.reportFault') }}</QButton>
+                  </span>
+                </li>
+                <li v-if="!stations.length" class="p-lan-muted">{{ t('lan.noStations') }}</li>
+              </ul>
+            </QCard>
+            <QCard>
+              <form class="p-lan-grid" novalidate @submit.prevent="act(() => esp04.addStation(station.venueId, station.areaKey, station.label))">
+                <QSelect id="st-v" v-model="station.venueId" :label="t('lan.venue')" :placeholder="'—'" :options="venueOpts" />
+                <QSelect id="st-a" v-model="station.areaKey" :label="t('lan.area')" :placeholder="'—'" :options="stationAreaOpts" />
+                <QTextField id="st-l" v-model="station.label" :label="t('lan.label')" ltr />
+                <div><QButton type="submit" variant="green" icon="plus" :disabled="!station.venueId || !station.areaKey || !station.label">{{ t('lan.addStation') }}</QButton></div>
+              </form>
+            </QCard>
+            <div v-if="callable.length" class="k-row">
+              <QButton v-for="m in callable" :key="m.id" size="sm" variant="secondary" icon="bell" @click="act(() => esp04.callUp(m.id), t('lan.called'))">{{ t('lan.callUp') }}: <bdi>{{ matchLabel(m) }}</bdi></QButton>
+            </div>
+          </div>
 
-    <section class="card stack block">
-      <h2>{{ t('lan.equipment') }}</h2>
-      <ul class="list"><li v-for="e in equipment" :key="e._id"><bdi>{{ e.label }}</bdi> <StatusBadge :state="e.state" />
-        <button v-if="e.state === 'available'" type="button" class="btn btn-sm" :disabled="!eq.to" @click="act(() => esp04.loan(e._id, eq.to, eq.condition))">{{ t('lan.loan') }}</button>
-        <button v-if="e.state === 'loaned'" type="button" class="btn btn-sm" @click="act(() => esp04.returnEquipment(e._id, eq.condition, false))">{{ t('lan.return') }}</button>
-        <button v-if="e.state === 'loaned'" type="button" class="btn btn-sm btn-danger" @click="act(() => esp04.returnEquipment(e._id, eq.condition, true))">{{ t('lan.returnFaulty') }}</button></li></ul>
-      <div class="grid">
-        <FormField id="eq-to" :label="t('lan.loanTo')"><template #default="{ id }"><input :id="id" v-model="eq.to" class="input ltr" /></template></FormField>
-        <FormField id="eq-c" :label="t('lan.condition')"><template #default="{ id }"><input :id="id" v-model="eq.condition" class="input" dir="auto" /></template></FormField>
-      </div>
-      <form class="row" novalidate @submit.prevent="act(() => esp04.addEquipment(eventId, { label: eq.label, kind: eq.kind, serial: eq.serial || null }))">
-        <FormField id="eq-l" :label="t('lan.label')"><template #default="{ id }"><input :id="id" v-model="eq.label" class="input" dir="auto" /></template></FormField>
-        <FormField id="eq-k" :label="t('mgmt.kind')"><template #default="{ id }"><input :id="id" v-model="eq.kind" class="input ltr input-sm" /></template></FormField>
-        <FormField id="eq-s" :label="t('lan.serial')"><template #default="{ id }"><input :id="id" v-model="eq.serial" class="input ltr input-sm" /></template></FormField>
-        <button type="submit" class="btn btn-sm" :disabled="!eq.label">{{ t('lan.addEquipment') }}</button>
-      </form>
-      <h3>{{ t('lan.personal') }}</h3>
-      <ul class="list"><li v-for="p in personal" :key="p._id"><span dir="auto">{{ p.item }}</span> — <bdi class="ltr">{{ p.principalId }}</bdi> <StatusBadge :state="p.state" />
-        <template v-if="p.state === 'pending'"><button type="button" class="btn btn-sm" @click="act(() => esp04.decidePersonal(p._id, true, 'inspected'))">{{ t('evm.approve') }}</button><button type="button" class="btn btn-sm" @click="act(() => esp04.decidePersonal(p._id, false, 'not allowed'))">{{ t('evm.reject') }}</button></template></li></ul>
-    </section>
+          <div v-else-if="item.key === 'equipment'" class="k-stack">
+            <QCard>
+              <div class="p-lan-grid">
+                <QTextField id="eq-to" v-model="eq.to" :label="t('lan.loanTo')" ltr />
+                <QTextField id="eq-c" v-model="eq.condition" :label="t('lan.condition')" />
+              </div>
+            </QCard>
+            <QCard padding="none">
+              <ul class="p-lan-rows">
+                <li v-for="e in equipment" :key="e._id">
+                  <span><bdi>{{ e.label }}</bdi> <QStatusBadge :state="e.state" /></span>
+                  <span class="k-row">
+                    <QButton v-if="e.state === 'available'" size="sm" variant="secondary" :disabled="!eq.to" @click="act(() => esp04.loan(e._id, eq.to, eq.condition))">{{ t('lan.loan') }}</QButton>
+                    <QButton v-if="e.state === 'loaned'" size="sm" variant="secondary" @click="act(() => esp04.returnEquipment(e._id, eq.condition, false))">{{ t('lan.return') }}</QButton>
+                    <QButton v-if="e.state === 'loaned'" size="sm" variant="danger" @click="act(() => esp04.returnEquipment(e._id, eq.condition, true))">{{ t('lan.returnFaulty') }}</QButton>
+                  </span>
+                </li>
+              </ul>
+            </QCard>
+            <QCard>
+              <form class="p-lan-grid" novalidate @submit.prevent="act(() => esp04.addEquipment(eventId, { label: eq.label, kind: eq.kind, serial: eq.serial || null }))">
+                <QTextField id="eq-l" v-model="eq.label" :label="t('lan.label')" />
+                <QTextField id="eq-k" v-model="eq.kind" :label="t('mgmt.kind')" ltr />
+                <QTextField id="eq-s" v-model="eq.serial" :label="t('lan.serial')" ltr />
+                <div><QButton type="submit" variant="green" icon="plus" :disabled="!eq.label">{{ t('lan.addEquipment') }}</QButton></div>
+              </form>
+            </QCard>
+            <h2 class="h4 p-lan-p">{{ t('lan.personal') }}</h2>
+            <QCard padding="none">
+              <ul class="p-lan-rows">
+                <li v-for="p in personal" :key="p._id">
+                  <span><bdi>{{ p.item }}</bdi> — <code class="q-mono q-ltr">{{ p.principalId }}</code> <QStatusBadge :state="p.state" /></span>
+                  <span v-if="p.state === 'pending'" class="k-row">
+                    <QButton size="sm" variant="green" @click="act(() => esp04.decidePersonal(p._id, true, 'inspected'))">{{ t('evm.approve') }}</QButton>
+                    <QButton size="sm" variant="danger" @click="act(() => esp04.decidePersonal(p._id, false, 'not allowed'))">{{ t('evm.reject') }}</QButton>
+                  </span>
+                </li>
+                <li v-if="!personal.length" class="p-lan-muted">—</li>
+              </ul>
+            </QCard>
+          </div>
 
-    <section class="card stack block">
-      <h2>{{ t('lan.credentials') }}</h2>
-      <form class="row" novalidate @submit.prevent="act(() => esp04.issueCredential(eventId, { principalId: cred.principalId, role: cred.role }))">
-        <FormField id="cr-p" :label="t('lan.principalId')"><template #default="{ id }"><input :id="id" v-model="cred.principalId" class="input ltr" /></template></FormField>
-        <FormField id="cr-r" :label="t('lan.roleLabel')"><template #default="{ id }"><select :id="id" v-model="cred.role" class="input"><option v-for="r in ['player', 'coach', 'media', 'staff', 'spectator']" :key="r" :value="r">{{ t(`lan.role.${r}` as never) }}</option></select></template></FormField>
-        <button type="submit" class="btn btn-sm" :disabled="!cred.principalId">{{ t('lan.issue') }}</button>
-      </form>
-      <ul class="list"><li v-for="c in credentials" :key="c.id"><bdi class="ltr">{{ c.principalId }}</bdi> — {{ t(`lan.role.${c.role}` as never) }} — {{ c.areas.join('، ') }} <StatusBadge :state="c.state" /><button v-if="c.state === 'active'" type="button" class="btn btn-sm btn-danger" @click="act(() => esp04.revokeCredential(c.id))">{{ t('lan.revoke') }}</button></li></ul>
-    </section>
+          <div v-else-if="item.key === 'credentials'" class="k-stack">
+            <QCard>
+              <form class="p-lan-grid" novalidate @submit.prevent="act(() => esp04.issueCredential(eventId, { principalId: cred.principalId, role: cred.role }))">
+                <QTextField id="cr-p" v-model="cred.principalId" :label="t('lan.principalId')" ltr />
+                <QSelect id="cr-r" v-model="cred.role" :label="t('lan.roleLabel')" :options="CRED_ROLES" />
+                <div><QButton type="submit" variant="green" icon="ticket" :disabled="!cred.principalId">{{ t('lan.issue') }}</QButton></div>
+              </form>
+            </QCard>
+            <QCard padding="none">
+              <ul class="p-lan-rows">
+                <li v-for="c in credentials" :key="c.id">
+                  <span><code class="q-mono q-ltr">{{ c.principalId }}</code> — {{ t(`lan.role.${c.role}` as never) }} — <span class="p-lan-muted">{{ c.areas.join('، ') }}</span> <QStatusBadge :state="c.state" /></span>
+                  <QButton v-if="c.state === 'active'" size="sm" variant="danger" @click="act(() => esp04.revokeCredential(c.id))">{{ t('lan.revoke') }}</QButton>
+                </li>
+                <li v-if="!credentials.length" class="p-lan-muted">—</li>
+              </ul>
+            </QCard>
+          </div>
 
-    <section class="card stack block">
-      <h2>{{ t('lan.offline') }}</h2>
-      <p class="muted">{{ t('lan.offlineHint') }}</p>
-      <form class="row" novalidate @submit.prevent="act(() => esp04.importOffline(eventId, offline.procedureNo, offline.kind, offline.file!))">
-        <FormField id="of-p" :label="t('lan.procedure')"><template #default="{ id }"><input :id="id" v-model="offline.procedureNo" class="input ltr input-sm" /></template></FormField>
-        <FormField id="of-k" :label="t('mgmt.kind')"><template #default="{ id }"><select :id="id" v-model="offline.kind" class="input"><option value="result">{{ t('lan.kindResult') }}</option><option value="attendance">{{ t('lan.kindAttendance') }}</option></select></template></FormField>
-        <FormField id="of-f" :label="t('lan.csv')"><template #default="{ id }"><input :id="id" type="file" accept=".csv,text/csv" class="input" @change="offline.file = ($event.target as HTMLInputElement).files?.[0] ?? null" /></template></FormField>
-        <button type="submit" class="btn btn-sm" :disabled="!offline.file">{{ t('lan.import') }}</button>
-      </form>
-      <article v-for="imp in imports" :key="imp._id" class="card stack">
-        <p>{{ imp.procedureNo }} — {{ imp.kind }} — <StatusBadge :state="imp.state" /> <JalaliDate :iso="imp.createdAt" /></p>
-        <ul class="list"><li v-for="r in imp.rows" :key="r.row"><label class="row"><input v-if="r.status === 'pending'" v-model="(decisions[imp._id] ??= {})[r.row]" type="checkbox" :aria-label="t('lan.applyRow', { n: num(r.row) })" /> #{{ num(r.row) }} <bdi class="ltr small">{{ Object.values(r.data).join(' | ') }}</bdi> <StatusBadge :state="r.status" /> <span v-if="r.conflict" dir="auto" class="warn">{{ r.conflict }}</span></label></li></ul>
-        <div class="row">
-          <button type="button" class="btn btn-sm btn-primary" @click="act(() => esp04.decideOffline(imp._id, imp.rows.filter((r) => r.status === 'pending').map((r) => ({ row: r.row, apply: !!decisions[imp._id]?.[r.row] }))))">{{ t('lan.decide') }}</button>
-        </div>
-      </article>
-    </section>
-  </DataState>
+          <div v-else class="k-stack">
+            <QAlert tone="warning">{{ t('lan.offlineHint') }}</QAlert>
+            <QCard>
+              <form class="k-stack" novalidate @submit.prevent="act(() => esp04.importOffline(eventId, offline.procedureNo, offline.kind, offline.file!))">
+                <div class="p-lan-grid">
+                  <QTextField id="of-p" v-model="offline.procedureNo" :label="t('lan.procedure')" ltr />
+                  <QSelect id="of-k" v-model="offline.kind" :label="t('mgmt.kind')" :options="[{ value: 'result', label: t('lan.kindResult') }, { value: 'attendance', label: t('lan.kindAttendance') }]" />
+                </div>
+                <QFileUpload id="of-f" :label="t('lan.csv')" accept=".csv,text/csv" :multiple="false" :files="offline.file ? [{ name: offline.file.name, size: offline.file.size, scanState: 'pending' }] : []" @files="(fs) => (offline.file = fs[0] ?? null)" />
+                <div><QButton type="submit" icon="upload" :disabled="!offline.file">{{ t('lan.import') }}</QButton></div>
+              </form>
+            </QCard>
+            <QCard v-for="imp in imports" :key="imp._id">
+              <div class="k-stack">
+                <p class="p-lan-p"><code class="q-mono q-ltr">{{ imp.procedureNo }}</code> — {{ imp.kind }} — <QStatusBadge :state="imp.state" /> <span class="p-lan-muted">{{ formatJalali(imp.createdAt) }}</span></p>
+                <ul class="p-lan-rows">
+                  <li v-for="r in imp.rows" :key="r.row">
+                    <QCheckbox v-if="r.status === 'pending'" :model-value="!!decisions[imp._id]?.[r.row]" :label="t('lan.applyRow', { n: fa(r.row) })" @update:model-value="(v) => setDecision(imp._id, r.row, v)" />
+                    <span v-else>#{{ fa(r.row) }}</span>
+                    <span><code class="q-mono q-ltr">{{ Object.values(r.data).join(' | ') }}</code> <QStatusBadge :state="r.status" /> <span v-if="r.conflict" class="p-lan-warn"><bdi>{{ r.conflict }}</bdi></span></span>
+                  </li>
+                </ul>
+                <div><QButton @click="act(() => esp04.decideOffline(imp._id, imp.rows.filter((r) => r.status === 'pending').map((r) => ({ row: r.row, apply: !!decisions[imp._id]?.[r.row] }))))">{{ t('lan.decide') }}</QButton></div>
+              </div>
+            </QCard>
+          </div>
+        </template>
+      </QTabs>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.block { margin-block-start: var(--sp-4); }
-.row { flex-wrap: wrap; gap: var(--sp-2); align-items: flex-end; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--sp-3); }
-.list { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-1); }
-.grow { min-inline-size: 16rem; }
-.input-sm { max-inline-size: 9rem; }
-.gate-ok { background: var(--ok-soft); color: var(--ok); padding: var(--sp-3); font-size: var(--fs-lg, 1.25rem); font-weight: 700; border-radius: var(--radius-md); }
-.gate-no { background: var(--danger-soft); color: var(--danger); padding: var(--sp-3); font-size: var(--fs-lg, 1.25rem); font-weight: 700; border-radius: var(--radius-md); }
-.ok { color: var(--ok); }
-.warn { color: var(--warn); }
-.small { font-size: var(--fs-xs); }
-h2, h3, p { margin: 0; }
+.p-lan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--space-4); align-items: end; }
+.p-lan-rows { margin: 0; padding: 0; list-style: none; }
+.p-lan-rows > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-block-end: 1px solid var(--line); }
+.p-lan-p { margin: 0; }
+.p-lan-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-lan-warn { color: var(--warning-text); }
+.p-lan-gate { display: flex; align-items: center; gap: var(--space-3); margin: 0; padding: var(--space-4); border-radius: var(--radius-md); font-size: 20px; font-weight: 800; }
+.p-lan-gate.is-ok { background: var(--success-soft); color: var(--success-text); }
+.p-lan-gate.is-no { background: var(--danger-soft); color: var(--danger-text); }
 </style>
