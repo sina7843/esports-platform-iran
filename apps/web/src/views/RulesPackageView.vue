@@ -206,7 +206,7 @@ function allowed(c: RulesPackage['clauses'][number]): string {
         </QCard>
       </QSection>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="withdrawing" :title="t('rp.withdrawTitle')" :message="t('rp.withdrawBody')" :confirm-label="t('rp.withdraw')" :cancel-label="t('rp.cancel')"
       @close="withdrawing = false" @confirm="withdrawing = false; transition('withdraw')"
     />

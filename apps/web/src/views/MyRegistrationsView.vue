@@ -180,7 +180,7 @@ const buy = () => act(async () => { const r = await call.subscribe(plan.plan, pl
         </QSection>
       </template>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="!!withdrawing" :title="t('reg.withdraw')" :message="t('reg.withdrawConfirm')" :confirm-label="t('reg.withdraw')" :cancel-label="t('rg.cancel')"
       @close="withdrawing = null" @confirm="confirmWithdraw"
     />

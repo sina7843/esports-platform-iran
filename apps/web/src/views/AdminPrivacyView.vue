@@ -145,7 +145,7 @@ const listState = (l: { loading: { value: boolean }; error: { value: ApiClientEr
         </div>
       </QSection>
     </div>
-    <QConfirmDialog :open="confirmRun" icon="trash" :title="t('a7.privacy.run')" :message="t('a7.privacy.retentionLead')" :confirm-label="t('a7.privacy.run')" :cancel-label="t('ap.cancel')" @close="confirmRun = false" @confirm="runReal" />
+    <QConfirmDialog :require-reason="false" :open="confirmRun" icon="trash" :title="t('a7.privacy.run')" :message="t('a7.privacy.retentionLead')" :confirm-label="t('a7.privacy.run')" :cancel-label="t('ap.cancel')" @close="confirmRun = false" @confirm="runReal" />
   </QContainer>
 </template>
 

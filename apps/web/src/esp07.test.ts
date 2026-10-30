@@ -52,7 +52,7 @@ describe('ESP-07 web', () => {
     ]));
     const w = await at('/organizer/events/e1/ops', EventOpsView, 'organizer');
     expect(w.text()).toContain('1 open cases'); // alert from the dashboard
-    expect(w.find('[role="alert"]').exists()).toBe(true);
+    expect(w.find('.q-ops-alert').exists()).toBe(true);
     await w.find('#bk-refs').setValue('r1, r2');
     await w.find('form button[type="submit"]').trigger('submit');
     await flushPromises();
@@ -62,6 +62,8 @@ describe('ESP-07 web', () => {
     const run = w.findAll('button').find((b) => b.text().includes('اجرای'));
     expect(run).toBeTruthy();
     await run!.trigger('click');
+    await flushPromises();
+    await w.findAll('.q-dialog button').filter((b) => b.text() === 'اجرا').at(-1)!.trigger('click');
     await flushPromises();
     expect(w.text()).toContain('version conflict'); // the failure is shown on its own row
   });

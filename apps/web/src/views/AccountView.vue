@@ -189,11 +189,11 @@ const facts = computed(() => {
         </QDataTable>
       </QSection>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="!!ending" icon="logout" :title="t('ac.endTitle')" :message="ending ? t('ac.endBody', { device: device(ending.userAgent) }) : ''"
       :confirm-label="t('ac.confirmEnd')" :cancel-label="t('ac.cancel')" :loading="busy" @close="ending = null" @confirm="confirmEnd"
     />
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="endingOthers" icon="logout" :title="t('ac.othersTitle')" :message="t('ac.othersBody')"
       :confirm-label="t('ac.confirmOthers')" :cancel-label="t('ac.cancel')" :loading="busy" @close="endingOthers = false" @confirm="confirmOthers"
     />

@@ -130,7 +130,7 @@ const sendAppeal = () => act(async () => { await esp07.appeal(appealId.value, ap
         </QCard>
       </QSection>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="askDelete" icon="trash" :title="t('a7.me.deletion')" :message="t('a7.me.deletionWarning')" :confirm-label="t('a7.me.deletion')" :cancel-label="t('pv.cancel')"
       @close="askDelete = false" @confirm="sendDeletion"
     />

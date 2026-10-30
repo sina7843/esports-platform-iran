@@ -130,7 +130,7 @@ const healthStatus = (s: string) => (['healthy', 'ok', 'configured', 'available'
         <div><QButton variant="danger" icon="refresh" @click="rotating = true">{{ t('a7.settings.rotate') }}</QButton></div>
       </QSection>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="rotating" icon="refresh" :title="t('a7.settings.rotateTitle')" :message="t('a7.settings.rotateLead')" :confirm-label="t('a7.settings.rotate')" :cancel-label="t('as.cancel')"
       @close="rotating = false" @confirm="rotating = false; rotate()"
     />

@@ -122,7 +122,7 @@ const onCode = (v: string | undefined) => { code.value = v ?? ''; };
         </QCard>
       </QSection>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="confirmingDelete" icon="trash" :title="t('security.delete')" :message="t('security.deleteConfirm')" :confirm-label="t('security.delete')" :cancel-label="t('sc.cancel')"
       :loading="busy" @close="confirmingDelete = false" @confirm="confirmingDelete = false; deleteAccount()"
     />

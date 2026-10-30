@@ -183,7 +183,7 @@ const rank = (p: number | null) => (p === 1 || p === 2 || p === 3 ? p : undefine
         </aside>
       </div>
     </div>
-    <QConfirmDialog
+    <QConfirmDialog :require-reason="false"
       :open="blocking" icon="ban" :title="t('pl.blockTitle', { name: data?.nickname ?? '' })" :message="t('pl.blockBody')"
       :confirm-label="t('pl.blockConfirm')" :cancel-label="t('pl.cancel')" @close="blocking = false" @confirm="block"
     />

@@ -168,7 +168,7 @@ const kickable = (id: string | number | undefined) => {
       :confirm-label="t('teams.kick')" :cancel-label="t('tm.cancel')" @close="kicking = null"
       @confirm="(r) => { kickReason = r; const id = kicking; kicking = null; if (id) kick(id); }"
     />
-    <QConfirmDialog :open="leaving" :title="t('teams.leave')" :message="t('tm.leaveBody')" :confirm-label="t('teams.leave')" :cancel-label="t('tm.cancel')" @close="leaving = false" @confirm="leaving = false; leave()" />
+    <QConfirmDialog :require-reason="false" :open="leaving" :title="t('teams.leave')" :message="t('tm.leaveBody')" :confirm-label="t('teams.leave')" :cancel-label="t('tm.cancel')" @close="leaving = false" @confirm="leaving = false; leave()" />
   </QContainer>
 </template>
 
