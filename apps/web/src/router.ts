@@ -61,7 +61,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/account/certificates', name: 'my-certificates', component: () => import('./views/CertificatesView.vue'), meta: { requiresAuth: true, title: 'cert.title', layout: 'panel', side: 'certificates', redesigned: true } },
   { path: '/account/calendar', name: 'my-calendar', component: () => import('./views/MyCalendarView.vue'), meta: { requiresAuth: true, title: 'cal.title', layout: 'panel', side: 'calendar' } },
   { path: '/events/:id/my-qr', name: 'my-qr', component: () => import('./views/MyQrView.vue'), meta: { requiresAuth: true, title: 'qr.title', layout: 'panel', side: 'registrations', redesigned: true } },
-  { path: '/payments/return', name: 'payment-return', component: () => import('./views/PaymentReturnView.vue'), meta: { requiresAuth: true, title: 'pay.title', layout: 'panel', side: 'registrations' } },
+  { path: '/payments/return', name: 'payment-return', component: () => import('./views/PaymentReturnView.vue'), meta: { requiresAuth: true, title: 'pay.title', layout: 'panel', side: 'registrations', redesigned: true } },
   { path: '/account/settings', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'nav.settings', layout: 'panel', side: 'settings', redesigned: true } },
 
   { path: '/team', name: 'team', component: Shell, meta: { requiresAuth: true, permission: 'team.read_private', title: 'nav.team', shell: true, layout: 'panel', side: 'team-panel' } },
@@ -83,7 +83,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/admin/ops', name: 'admin-ops', component: () => import('./views/AdminOpsView.vue'), meta: { requiresAuth: true, permission: 'outbox.read', title: 'nav.ops', layout: 'panel', side: 'admin-ops' } },
 
   { path: '/support', name: 'support', component: () => import('./views/SupportView.vue'), meta: { requiresAuth: true, title: 'a7.nav.support', layout: 'panel', side: 'support' } },
-  { path: '/account/privacy', name: 'my-privacy', component: () => import('./views/PrivacyView.vue'), meta: { requiresAuth: true, title: 'a7.nav.myPrivacy', layout: 'panel', side: 'privacy' } },
+  { path: '/account/privacy', name: 'my-privacy', component: () => import('./views/PrivacyView.vue'), meta: { requiresAuth: true, title: 'a7.nav.myPrivacy', layout: 'panel', side: 'privacy', redesigned: true } },
   { path: '/legal/:kind', name: 'legal', component: () => import('./views/LegalView.vue'), meta: { title: 'a7.nav.myPrivacy', layout: 'public', redesigned: true } },
   { path: '/organizer/events/:id/ops', name: 'event-ops', component: () => import('./views/EventOpsView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'a7.nav.eventOps', layout: 'panel', side: 'organizer' } },
   { path: '/admin/users', name: 'admin-users', component: () => import('./views/AdminUsersView.vue'), meta: { requiresAuth: true, permission: 'admin.users', title: 'a7.nav.users', layout: 'panel', side: 'admin-users' } },

@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { QAlert, QButton, QContainer, QDataState, QEmptyState, QPageHeader, QReceipt, QStatusBadge, formatJalali, toman, type QReceiptPaymentState } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp03, type Order } from '../api/esp03';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import MoneyLabel from '../components/MoneyLabel.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t } from '../i18n';
 import { startPayment } from '../payment';
 
 /**
@@ -62,63 +57,48 @@ onMounted(() => {
 });
 onBeforeUnmount(() => clearTimeout(timer));
 const printReceipt = () => window.print();
+const pay = computed(() => order.value?.payments[0] ?? null);
+const receiptState = computed<QReceiptPaymentState | undefined>(() => (pay.value?.state as QReceiptPaymentState | undefined));
+const canRetry = computed(() => order.value?.state === 'open' && !order.value.payments.some((p) => ['awaiting_gateway', 'unknown'].includes(p.state)));
+const items = computed(() => (order.value?.items ?? []).map((it) => ({ label: it.quantity > 1 ? `${it.description} × ${it.quantity}` : it.description, amountRial: it.amountRial * it.quantity })));
+const refunded = computed(() => (order.value?.payments ?? []).reduce((n, p) => n + (p.refundedRial ?? 0), 0));
 </script>
 
 <template>
-  <PageHeader :title="t('pay.title')" />
-  <p v-if="!orderId" class="muted">{{ t('pay.noOrder') }}</p>
-  <DataState v-else :loading="loading && !order" :error="error && !order ? error : null" @retry="tick">
-    <template v-if="order">
-      <section class="card stack receipt" aria-live="polite">
-        <div class="row between">
-          <h2>{{ order.receiptNo ? t('pay.receipt') : t('pay.order') }}</h2>
-          <StatusBadge :state="order.state" />
-        </div>
-        <p v-if="order.state === 'paid'" class="ok" role="status">{{ t('pay.paid') }}</p>
-        <p v-else-if="order.payments[0]?.state === 'failed'" class="warn" role="alert">{{ t('pay.failed') }}</p>
-        <p v-else-if="!FINAL.includes(order.state)" class="muted" role="status">{{ t('pay.pending') }}</p>
-        <dl class="kv">
-          <div v-if="order.receiptNo"><dt>{{ t('pay.receiptNo') }}</dt><dd><bdi class="ltr">{{ order.receiptNo }}</bdi></dd></div>
-          <div><dt>{{ t('pay.orderId') }}</dt><dd><bdi class="ltr">{{ order.id }}</bdi></dd></div>
-          <div><dt>{{ t('pay.date') }}</dt><dd><JalaliDate :iso="order.createdAt" /></dd></div>
-        </dl>
-        <table class="items">
-          <caption class="sr-only">{{ t('pay.items') }}</caption>
-          <tbody>
-            <tr v-for="(it, i) in order.items" :key="i"><th scope="row"><bdi>{{ it.description }}</bdi> × {{ num(it.quantity) }}</th><td><MoneyLabel :rial="it.amountRial * it.quantity" /></td></tr>
-            <tr v-if="order.discountRial"><th scope="row">{{ t('pay.discount') }}</th><td>− <MoneyLabel :rial="order.discountRial" /></td></tr>
-            <tr v-if="order.feeRial"><th scope="row">{{ t('pay.fee') }}</th><td><MoneyLabel :rial="order.feeRial" /></td></tr>
-            <tr class="total"><th scope="row">{{ t('pay.total') }}</th><td><MoneyLabel :rial="order.totalRial" /></td></tr>
-          </tbody>
-        </table>
-        <ul v-if="order.payments.length" class="list">
-          <li v-for="p in order.payments" :key="p.id"><bdi class="ltr">{{ p.id }}</bdi> — <StatusBadge :state="p.state" /><span v-if="p.manual"> ({{ t('pay.manual') }})</span><span v-if="p.refundedRial"> — {{ t('pay.refunded') }} <MoneyLabel :rial="p.refundedRial" /></span></li>
+  <QContainer>
+    <div class="k-stack p-pay">
+      <QPageHeader compact :title="t('pay.title')" :breadcrumb="[{ label: t('reg.mine'), href: '/account/registrations' }, { label: t('pay.title') }]" />
+      <QEmptyState v-if="!orderId" icon="wallet" :title="t('pay.noOrder')">
+        <template #action><QButton variant="secondary" href="/account/registrations">{{ t('reg.mine') }}</QButton></template>
+      </QEmptyState>
+      <QDataState v-else-if="!order" :state="error ? (error.code === 'NETWORK' ? 'offline' : error.code === 'FORBIDDEN' ? 'forbidden' : 'error') : 'loading'" :request-id="error?.requestId ?? undefined" @retry="tick" />
+      <div v-else class="p-pay-wrap" aria-live="polite">
+        <QAlert v-if="order.state === 'paid'" tone="success" icon="check-circle" :title="t('pay.paid')" />
+        <QAlert v-else-if="pay?.state === 'failed'" tone="danger" icon="x-circle" :title="t('pay.failed')" />
+        <QAlert v-else-if="!FINAL.includes(order.state)" tone="info" icon="clock" :title="t('pay.pending')" />
+        <QReceipt
+          :title="order.receiptNo ? t('pay.receipt') : t('pay.order')" :receipt-no="order.receiptNo ?? undefined" :order-id="order.id" :date="formatJalali(order.createdAt)"
+          :items="items" :discount-rial="order.discountRial || undefined" :fee-rial="order.feeRial || undefined" :refunded-rial="refunded || undefined" :total-rial="order.totalRial"
+          :state="receiptState" :note="pay?.manual ? t('pay.manual') : undefined"
+          :on-print="order.receiptNo ? printReceipt : undefined" :on-retry="canRetry ? retryPay : undefined" :on-download="false"
+        />
+        <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+        <ul v-if="order.payments.length > 1" class="p-pay-list">
+          <li v-for="p in order.payments" :key="p.id"><bdi class="q-ltr q-mono">{{ p.id }}</bdi><QStatusBadge :state="p.state" machine="payment" /><span v-if="p.refundedRial">{{ t('pay.refunded') }} {{ toman(p.refundedRial) }}</span></li>
         </ul>
-        <ErrorNote :error="failure" />
-        <div class="row no-print">
-          <button v-if="order.state === 'open' && !order.payments.some((p) => ['awaiting_gateway', 'unknown'].includes(p.state))" type="button" class="btn btn-primary" @click="retryPay">{{ t('pay.retry') }}</button>
-          <button v-if="order.receiptNo" type="button" class="btn" @click="printReceipt">{{ t('pay.print') }}</button>
-          <RouterLink class="btn" to="/account/registrations">{{ t('reg.mine') }}</RouterLink>
+        <div class="k-row p-pay-actions">
+          <QButton v-if="canRetry" variant="primary" icon="refresh" @click="retryPay">{{ t('pay.retry') }}</QButton>
+          <QButton variant="secondary" href="/account/registrations">{{ t('reg.mine') }}</QButton>
         </div>
-      </section>
-    </template>
-  </DataState>
+      </div>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.receipt { max-inline-size: 40rem; }
-.between { justify-content: space-between; }
-.kv { display: grid; gap: var(--sp-2); margin: 0; }
-.kv div { display: flex; justify-content: space-between; gap: var(--sp-3); }
-dt { color: var(--text-muted); }
-dd { margin: 0; }
-.items { inline-size: 100%; border-collapse: collapse; }
-.items th { text-align: start; font-weight: 400; padding: var(--sp-1) 0; }
-.items td { text-align: end; }
-.total th, .total td { font-weight: 700; border-block-start: 1px solid var(--border); }
-.ok { color: var(--ok); font-weight: 700; }
-.warn { color: var(--danger); font-weight: 700; }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-h2, p { margin: 0; }
-@media print { .no-print { display: none; } }
+.p-pay { gap: var(--space-6); }
+.p-pay-wrap { display: flex; flex-direction: column; gap: var(--space-4); max-inline-size: 640px; }
+.p-pay-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); font-size: 14px; }
+.p-pay-list li { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+@media print { .p-pay-actions { display: none; } }
 </style>

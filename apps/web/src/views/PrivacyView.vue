@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { QAlert, QBadge, QButton, QCard, QCheckbox, QConfirmDialog, QContainer, QDataState, QPageHeader, QSection, QStatusBadge, QSwitch, QTextField, fa, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp07 as esp07Api, type Obj } from '../api/esp07';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
 import { t } from '../i18n';
 import { useLoad } from '../useLoad';
@@ -52,68 +48,101 @@ const exportNow = () =>
 const appealId = ref('');
 const appealText = ref('');
 const activeMarketing = () => consents.data.value?.items.some((c) => c.kind === 'consent_marketing' && !c.withdrawnAt) ?? false;
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: n, duration: 4000 }); });
+const marketingOn = computed(() => activeMarketing());
+function toggleMarketing(v: boolean | null) {
+  if (v && marketing.data.value) void act(() => esp07.accept('consent_marketing', marketing.data.value!.version), [consents.load]);
+  else if (!v) void act(() => esp07.withdraw('consent_marketing'), [consents.load]);
+}
+const deleteOk = computed({ get: () => confirmDelete.value, set: (v: boolean | null) => { confirmDelete.value = !!v; } });
+const askDelete = ref(false);
+const sendDeletion = () => act(async () => { await esp07.createRequest('deletion', detail.deletion); detail.deletion = ''; confirmDelete.value = false; askDelete.value = false; }, [requests.load], t('a7.me.requested'));
+const sendCorrection = () => act(async () => { await esp07.createRequest('correction', detail.correction); detail.correction = ''; }, [requests.load], t('a7.me.requested'));
+const sendAppeal = () => act(async () => { await esp07.appeal(appealId.value, appealText.value); appealId.value = ''; appealText.value = ''; }, [], t('a7.me.appealed'));
 </script>
 
 <template>
-  <PageHeader :title="t('a7.me.title')" :lead="t('a7.me.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
+  <QContainer>
+    <div class="k-stack p-priv">
+      <QPageHeader compact :title="t('a7.me.title')" :description="t('a7.me.lead')" />
+      <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
 
-  <section class="card stack" aria-labelledby="pd-h">
-    <h2 id="pd-h">{{ t('a7.me.pending') }}</h2>
-    <DataState :loading="pending.loading.value" :error="pending.error.value" :empty="!!pending.data.value && pending.data.value.items.length === 0" @retry="pending.load">
-      <ul v-if="pending.data.value" class="plain stack"><li v-for="d in pending.data.value.items" :key="d.kind" class="row between"><span><RouterLink :to="`/legal/${d.kind}`"><bdi>{{ d.title }}</bdi></RouterLink> <span class="muted small">v{{ d.version }}</span></span><button type="button" class="btn btn-sm btn-primary" @click="act(() => esp07.accept(d.kind, d.version), [pending.load, consents.load])">{{ t('a7.me.accept') }}</button></li></ul>
-    </DataState>
-  </section>
+      <QSection id="pending" small :title="t('a7.me.pending')">
+        <QCard>
+          <QDataState v-if="pending.error.value || (pending.loading.value && !pending.data.value)" :state="pending.error.value ? 'error' : 'loading'" skeleton="rows" @retry="pending.load" />
+          <p v-else-if="!pending.data.value?.items.length" class="p-priv-muted">{{ t('pv.nothing') }}</p>
+          <ul v-else class="p-priv-rows">
+            <li v-for="d in pending.data.value.items" :key="d.kind">
+              <span><RouterLink :to="`/legal/${d.kind}`"><bdi>{{ d.title }}</bdi></RouterLink> <QBadge tone="neutral">{{ t('a7.legal.version', { v: fa(d.version) }) }}</QBadge></span>
+              <QButton size="sm" variant="primary" @click="act(() => esp07.accept(d.kind, d.version), [pending.load, consents.load])">{{ t('a7.me.accept') }}</QButton>
+            </li>
+          </ul>
+        </QCard>
+      </QSection>
 
-  <section class="card stack block" aria-labelledby="mk-h">
-    <h2 id="mk-h">{{ t('a7.me.marketing') }}</h2>
-    <p class="muted small">{{ t('a7.me.marketingLead') }}</p>
-    <div v-if="marketing.data.value" class="row">
-      <button v-if="!activeMarketing()" type="button" class="btn btn-sm" @click="act(() => esp07.accept('consent_marketing', marketing.data.value!.version), [consents.load])">{{ t('a7.me.optIn') }}</button>
-      <button v-else type="button" class="btn btn-sm" @click="act(() => esp07.withdraw('consent_marketing'), [consents.load])">{{ t('a7.me.withdraw') }}</button>
+      <QSection id="marketing" small :title="t('a7.me.marketing')" :description="t('a7.me.marketingLead')">
+        <QCard>
+          <div class="k-stack">
+            <QSwitch v-if="marketing.data.value" block :label="t('a7.me.marketing')" :model-value="marketingOn" @update:model-value="toggleMarketing" />
+            <p v-else class="p-priv-muted">{{ t('a7.me.noMarketingText') }}</p>
+            <ul v-if="consents.data.value?.items.length" class="p-priv-rows">
+              <li v-for="c in consents.data.value.items" :key="c._id">
+                <bdi class="q-ltr">{{ c.kind }} v{{ c.version }}</bdi>
+                <span class="p-priv-muted">{{ formatJalali(c.acceptedAt) }}<template v-if="c.withdrawnAt"> · {{ t('a7.me.withdrawn') }} {{ formatJalali(c.withdrawnAt) }}</template></span>
+              </li>
+            </ul>
+          </div>
+        </QCard>
+      </QSection>
+
+      <QSection id="rights" small :title="t('a7.me.dataRights')">
+        <QCard>
+          <div class="k-stack">
+            <div class="k-row"><QButton variant="secondary" icon="download" @click="exportNow">{{ t('a7.me.export') }}</QButton><span class="p-priv-muted">{{ t('a7.me.exportHint') }}</span></div>
+            <form class="p-priv-inline" novalidate @submit.prevent="sendCorrection">
+              <QTextField v-model="detail.correction" :label="t('a7.me.correction')" :placeholder="t('a7.me.correctionPlaceholder')" />
+              <QButton type="submit" variant="secondary" :disabled="detail.correction.trim().length < 5">{{ t('a7.me.correction') }}</QButton>
+            </form>
+            <form class="k-stack" novalidate @submit.prevent="askDelete = true">
+              <QAlert tone="warning">{{ t('a7.me.deletionWarning') }}</QAlert>
+              <QTextField v-model="detail.deletion" :label="t('a7.me.deletionReason')" />
+              <QCheckbox v-model="deleteOk" :label="t('a7.me.deletionConfirm')" />
+              <div><QButton type="submit" variant="danger" :disabled="!confirmDelete">{{ t('a7.me.deletion') }}</QButton></div>
+            </form>
+            <ul v-if="requests.data.value?.items.length" class="p-priv-rows">
+              <li v-for="r in requests.data.value.items" :key="r._id">
+                <span>{{ t(`a7.req.${r.kind}` as never) }}<template v-if="r.decisionNote"> — {{ r.decisionNote }}</template></span>
+                <span class="k-row"><QStatusBadge :state="r.state" /><span class="p-priv-muted">{{ formatJalali(r.createdAt) }}</span></span>
+              </li>
+            </ul>
+          </div>
+        </QCard>
+      </QSection>
+
+      <QSection id="appeal" small :title="t('a7.me.appeal')" :description="t('a7.me.appealLead')">
+        <QCard>
+          <form class="k-stack" novalidate @submit.prevent="sendAppeal">
+            <QTextField v-model="appealId" :label="t('a7.me.decisionId')" ltr />
+            <QTextField v-model="appealText" :label="t('a7.me.appealText')" multiline :rows="3" />
+            <div><QButton type="submit" variant="secondary" icon="send" :disabled="!appealId || appealText.trim().length < 10">{{ t('a7.me.appealSend') }}</QButton></div>
+          </form>
+        </QCard>
+      </QSection>
     </div>
-    <p v-else class="muted small">{{ t('a7.me.noMarketingText') }}</p>
-    <ul v-if="consents.data.value?.items.length" class="plain small"><li v-for="c in consents.data.value.items" :key="c._id"><bdi class="ltr">{{ c.kind }} v{{ c.version }}</bdi> — <JalaliDate :iso="c.acceptedAt" /> <span v-if="c.withdrawnAt">· {{ t('a7.me.withdrawn') }} <JalaliDate :iso="c.withdrawnAt" /></span></li></ul>
-  </section>
-
-  <section class="card stack block" aria-labelledby="ex-h">
-    <h2 id="ex-h">{{ t('a7.me.dataRights') }}</h2>
-    <div class="row"><button type="button" class="btn" @click="exportNow">{{ t('a7.me.export') }}</button><span class="muted small">{{ t('a7.me.exportHint') }}</span></div>
-    <form class="row" @submit.prevent="act(async () => { await esp07.createRequest('correction', detail.correction); detail.correction = ''; }, [requests.load], t('a7.me.requested'))">
-      <input v-model="detail.correction" class="input grow" dir="auto" :placeholder="t('a7.me.correctionPlaceholder')" :aria-label="t('a7.me.correction')" />
-      <button type="submit" class="btn" :disabled="detail.correction.trim().length < 5">{{ t('a7.me.correction') }}</button>
-    </form>
-    <form class="stack" @submit.prevent="act(async () => { await esp07.createRequest('deletion', detail.deletion); detail.deletion = ''; confirmDelete = false; }, [requests.load], t('a7.me.requested'))">
-      <p class="warn small">{{ t('a7.me.deletionWarning') }}</p>
-      <input v-model="detail.deletion" class="input" dir="auto" :placeholder="t('a7.me.deletionReason')" :aria-label="t('a7.me.deletionReason')" />
-      <label><input v-model="confirmDelete" type="checkbox" /> {{ t('a7.me.deletionConfirm') }}</label>
-      <div><button type="submit" class="btn" :disabled="!confirmDelete">{{ t('a7.me.deletion') }}</button></div>
-    </form>
-    <DataState :loading="requests.loading.value" :error="requests.error.value" :empty="!!requests.data.value && requests.data.value.items.length === 0" @retry="requests.load">
-      <ul v-if="requests.data.value" class="plain small"><li v-for="r in requests.data.value.items" :key="r._id">{{ t(`a7.req.${r.kind}` as never) }} <StatusBadge :state="r.state" /> <JalaliDate :iso="r.createdAt" /><span v-if="r.decisionNote"> — {{ r.decisionNote }}</span></li></ul>
-    </DataState>
-  </section>
-
-  <section class="card stack block" aria-labelledby="ap-h">
-    <h2 id="ap-h">{{ t('a7.me.appeal') }}</h2>
-    <p class="muted small">{{ t('a7.me.appealLead') }}</p>
-    <form class="stack" @submit.prevent="act(async () => { await esp07.appeal(appealId, appealText); appealId = ''; appealText = ''; }, [], t('a7.me.appealed'))">
-      <input v-model="appealId" class="input ltr" :placeholder="t('a7.me.decisionId')" :aria-label="t('a7.me.decisionId')" />
-      <textarea v-model="appealText" class="input" rows="3" dir="auto" :aria-label="t('a7.me.appealText')" />
-      <div><button type="submit" class="btn" :disabled="!appealId || appealText.trim().length < 10">{{ t('a7.me.appealSend') }}</button></div>
-    </form>
-  </section>
+    <QConfirmDialog
+      :open="askDelete" icon="trash" :title="t('a7.me.deletion')" :message="t('a7.me.deletionWarning')" :confirm-label="t('a7.me.deletion')" :cancel-label="t('pv.cancel')"
+      @close="askDelete = false" @confirm="sendDeletion"
+    />
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.between { justify-content: space-between; }
-.plain { list-style: none; margin: 0; padding: 0; }
-.block { margin-block-start: var(--sp-4); }
-.grow { flex: 1 1 16rem; }
-.small { font-size: var(--fs-xs); }
-.warn { color: var(--warn); }
-.ok { color: var(--ok); }
-h2, p { margin: 0; }
+.p-priv { gap: var(--space-7); }
+.p-priv-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-priv-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.p-priv-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding-block: var(--space-3); border-block-end: 1px solid var(--line); font-size: 14px; }
+.p-priv-rows li:last-child { border-block-end: 0; }
+.p-priv-inline { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; }
+@media (max-width: 640px) { .p-priv-inline { grid-template-columns: minmax(0, 1fr); } }
 </style>
