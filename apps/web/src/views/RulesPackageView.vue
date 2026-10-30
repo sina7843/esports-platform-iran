@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import {
+  QAlert, QBadge, QButton, QCard, QCheckbox, QConfirmDialog, QContainer, QDataState, QDataTable, QFacts, QPageHeader, QSection, QTextField, formatJalali,
+  type QDataTableColumn,
+} from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp02, type RulesPackage } from '../api/esp02';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import { isForbidden, toClientError } from '../errors';
-import { t, type MessageKey } from '../i18n';
+import { toClientError } from '../errors';
+import { stateLabel, t, type MessageKey } from '../i18n';
 import { session } from '../session';
-import { reactive } from 'vue';
-import FormField from '../components/FormField.vue';
+import { useDataState } from '../useDataState';
 
 /** RULE-003/004/006/011: versioned package with cited clauses; acceptance records version, hash and time. */
 const route = useRoute();
@@ -93,6 +92,27 @@ async function validate() {
   }
 }
 
+const ds = useDataState({ loading: computed(() => loading.value && !p.value), error });
+const withdrawing = ref(false);
+type Clause = RulesPackage['clauses'][number];
+const clauseCols = computed<QDataTableColumn<Clause>[]>(() => [
+  { key: 'key', header: t('rp.clauseId') }, { key: 'kind', header: t('rp.kind') }, { key: 'value', header: t('rp.value') },
+  { key: 'allowed', header: t('rules.allowed') }, { key: 'citation', header: t('rules.citation') },
+]);
+const facts = computed(() => {
+  const x = p.value;
+  if (!x) return [];
+  return [
+    { label: t('rules.version'), value: x.versionLabel, ltr: true },
+    { label: t('rules.reviewedAt'), value: x.reviewedAt ? formatJalali(x.reviewedAt, 'date') : '—' },
+    { label: t('rules.nextReview'), value: x.nextReviewDueAt ? formatJalali(x.nextReviewDueAt, 'date') : '—' },
+    { label: t('rules.applicability'), value: x.applicability },
+    ...(x.adaptedFrom ? [{ label: t('rules.adaptedFrom'), value: `${x.adaptedFrom.packageId} — ${x.adaptedFrom.differences}` }] : []),
+  ];
+});
+const rvTranslation = computed({ get: () => rv.translation, set: (v: boolean | null) => { rv.translation = !!v; } });
+const rvRights = computed({ get: () => rv.rights, set: (v: boolean | null) => { rv.rights = !!v; } });
+const amReaccept = computed({ get: () => am.reaccept, set: (v: boolean | null) => { am.reaccept = !!v; } });
 function allowed(c: RulesPackage['clauses'][number]): string {
   if (!c.allowed) return '—';
   if (c.allowed.options) return c.allowed.options.join(' / ');
@@ -101,108 +121,101 @@ function allowed(c: RulesPackage['clauses'][number]): string {
 </script>
 
 <template>
-  <DataState :loading="loading" :error="error" :forbidden="isForbidden(error)" @retry="load">
-    <template v-if="p">
-      <PageHeader :title="p.title"><template #title><bdi>{{ p.title }}</bdi></template></PageHeader>
-      <p v-if="p.label" class="notice" role="note">{{ p.label }}</p>
-      <p v-if="p.testOnly" class="muted">{{ t('rules.trialHelp') }}</p>
-      <p v-if="p.supersededBy" class="notice" role="note">{{ t('rules.superseded') }} <RouterLink :to="`/rules/${p.supersededBy}`"><bdi class="ltr">{{ p.supersededBy }}</bdi></RouterLink></p>
-      <p class="muted">{{ t('rules.notOfficial') }}</p>
-      <dl class="meta card">
-        <div><dt>{{ t('rules.version') }}</dt><dd><bdi class="ltr">{{ p.versionLabel }}</bdi></dd></div>
-        <div><dt>{{ t('rules.source') }}</dt><dd><a v-if="p.sourceUrl" :href="p.sourceUrl" rel="noopener noreferrer" target="_blank" dir="ltr">{{ p.sourceUrl }}</a><span v-else>—</span></dd></div>
-        <div><dt>{{ t('rules.reviewedAt') }}</dt><dd><JalaliDate v-if="p.reviewedAt" :iso="p.reviewedAt" /><span v-else>—</span></dd></div>
-        <div><dt>{{ t('rules.nextReview') }}</dt><dd><JalaliDate v-if="p.nextReviewDueAt" :iso="p.nextReviewDueAt" /><span v-else>—</span></dd></div>
-        <div><dt>{{ t('rules.applicability') }}</dt><dd dir="auto">{{ p.applicability }}</dd></div>
-        <div v-if="p.adaptedFrom"><dt>{{ t('rules.adaptedFrom') }}</dt><dd><bdi class="ltr">{{ p.adaptedFrom.packageId }}</bdi> — <span dir="auto">{{ p.adaptedFrom.differences }}</span></dd></div>
-      </dl>
-      <p v-if="!p.translationFa.reviewed" class="muted">{{ t('rules.translationUnreviewed') }}</p>
-
-      <section class="block" aria-labelledby="cl-h">
-        <h2 id="cl-h">{{ t('rules.clauses') }}</h2>
-        <div class="table-wrap">
-          <table>
-            <caption class="sr-only">{{ t('rules.clauses') }}</caption>
-            <thead><tr><th scope="col">key</th><th scope="col">{{ t('rules.kind.mandatory') }} / {{ t('rules.kind.configurable') }}</th><th scope="col">value</th><th scope="col">{{ t('rules.allowed') }}</th><th scope="col">{{ t('rules.citation') }}</th></tr></thead>
-            <tbody>
-              <tr v-for="c in p.clauses" :key="c.key">
-                <th scope="row"><code class="ltr">{{ c.key }}</code></th>
-                <td>{{ t(`rules.kind.${c.kind}` as MessageKey) }}</td>
-                <td><bdi class="ltr">{{ c.value === null ? '—' : String(c.value) }}</bdi></td>
-                <td><bdi class="ltr">{{ allowed(c) }}</bdi></td>
-                <td dir="auto">{{ c.citation }}</td>
-              </tr>
-            </tbody>
-          </table>
+  <QContainer>
+    <QDataState v-if="ds.state.value !== 'content' || !p" v-bind="ds.props.value" @retry="load" />
+    <div v-else class="k-stack p-rp">
+      <QPageHeader
+        :title="p.title" :breadcrumb="[{ label: t('shell.home'), href: '/' }, { label: t('rules.title'), href: '/rules' }, { label: p.title }]"
+        :status="{ label: stateLabel(p.state), tone: p.state === 'published' ? 'success' : 'neutral' }" :description="t('rules.notOfficial')"
+      >
+        <template v-if="session.me && p.state === 'published'" #actions>
+          <QBadge v-if="accepted" tone="success" icon="check">{{ t('rules.accepted') }}</QBadge>
+          <QButton v-else variant="primary" icon="check" @click="accept">{{ t('rules.accept') }}</QButton>
+        </template>
+      </QPageHeader>
+      <QAlert v-if="p.label" tone="warning">{{ p.label }}</QAlert>
+      <QAlert v-if="p.testOnly" tone="info">{{ t('rules.trialHelp') }}</QAlert>
+      <QAlert v-if="p.supersededBy" tone="warning" :actions="[{ label: t('rp.newer'), href: `/rules/${p.supersededBy}` }]">{{ t('rules.superseded') }}</QAlert>
+      <QAlert v-if="actionError" tone="danger">{{ actionError.message }}</QAlert>
+      <QCard>
+        <div class="k-stack">
+          <QFacts :columns="3" :items="facts" />
+          <p v-if="p.sourceUrl" class="p-rp-muted">{{ t('rules.source') }}: <a :href="p.sourceUrl" rel="noopener noreferrer" target="_blank" dir="ltr">{{ p.sourceUrl }}</a></p>
+          <p v-if="!p.translationFa.reviewed" class="p-rp-muted">{{ t('rules.translationUnreviewed') }}</p>
         </div>
-      </section>
+      </QCard>
 
-      <section v-if="session.me && p.state === 'published'" class="card stack block" aria-labelledby="vs-h">
-        <h2 id="vs-h">{{ t('adm.validate') }}</h2>
-        <FormField id="vs-json" :label="t('adm.settingsJson')"><template #default="{ id: fid }"><textarea :id="fid" v-model="settingsText" class="input ltr mono" rows="3" dir="ltr" /></template></FormField>
-        <button type="button" class="btn btn-sm" @click="validate">{{ t('adm.validate') }}</button>
-        <p v-if="settingsResult && settingsResult.ok" role="status" class="ok">{{ t('adm.valid') }}</p>
-        <ul v-else-if="settingsResult" class="list" role="status">
-          <li v-for="v in settingsResult.violations" :key="v.key"><code class="ltr">{{ v.key }}</code>: <bdi>{{ v.reason }}</bdi><span v-if="v.citation"> — {{ t('rules.citation') }}: <bdi>{{ v.citation }}</bdi></span></li>
-        </ul>
-      </section>
+      <QSection id="clauses" small :title="t('rules.clauses')">
+        <QDataTable :caption="t('rules.clauses')" caption-hidden row-key="key" row-header="key" :columns="clauseCols" :rows="p.clauses">
+          <template #cell-key="{ row }"><code class="q-mono q-ltr">{{ row.key }}</code></template>
+          <template #cell-kind="{ row }"><QBadge :tone="row.kind === 'mandatory' ? 'info' : 'neutral'">{{ t(`rules.kind.${row.kind}` as MessageKey) }}</QBadge></template>
+          <template #cell-value="{ row }"><bdi class="q-ltr">{{ row.value === null ? '—' : String(row.value) }}</bdi></template>
+          <template #cell-allowed="{ row }"><bdi class="q-ltr">{{ allowed(row) }}</bdi></template>
+          <template #cell-citation="{ row }"><span dir="auto">{{ row.citation }}</span></template>
+        </QDataTable>
+      </QSection>
 
-      <section v-if="p.blockers !== undefined" class="card stack block" aria-labelledby="mg-h">
-        <h2 id="mg-h">{{ t('adm.blockers') }}</h2>
-        <ul v-if="p.blockers.length" class="list"><li v-for="b in p.blockers" :key="b"><bdi>{{ b }}</bdi></li></ul>
-        <p v-else class="muted">—</p>
-        <p v-if="notice" role="status" class="ok"><bdi class="ltr">{{ notice }}</bdi></p>
-        <div class="row">
-          <button v-if="p.state === 'draft'" type="button" class="btn btn-sm" @click="transition('submit_for_review')">submit_for_review</button>
-          <button v-if="p.state === 'under_review'" type="button" class="btn btn-sm" @click="transition('return_to_draft')">return_to_draft</button>
-          <button v-if="p.state === 'under_review'" type="button" class="btn btn-sm btn-primary" :disabled="p.blockers.length > 0" @click="transition('publish')">publish</button>
-          <button v-if="p.state === 'published'" type="button" class="btn btn-sm btn-danger" @click="transition('withdraw')">withdraw</button>
-        </div>
-        <form v-if="p.state !== 'published'" class="stack" novalidate @submit.prevent="review">
-          <h3>{{ t('adm.review') }}</h3>
-          <label class="row"><input v-model="rv.translation" type="checkbox" /> {{ t('adm.translationReviewed') }}</label>
-          <label class="row"><input v-model="rv.rights" type="checkbox" /> {{ t('adm.rightsReviewed') }}</label>
-          <FormField id="rv-ack" :label="t('adm.ackKeys')"><template #default="{ id: fid }"><input :id="fid" v-model="rv.ack" class="input ltr" /></template></FormField>
-          <button type="submit" class="btn btn-sm">{{ t('adm.review') }}</button>
-        </form>
-        <form class="stack" novalidate @submit.prevent="conflict">
-          <h3>{{ t('adm.conflict') }}</h3>
-          <FormField id="cf-d" :label="t('mgmt.description')"><template #default="{ id: fid }"><input :id="fid" v-model="cf.description" class="input" dir="auto" /></template></FormField>
-          <FormField id="cf-r" :label="t('adm.resolution')"><template #default="{ id: fid }"><input :id="fid" v-model="cf.resolution" class="input" dir="auto" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!cf.description">{{ t('adm.conflict') }}</button>
-        </form>
-        <form v-if="p.state === 'published'" class="stack" novalidate @submit.prevent="amend">
-          <h3>{{ t('adm.amend') }}</h3>
-          <FormField id="am-v" :label="t('adm.newVersion')"><template #default="{ id: fid }"><input :id="fid" v-model="am.newVersion" class="input ltr" /></template></FormField>
-          <FormField id="am-r" :label="t('adm.reason')"><template #default="{ id: fid }"><input :id="fid" v-model="am.reason" class="input" dir="auto" /></template></FormField>
-          <FormField id="am-i" :label="t('adm.impact')"><template #default="{ id: fid }"><textarea :id="fid" v-model="am.impact" class="input" rows="2" dir="auto" /></template></FormField>
-          <label class="row"><input v-model="am.reaccept" type="checkbox" /> {{ t('adm.reaccept') }}</label>
-          <FormField id="am-c" :label="t('adm.clausesJson')" :hint="t('adm.clausesHint')"><template #default="{ id: fid, describedBy }"><textarea :id="fid" v-model="am.clauses" class="input ltr mono" rows="5" dir="ltr" :aria-describedby="describedBy" /></template></FormField>
-          <button type="submit" class="btn btn-sm" :disabled="!am.newVersion || am.reason.length < 5 || am.impact.length < 5">{{ t('adm.amend') }}</button>
-        </form>
-      </section>
+      <QSection v-if="session.me && p.state === 'published'" id="validate" small :title="t('adm.validate')">
+        <QCard>
+          <div class="k-stack">
+            <QTextField id="vs-json" v-model="settingsText" :label="t('adm.settingsJson')" multiline :rows="3" ltr />
+            <div><QButton variant="secondary" size="sm" @click="validate">{{ t('adm.validate') }}</QButton></div>
+            <QAlert v-if="settingsResult && settingsResult.ok" tone="success">{{ t('adm.valid') }}</QAlert>
+            <ul v-else-if="settingsResult" class="p-rp-list" role="status">
+              <li v-for="v in settingsResult.violations" :key="v.key"><code class="q-mono q-ltr">{{ v.key }}</code>: <bdi>{{ v.reason }}</bdi><span v-if="v.citation"> — {{ t('rules.citation') }}: <bdi>{{ v.citation }}</bdi></span></li>
+            </ul>
+          </div>
+        </QCard>
+      </QSection>
 
-      <section v-if="session.me && p.state === 'published'" class="block">
-        <ErrorNote :error="actionError" />
-        <p v-if="accepted" role="status" class="ok">{{ t('rules.accepted') }}</p>
-        <button v-else type="button" class="btn btn-primary" @click="accept">{{ t('rules.accept') }}</button>
-      </section>
-    </template>
-  </DataState>
+      <QSection v-if="p.blockers !== undefined" id="manage" small :title="t('adm.blockers')">
+        <QCard>
+          <div class="k-stack">
+            <ul v-if="p.blockers.length" class="p-rp-list"><li v-for="b in p.blockers" :key="b"><bdi>{{ b }}</bdi></li></ul>
+            <p v-else class="p-rp-muted">—</p>
+            <QAlert v-if="notice" tone="success"><bdi class="q-ltr">{{ notice }}</bdi></QAlert>
+            <div class="k-row">
+              <QButton v-if="p.state === 'draft'" variant="secondary" size="sm" @click="transition('submit_for_review')">{{ t('rp.submit') }}</QButton>
+              <QButton v-if="p.state === 'under_review'" variant="secondary" size="sm" @click="transition('return_to_draft')">{{ t('rp.toDraft') }}</QButton>
+              <QButton v-if="p.state === 'under_review'" variant="primary" size="sm" :disabled="p.blockers.length > 0" @click="transition('publish')">{{ t('rp.publish') }}</QButton>
+              <QButton v-if="p.state === 'published'" variant="danger" size="sm" @click="withdrawing = true">{{ t('rp.withdraw') }}</QButton>
+            </div>
+            <form v-if="p.state !== 'published'" class="k-stack" novalidate @submit.prevent="review">
+              <h3 class="h4 p-rp-h">{{ t('adm.review') }}</h3>
+              <QCheckbox v-model="rvTranslation" :label="t('adm.translationReviewed')" />
+              <QCheckbox v-model="rvRights" :label="t('adm.rightsReviewed')" />
+              <QTextField id="rv-ack" v-model="rv.ack" :label="t('adm.ackKeys')" ltr />
+              <div><QButton type="submit" variant="secondary" size="sm">{{ t('adm.review') }}</QButton></div>
+            </form>
+            <form class="k-stack" novalidate @submit.prevent="conflict">
+              <h3 class="h4 p-rp-h">{{ t('adm.conflict') }}</h3>
+              <QTextField id="cf-d" v-model="cf.description" :label="t('mgmt.description')" />
+              <QTextField id="cf-r" v-model="cf.resolution" :label="t('adm.resolution')" />
+              <div><QButton type="submit" variant="secondary" size="sm" :disabled="!cf.description">{{ t('adm.conflict') }}</QButton></div>
+            </form>
+            <form v-if="p.state === 'published'" class="k-stack" novalidate @submit.prevent="amend">
+              <h3 class="h4 p-rp-h">{{ t('adm.amend') }}</h3>
+              <QTextField id="am-v" v-model="am.newVersion" :label="t('adm.newVersion')" ltr />
+              <QTextField id="am-r" v-model="am.reason" :label="t('adm.reason')" />
+              <QTextField id="am-i" v-model="am.impact" :label="t('adm.impact')" multiline :rows="2" />
+              <QCheckbox v-model="amReaccept" :label="t('adm.reaccept')" />
+              <QTextField id="am-c" v-model="am.clauses" :label="t('adm.clausesJson')" :hint="t('adm.clausesHint')" multiline :rows="5" ltr />
+              <div><QButton type="submit" variant="secondary" size="sm" :disabled="!am.newVersion || am.reason.length < 5 || am.impact.length < 5">{{ t('adm.amend') }}</QButton></div>
+            </form>
+          </div>
+        </QCard>
+      </QSection>
+    </div>
+    <QConfirmDialog
+      :open="withdrawing" :title="t('rp.withdrawTitle')" :message="t('rp.withdrawBody')" :confirm-label="t('rp.withdraw')" :cancel-label="t('rp.cancel')"
+      @close="withdrawing = false" @confirm="withdrawing = false; transition('withdraw')"
+    />
+  </QContainer>
 </template>
 
 <style scoped>
-.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--sp-4); margin: 0; }
-dt { color: var(--text-muted); font-size: var(--fs-sm); }
-dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-.block { margin-block-start: var(--sp-6); }
-.table-wrap { overflow-x: auto; }
-table { inline-size: 100%; border-collapse: collapse; }
-th, td { text-align: start; padding: var(--sp-2) var(--sp-3); border-block-end: 1px solid var(--border); vertical-align: top; }
-.notice { margin: 0 0 var(--sp-3); padding: var(--sp-3); background: var(--warn-soft); color: var(--warn); border-radius: var(--radius-md); }
-.ok { color: var(--accent-strong); }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.mono { font-family: ui-monospace, monospace; }
-.row { gap: var(--sp-2); flex-wrap: wrap; }
-h3 { margin: var(--sp-3) 0 0; font-size: var(--fs-md); }
+.p-rp { gap: var(--space-6); }
+.p-rp-h { margin: 0; }
+.p-rp-muted { margin: 0; color: var(--ink-muted); font-size: 14px; }
+.p-rp-list { margin: 0; padding-inline-start: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); font-size: 14px; }
 </style>
