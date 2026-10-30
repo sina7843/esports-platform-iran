@@ -279,7 +279,7 @@ const schedule = (id: string, version: number) => act(() => esp06.schedulePost(i
 .p-nr-h3 { margin: 0; font-size: 14px; font-weight: 800; }
 .p-nr-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
 .p-nr-link { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; cursor: pointer; font: inherit; }
-.p-nr-link[aria-pressed='true'] { color: var(--green-600); font-weight: 800; }
+.p-nr-link[aria-pressed='true'] { color: var(--green-text); font-weight: 800; }
 .p-nr-more > summary { cursor: pointer; font-weight: 700; font-size: 13px; color: var(--ink-muted); }
 .p-nr-more[open] > summary { margin-block-end: var(--space-3); }
 </style>

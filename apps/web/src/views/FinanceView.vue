@@ -265,7 +265,7 @@ const manualSubmit = () => toast(async () => { await call.manualPayment({ ...man
 .p-fin-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
 @media (max-width: 1100px) { .p-fin-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .p-fin-tile { all: unset; display: block; cursor: pointer; border-radius: var(--radius-lg); outline: 2px solid transparent; }
-.p-fin-tile[aria-pressed='true'] { outline-color: var(--green-500); }
+.p-fin-tile[aria-pressed='true'] { outline-color: var(--green); }
 .p-fin-tile:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 .p-fin-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
 .p-fin-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }

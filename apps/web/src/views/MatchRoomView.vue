@@ -359,7 +359,7 @@ const toggleLineup = (si: number, pid: string, on: boolean | null) => {
 .p-room-inline > :first-child { flex: 1 1 200px; }
 .p-room-list { margin: 0; padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
 .p-room-steps { margin: 0; padding-inline-start: var(--space-5); display: grid; gap: var(--space-1); }
-.p-room-steps .is-current { font-weight: 800; color: var(--green-600); }
+.p-room-steps .is-current { font-weight: 800; color: var(--green-text); }
 .p-room-timer { margin: 0; font-weight: 800; font-size: 18px; }
 .p-room-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
 .p-room-set { margin: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); }

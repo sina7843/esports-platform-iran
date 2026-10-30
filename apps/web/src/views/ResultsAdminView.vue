@@ -263,6 +263,6 @@ const checks = computed(() => {
 .p-res-list { margin: 0; padding-inline-start: var(--space-5); }
 .p-res-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
 .p-res-err { color: var(--danger-text); }
-.p-res-ok { color: var(--green-600); }
+.p-res-ok { color: var(--green-text); }
 .p-res-report { max-block-size: 20rem; overflow: auto; }
 </style>

@@ -21,7 +21,6 @@ declare module 'vue-router' {
   }
 }
 
-const Shell = () => import('./views/ShellPage.vue');
 
 export const routes: RouteRecordRaw[] = [
   { path: '/', name: 'home', component: () => import('./views/HomeView.vue'), meta: { title: 'nav.home', layout: 'public', nav: 'home', redesigned: true } },
@@ -64,7 +63,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/payments/return', name: 'payment-return', component: () => import('./views/PaymentReturnView.vue'), meta: { requiresAuth: true, title: 'pay.title', layout: 'panel', side: 'registrations', redesigned: true } },
   { path: '/account/settings', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'nav.settings', layout: 'panel', side: 'settings', redesigned: true } },
 
-  { path: '/team', name: 'team', component: Shell, meta: { requiresAuth: true, permission: 'team.read_private', title: 'nav.team', shell: true, layout: 'panel', side: 'team-panel' } },
+  { path: '/team', name: 'team', component: () => import('./views/TeamPanelView.vue'), meta: { requiresAuth: true, permission: 'team.read_private', title: 'nav.team', layout: 'panel', side: 'team-panel', redesigned: true } },
   { path: '/organizer', name: 'organizer', component: () => import('./views/OrganizerEventsView.vue'), meta: { requiresAuth: true, permission: 'event.manage', title: 'nav.organizer', layout: 'panel', side: 'organizer', redesigned: true } },
   { path: '/organizer/events/:id', name: 'organizer-event', component: () => import('./views/OrganizerEventView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'nav.organizer', layout: 'panel', side: 'organizer', redesigned: true } },
   { path: '/organizer/events/:id/operations', name: 'operations', component: () => import('./views/OperationsView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'cops.title', layout: 'panel', side: 'organizer', redesigned: true } },
@@ -78,7 +77,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/newsroom', name: 'newsroom', component: () => import('./views/NewsroomView.vue'), meta: { requiresAuth: true, permission: 'news.draft', title: 'nav.newsroom', layout: 'panel', side: 'newsroom', redesigned: true } },
   { path: '/finance', name: 'finance', component: () => import('./views/FinanceView.vue'), meta: { requiresAuth: true, permission: 'finance.read', title: 'nav.finance', layout: 'panel', side: 'finance', redesigned: true } },
   { path: '/finance/approvals', name: 'finance-approvals', component: () => import('./views/FinanceApprovalsView.vue'), meta: { requiresAuth: true, permission: 'approval.read', title: 'nav.approvals', layout: 'panel', side: 'finance-approvals', redesigned: true } },
-  { path: '/admin', name: 'admin', component: Shell, meta: { requiresAuth: true, permission: 'platform.settings', title: 'nav.admin', shell: true, layout: 'panel', side: 'admin' } },
+  { path: '/admin', name: 'admin', component: () => import('./views/AdminHomeView.vue'), meta: { requiresAuth: true, permission: 'platform.settings', title: 'nav.admin', layout: 'panel', side: 'admin', redesigned: true } },
   { path: '/admin/reviews', name: 'admin-reviews', component: () => import('./views/AdminReviewsView.vue'), meta: { requiresAuth: true, permission: 'account.review', title: 'nav.accountReviews', layout: 'panel', side: 'admin-reviews', redesigned: true } },
   { path: '/admin/ops', name: 'admin-ops', component: () => import('./views/AdminOpsView.vue'), meta: { requiresAuth: true, permission: 'outbox.read', title: 'nav.ops', layout: 'panel', side: 'admin-ops', redesigned: true } },
 

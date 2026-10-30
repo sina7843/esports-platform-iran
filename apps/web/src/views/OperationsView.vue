@@ -470,7 +470,7 @@ const iid = (i: Obj) => String(i._id ?? i.id);
 .p-ops-xs { max-inline-size: 6rem; }
 .p-ops-sm { max-inline-size: 10rem; }
 .p-ops-time { gap: var(--space-2); min-inline-size: 14rem; }
-.p-ops-proposal { border-inline-start: 4px solid var(--green-500); }
+.p-ops-proposal { border-inline-start: 4px solid var(--green); }
 .p-ops-more > summary { cursor: pointer; font-weight: 800; }
 .p-ops-more[open] > summary { margin-block-end: var(--space-3); }
 </style>
