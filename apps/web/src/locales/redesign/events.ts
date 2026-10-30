@@ -1,6 +1,42 @@
-/** New copy for the redesigned `events` page (docs/redesign/03-specs/events.md § Copy, rows marked new). fa and en side by side. */
+/** New copy for the redesigned `events` page (docs/redesign/03-specs/events.md § Copy). */
 export const fa = {
+  'ev.home': "خانه",
+  'ev.eyebrow': "تقویم مسابقات",
+  'ev.title': "رویدادها",
+  'ev.mine': "ثبت‌نام‌های من",
+  'ev.filters': "جست‌وجو و فیلتر رویدادها",
+  'ev.search': "جست‌وجوی رویداد",
+  'ev.searchPh': "نام رویداد یا بازی…",
+  'ev.status': "وضعیت",
+  'ev.allStatus': "همه وضعیت‌ها",
+  'ev.cards': "کارت",
+  'ev.list': "فهرست",
+  'ev.viewLabel': "نمای فهرست",
+  'ev.clear': "پاک کردن فیلترها",
+  'ev.count': "{n} رویداد",
+  'ev.empty': "هنوز رویدادی منتشر نشده است.",
+  'ev.noMatch': "رویدادی با این جست‌وجو پیدا نشد.",
+  'ev.more': "نمایش بیشتر",
+  'ev.done': "همه رویدادها نمایش داده شد",
 } satisfies Record<string, string>;
 
 export const en: Record<keyof typeof fa, string> = {
+  'ev.home': "Home",
+  'ev.eyebrow': "Competition calendar",
+  'ev.title': "Events",
+  'ev.mine': "My registrations",
+  'ev.filters': "Search and filter events",
+  'ev.search': "Search events",
+  'ev.searchPh': "Event or game name…",
+  'ev.status': "Status",
+  'ev.allStatus': "All statuses",
+  'ev.cards': "Cards",
+  'ev.list': "List",
+  'ev.viewLabel': "List view",
+  'ev.clear': "Clear filters",
+  'ev.count': "{n} events",
+  'ev.empty': "No events have been published yet.",
+  'ev.noMatch': "No event matches this search.",
+  'ev.more': "Show more",
+  'ev.done': "All events are shown",
 };
