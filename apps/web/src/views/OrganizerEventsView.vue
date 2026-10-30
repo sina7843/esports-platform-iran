@@ -2,16 +2,11 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { zonedWallTimeToUtc } from '@esp/contracts';
+import { QAlert, QButton, QCard, QContainer, QDataState, QDateField, QEventCard, QPageHeader, QSection, QSelect, QTextField, formatJalali } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { esp03 } from '../api/esp03';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { t } from '../i18n';
+import { stateLabel, t } from '../i18n';
 import { session } from '../session';
 
 /** EVT-001/002: organizer's events per organization and the create-event form. */
@@ -35,7 +30,8 @@ async function load() {
 }
 watch(orgId, () => void load(), { immediate: true });
 
-const f = reactive({ name: '', slug: '', visibility: 'public', presence: 'online', startsAt: '', endsAt: '', description: '', contact: '', before: 100, after: 50, cancel: 100, dq: 0, refundText: '', cancellationTerms: '', disputeTerms: '', prizeTitle: '', prizeRial: 0, prizeResp: 'organizer' });
+const f = reactive({ name: '', slug: '', visibility: 'public', presence: 'online', startsAt: '' as string | null, endsAt: '' as string | null,
+ description: '', contact: '', before: 100, after: 50, cancel: 100, dq: 0, refundText: '', cancellationTerms: '', disputeTerms: '', prizeTitle: '', prizeRial: 0, prizeResp: 'organizer' });
 const failure = ref<ApiClientError | null>(null);
 async function create() {
   failure.value = null;
@@ -54,66 +50,82 @@ async function create() {
     failure.value = toClientError(e);
   }
 }
+const numField = (k: 'before' | 'after' | 'cancel' | 'dq' | 'prizeRial') => computed({ get: () => String(f[k]), set: (v: string) => { f[k] = Number(v) || 0; } });
+const fBefore = numField('before');
+const fAfter = numField('after');
+const fCancel = numField('cancel');
+const fDq = numField('dq');
+const fPrize = numField('prizeRial');
+const opts = (keys: string[], prefix: string) => keys.map((v) => ({ value: v, label: t(`${prefix}.${v}` as never) }));
 </script>
 
 <template>
-  <PageHeader :title="t('nav.organizer')" :lead="t('evm.lead')" />
-  <FormField id="ev-org" :label="t('evm.org')">
-    <template #default="{ id }">
-      <select v-if="orgIds.length" :id="id" v-model="orgId" class="input ltr"><option v-for="o in orgIds" :key="o" :value="o">{{ o }}</option></select>
-      <input v-else :id="id" v-model.lazy="orgId" class="input ltr" />
-    </template>
-  </FormField>
-
-  <DataState :loading="loading" :error="error" :empty="!!orgId && !loading && !items.length" @retry="load">
-    <ul class="cards">
-      <li v-for="e in items" :key="String(e.id)" class="card row between">
-        <RouterLink :to="`/organizer/events/${e.id}`"><bdi>{{ e.name }}</bdi></RouterLink>
-        <span class="row"><JalaliDate :iso="(e.startsAt as string | null)" format="date" /> <StatusBadge :state="String(e.state)" /></span>
-      </li>
-    </ul>
-  </DataState>
-
-  <form v-if="orgId" class="card stack block" novalidate @submit.prevent="create">
-    <h2>{{ t('evm.create') }}</h2>
-    <div class="grid">
-      <FormField id="ev-name" :label="t('events.name')" required><template #default="{ id }"><input :id="id" v-model="f.name" class="input" dir="auto" required minlength="2" /></template></FormField>
-      <FormField id="ev-slug" :label="t('adm.slug')" :hint="t('evm.slugHint')" required><template #default="{ id, describedBy }"><input :id="id" v-model="f.slug" class="input ltr" pattern="[a-z0-9-]+" :aria-describedby="describedBy" required /></template></FormField>
-      <FormField id="ev-vis" :label="t('evm.visibility')"><template #default="{ id }"><select :id="id" v-model="f.visibility" class="input"><option v-for="v in ['public', 'private', 'invite', 'link_only']" :key="v" :value="v">{{ t(`evm.vis.${v}` as never) }}</option></select></template></FormField>
-      <FormField id="ev-pres" :label="t('reg.presence')"><template #default="{ id }"><select :id="id" v-model="f.presence" class="input"><option v-for="v in ['online', 'offline', 'hybrid']" :key="v" :value="v">{{ t(`reg.presence.${v}` as never) }}</option></select></template></FormField>
-      <FormField id="ev-start" :label="t('evm.startsTehran')"><template #default="{ id }"><input :id="id" v-model="f.startsAt" type="datetime-local" class="input" /></template></FormField>
-      <FormField id="ev-end" :label="t('evm.endsTehran')"><template #default="{ id }"><input :id="id" v-model="f.endsAt" type="datetime-local" class="input" /></template></FormField>
-      <FormField id="ev-contact" :label="t('reg.contact')"><template #default="{ id }"><input :id="id" v-model="f.contact" class="input" dir="auto" /></template></FormField>
-    </div>
-    <FormField id="ev-desc" :label="t('mgmt.description')"><template #default="{ id }"><textarea :id="id" v-model="f.description" class="input" rows="3" dir="auto" /></template></FormField>
-    <fieldset class="stack">
-      <legend>{{ t('reg.refundPolicy') }}</legend>
-      <div class="grid">
-        <FormField id="ev-rb" :label="t('evm.pBefore')"><template #default="{ id }"><input :id="id" v-model.number="f.before" type="number" min="0" max="100" class="input ltr" /></template></FormField>
-        <FormField id="ev-ra" :label="t('evm.pAfter')"><template #default="{ id }"><input :id="id" v-model.number="f.after" type="number" min="0" max="100" class="input ltr" /></template></FormField>
-        <FormField id="ev-rc" :label="t('evm.pCancel')"><template #default="{ id }"><input :id="id" v-model.number="f.cancel" type="number" min="0" max="100" class="input ltr" /></template></FormField>
-        <FormField id="ev-rd" :label="t('evm.pDq')"><template #default="{ id }"><input :id="id" v-model.number="f.dq" type="number" min="0" max="100" class="input ltr" /></template></FormField>
+  <QContainer>
+    <div class="k-stack p-orgev">
+      <QPageHeader compact :title="t('nav.organizer')" :description="t('evm.lead')">
+        <template v-if="orgId" #actions><QButton variant="primary" icon="plus" href="#create">{{ t('evm.create') }}</QButton></template>
+      </QPageHeader>
+      <QCard>
+        <QSelect v-if="orgIds.length" id="ev-org" v-model="orgId" :label="t('evm.org')" :options="orgIds.map((o) => ({ value: o, label: o }))" />
+        <!-- OPEN-QUESTION(organizer): organization names need backlog 0.2; the organization ID is shown -->
+        <QTextField v-else id="ev-org" v-model="orgId" :label="t('evm.org')" ltr />
+      </QCard>
+      <QDataState
+        v-if="loading || error || (!!orgId && !items.length)" :state="error ? (error.code === 'FORBIDDEN' ? 'forbidden' : 'error') : loading ? 'loading' : 'empty'"
+        skeleton="cards" icon="trophy" :empty-title="t('oe.empty')" @retry="load"
+      />
+      <div v-else class="k-grid">
+        <QEventCard
+          v-for="e in items" :key="String(e.id)" :href="`/organizer/events/${e.id}`" :title="String(e.name)" :status="(e.state === 'active' ? 'live' : String(e.state)) as never"
+          :status-label="stateLabel(String(e.state))" :date="e.startsAt ? formatJalali(String(e.startsAt), 'date') : undefined"
+        />
       </div>
-      <FormField id="ev-rt" :label="t('evm.refundText')" :hint="t('evm.refundTextHint')"><template #default="{ id }"><textarea :id="id" v-model="f.refundText" class="input" rows="2" dir="auto" /></template></FormField>
-    </fieldset>
-    <FormField id="ev-ct" :label="t('reg.cancelTerms')"><template #default="{ id }"><textarea :id="id" v-model="f.cancellationTerms" class="input" rows="2" dir="auto" /></template></FormField>
-    <FormField id="ev-dt" :label="t('reg.disputeTerms')"><template #default="{ id }"><textarea :id="id" v-model="f.disputeTerms" class="input" rows="2" dir="auto" /></template></FormField>
-    <fieldset class="grid">
-      <legend>{{ t('reg.prizes') }}</legend>
-      <FormField id="ev-pt" :label="t('adm.title')"><template #default="{ id }"><input :id="id" v-model="f.prizeTitle" class="input" dir="auto" /></template></FormField>
-      <FormField id="ev-pr" :label="t('evm.amountRial')"><template #default="{ id }"><input :id="id" v-model.number="f.prizeRial" type="number" min="0" step="10" class="input ltr" /></template></FormField>
-      <FormField id="ev-pp" :label="t('reg.responsible')"><template #default="{ id }"><select :id="id" v-model="f.prizeResp" class="input"><option v-for="v in ['platform', 'organizer', 'sponsor']" :key="v" :value="v">{{ t(`reg.resp.${v}` as never) }}</option></select></template></FormField>
-    </fieldset>
-    <ErrorNote :error="failure" />
-    <button type="submit" class="btn btn-primary" :disabled="!f.name || !f.slug">{{ t('evm.createDraft') }}</button>
-  </form>
+
+      <QSection v-if="orgId" id="create" small :title="t('evm.create')">
+        <QCard>
+          <form class="k-stack" novalidate @submit.prevent="create">
+            <div class="p-orgev-grid">
+              <QTextField id="ev-name" v-model="f.name" :label="t('events.name')" required />
+              <QTextField id="ev-slug" v-model="f.slug" :label="t('adm.slug')" :hint="t('evm.slugHint')" required ltr />
+              <QSelect id="ev-vis" v-model="f.visibility" :label="t('evm.visibility')" :options="opts(['public', 'private', 'invite', 'link_only'], 'evm.vis')" />
+              <QSelect id="ev-pres" v-model="f.presence" :label="t('reg.presence')" :options="opts(['online', 'offline', 'hybrid'], 'reg.presence')" />
+              <QDateField id="ev-start" v-model="f.startsAt" :label="t('evm.startsTehran')" with-time />
+              <QDateField id="ev-end" v-model="f.endsAt" :label="t('evm.endsTehran')" with-time />
+              <QTextField id="ev-contact" v-model="f.contact" :label="t('reg.contact')" />
+            </div>
+            <QTextField id="ev-desc" v-model="f.description" :label="t('mgmt.description')" multiline :rows="3" />
+            <fieldset class="p-orgev-set">
+              <legend>{{ t('reg.refundPolicy') }}</legend>
+              <div class="p-orgev-grid">
+                <QTextField id="ev-rb" v-model="fBefore" :label="t('evm.pBefore')" type="number" ltr />
+                <QTextField id="ev-ra" v-model="fAfter" :label="t('evm.pAfter')" type="number" ltr />
+                <QTextField id="ev-rc" v-model="fCancel" :label="t('evm.pCancel')" type="number" ltr />
+                <QTextField id="ev-rd" v-model="fDq" :label="t('evm.pDq')" type="number" ltr />
+              </div>
+              <QTextField id="ev-rt" v-model="f.refundText" :label="t('evm.refundText')" :hint="t('evm.refundTextHint')" multiline :rows="2" />
+            </fieldset>
+            <QTextField id="ev-ct" v-model="f.cancellationTerms" :label="t('reg.cancelTerms')" multiline :rows="2" />
+            <QTextField id="ev-dt" v-model="f.disputeTerms" :label="t('reg.disputeTerms')" multiline :rows="2" />
+            <fieldset class="p-orgev-set">
+              <legend>{{ t('reg.prizes') }}</legend>
+              <div class="p-orgev-grid">
+                <QTextField id="ev-pt" v-model="f.prizeTitle" :label="t('adm.title')" />
+                <QTextField id="ev-pr" v-model="fPrize" :label="t('evm.amountRial')" type="number" ltr />
+                <QSelect id="ev-pp" v-model="f.prizeResp" :label="t('reg.responsible')" :options="opts(['platform', 'organizer', 'sponsor'], 'reg.resp')" />
+              </div>
+            </fieldset>
+            <QAlert v-if="failure" tone="danger">{{ failure.message }}</QAlert>
+            <div><QButton type="submit" variant="primary" icon="plus" :disabled="!f.name || !f.slug">{{ t('evm.createDraft') }}</QButton></div>
+          </form>
+        </QCard>
+      </QSection>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.cards { list-style: none; padding: 0; margin: var(--sp-4) 0; display: grid; gap: var(--sp-2); }
-.between { justify-content: space-between; flex-wrap: wrap; gap: var(--sp-2); }
-.block { margin-block-start: var(--sp-6); }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: var(--sp-3); border: 0; padding: 0; margin: 0; }
-fieldset { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--sp-3); }
-h2 { margin: 0; }
+.p-orgev { gap: var(--space-6); }
+.p-orgev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: var(--space-4); }
+.p-orgev-set { margin: 0; padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-4); }
+.p-orgev-set legend { padding-inline: var(--space-2); font-weight: 800; }
 </style>

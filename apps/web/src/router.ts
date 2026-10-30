@@ -65,7 +65,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/account/settings', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'nav.settings', layout: 'panel', side: 'settings', redesigned: true } },
 
   { path: '/team', name: 'team', component: Shell, meta: { requiresAuth: true, permission: 'team.read_private', title: 'nav.team', shell: true, layout: 'panel', side: 'team-panel' } },
-  { path: '/organizer', name: 'organizer', component: () => import('./views/OrganizerEventsView.vue'), meta: { requiresAuth: true, permission: 'event.manage', title: 'nav.organizer', layout: 'panel', side: 'organizer' } },
+  { path: '/organizer', name: 'organizer', component: () => import('./views/OrganizerEventsView.vue'), meta: { requiresAuth: true, permission: 'event.manage', title: 'nav.organizer', layout: 'panel', side: 'organizer', redesigned: true } },
   { path: '/organizer/events/:id', name: 'organizer-event', component: () => import('./views/OrganizerEventView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'nav.organizer', layout: 'panel', side: 'organizer' } },
   { path: '/organizer/events/:id/operations', name: 'operations', component: () => import('./views/OperationsView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'cops.title', layout: 'panel', side: 'organizer' } },
   { path: '/organizer/events/:id/results', name: 'results-admin', component: () => import('./views/ResultsAdminView.vue'), meta: { requiresAuth: true, permission: 'event.read_private', title: 'res.title', layout: 'panel', side: 'organizer' } },
