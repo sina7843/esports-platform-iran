@@ -106,7 +106,7 @@ describe('entry card (LAN-002)', () => {
     await router.push('/events/e1/my-qr');
     const w = mount(MyQrView, { global: { plugins: [router] } });
     await flushPromises();
-    expect(w.find('.qr svg').exists()).toBe(true);
+    expect(w.find('.p-my-qr-code svg').exists()).toBe(true);
     expect(w.text()).toContain('طبقه منفی یک');
     expect(w.html()).not.toContain('<script');
     w.unmount();
