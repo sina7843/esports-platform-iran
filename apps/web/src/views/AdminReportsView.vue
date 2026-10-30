@@ -1,78 +1,152 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import type { ApiClientError } from '../api/client';
-import { esp07 as esp07Api } from '../api/esp07';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import MoneyLabel from '../components/MoneyLabel.vue';
-import PageHeader from '../components/PageHeader.vue';
+import { computed, onMounted, ref } from 'vue';
+import { zonedWallTimeToUtc } from '@esp/contracts';
+import { QAlert, QButton, QCard, QContainer, QDataState, QDateField, QFacts, QIcon, QPageHeader, QSection, QSegmentedControl, QSelect, dec, fa, formatJalali, num, toman, type IconName } from '@esp/ui';
+import { api, type ApiClientError } from '../api/client';
+import { esp07 } from '../api/esp07';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
+import { can } from '../session';
 
 /**
- * ADM-011 performance, satisfaction, finance, media, resource and support reports for a date range, with open
- * financial obligations always visible; sponsor export per event (facts the platform recorded, formula-safe CSV).
+ * Spec docs/redesign/03-specs/admin-reports.md — ADM-011 reports for a Tehran-time date range, open obligations always
+ * visible, sponsor export per event (formula-safe CSV from the server).
  */
-const esp07: typeof esp07Api = esp07Api;
-const today = new Date().toISOString().slice(0, 10);
-const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
-const from = ref(monthAgo);
-const to = ref(today);
+const tehranDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+const today = tehranDay(new Date());
+const daysAgo = (n: number) => tehranDay(new Date(Date.now() - n * 86_400_000));
+const from = ref<string | null>(daysAgo(30));
+const to = ref<string | null>(today);
+const quick = ref('30');
 const report = ref<Record<string, Record<string, number | null>> | null>(null);
+const builtAt = ref('');
+const range = ref({ from: '', to: '' });
 const busy = ref(false);
 const failure = ref<ApiClientError | null>(null);
-const eventId = ref('');
+
 async function run() {
+  if (!from.value || !to.value) return;
   busy.value = true;
   failure.value = null;
   try {
-    report.value = (await esp07.report(`${from.value}T00:00:00.000Z`, `${new Date(Date.parse(`${to.value}T00:00:00.000Z`) + 86_400_000).toISOString()}`)) as never;
+    const f = zonedWallTimeToUtc(`${from.value}T00:00`);
+    const end = zonedWallTimeToUtc(`${to.value}T00:00`);
+    report.value = (await esp07.report(f, new Date(Date.parse(end) + 86_400_000).toISOString())) as never;
+    builtAt.value = new Date().toISOString();
+    range.value = { from: f, to: end };
   } catch (e) {
     failure.value = toClientError(e);
   } finally {
     busy.value = false;
   }
 }
-const groups = ['performance', 'satisfaction', 'finance', 'media', 'resources', 'support'] as const;
-const sections = computed(() => groups.map((g) => ({ g, rows: Object.entries(report.value?.[g] ?? {}) })));
-const MONEY = new Set(['collectedRial', 'refundedRial', 'openPrizeObligationsRial']);
+function setQuick(v: string | undefined) {
+  if (!v) return;
+  quick.value = v;
+  from.value = daysAgo(Number(v));
+  to.value = today;
+  void run();
+}
+onMounted(run);
+
+const GROUPS: { key: string; icon: IconName }[] = [
+  { key: 'performance', icon: 'activity' }, { key: 'satisfaction', icon: 'star' }, { key: 'finance', icon: 'wallet' },
+  { key: 'media', icon: 'news' }, { key: 'resources', icon: 'server' }, { key: 'support', icon: 'inbox' },
+];
+function value(k: string, v: number | null): string {
+  if (v == null) return '—';
+  if (k.endsWith('Rial')) return toman(v);
+  if (k === 'average') return t('ar.of5', { n: dec(v, 1) });
+  return num(v);
+}
+const sections = computed(() => GROUPS.map((g) => ({
+  ...g,
+  items: Object.entries(report.value?.[g.key] ?? {}).map(([k, v]) => ({ label: t(`a7.reports.m.${k}` as MessageKey), value: value(k, v) })),
+})));
+const obligations = computed(() => report.value?.finance ?? null);
+
+// OPEN-QUESTION(admin-reports): admin listing of private/finished events is a backlog addition; the public list is used.
+const events = ref<{ value: string; label: string }[]>([]);
+const eventId = ref('');
+onMounted(async () => {
+  try {
+    events.value = (await api.events(undefined, 50)).items.map((e) => ({ value: e.id, label: e.name }));
+  } catch {
+    /* the export picker stays empty */
+  }
+});
 </script>
 
 <template>
-  <PageHeader :title="t('a7.reports.title')" :lead="t('a7.reports.lead')" />
-  <ErrorNote :error="failure" />
-  <form class="card row" @submit.prevent="run">
-    <FormField id="rp-f" :label="t('a7.reports.from')"><template #default="{ id: fid }"><input :id="fid" v-model="from" type="date" class="input ltr" /></template></FormField>
-    <FormField id="rp-t" :label="t('a7.reports.to')"><template #default="{ id: fid }"><input :id="fid" v-model="to" type="date" class="input ltr" /></template></FormField>
-    <button type="submit" class="btn btn-primary" :disabled="busy || !from || !to">{{ t('a7.reports.run') }}</button>
-  </form>
-  <div v-if="report" class="grid block" role="region" :aria-label="t('a7.reports.title')">
-    <section v-for="s in sections" :key="s.g" class="card stack">
-      <h2>{{ t(`a7.reports.g.${s.g}` as never) }}</h2>
-      <dl class="kv">
-        <template v-for="[k, v] in s.rows" :key="k">
-          <dt>{{ t(`a7.reports.m.${k}` as never) }}</dt>
-          <dd><MoneyLabel v-if="MONEY.has(k) && typeof v === 'number'" :rial="v" /><template v-else>{{ v === null ? '—' : num(v) }}</template></dd>
-        </template>
-      </dl>
-    </section>
-  </div>
-  <section class="card stack block" aria-labelledby="sp-h">
-    <h2 id="sp-h">{{ t('a7.reports.sponsor') }}</h2>
-    <p class="muted small">{{ t('a7.reports.sponsorLead') }}</p>
-    <div class="row">
-      <FormField id="sp-e" :label="t('a7.reports.event')"><template #default="{ id: fid }"><input :id="fid" v-model="eventId" class="input ltr" /></template></FormField>
-      <a class="btn" :href="eventId ? esp07.sponsorCsvUrl(eventId) : undefined" :aria-disabled="!eventId" download>{{ t('a7.reports.download') }}</a>
+  <QContainer>
+    <div class="k-stack p-admin-reports">
+      <QPageHeader compact :title="t('a7.reports.title')" :description="t('a7.reports.lead')" :breadcrumb="can('platform.settings') ? [{ label: t('shell.platform_admin'), href: '/admin' }, { label: t('a7.reports.title') }] : undefined" />
+      <QCard>
+        <form class="p-admin-reports-form" @submit.prevent="run">
+          <QDateField id="rp-f" v-model="from" :label="t('a7.reports.from')" :max="to ?? today" />
+          <QDateField id="rp-t" v-model="to" :label="t('a7.reports.to')" :max="today" />
+          <QButton variant="primary" type="submit" icon="chart" :loading="busy">{{ t('a7.reports.run') }}</QButton>
+        </form>
+        <div class="p-admin-reports-quick">
+          <span class="p-admin-reports-sub">{{ t('ar.quick') }}</span>
+          <QSegmentedControl size="sm" :aria-label="t('ar.quick')" :model-value="quick" :options="[{ value: '7', label: t('ar.d7') }, { value: '30', label: t('ar.d30') }, { value: '90', label: t('ar.d90') }]" @update:model-value="setQuick" />
+          <span class="p-admin-reports-sub">{{ t('ar.tzNote') }}</span>
+        </div>
+      </QCard>
+
+      <QAlert v-if="obligations && (obligations.openPrizeObligations ?? 0) > 0" tone="warning" icon="wallet" :title="t('ar.obligations')" :actions="[{ label: t('ar.finance'), href: '/finance' }]">
+        {{ t('ar.obligationsBody', { n: fa(obligations.openPrizeObligations ?? 0), amount: toman(obligations.openPrizeObligationsRial ?? 0) }) }}
+      </QAlert>
+
+      <QDataState v-if="failure || (busy && !report)" :state="failure ? (failure.code === 'NETWORK' ? 'offline' : failure.code === 'FORBIDDEN' ? 'forbidden' : 'error') : 'loading'" :request-id="failure?.requestId ?? undefined" @retry="run" />
+      <QSection v-else-if="report" id="report" small :title="t('ar.heading', { from: formatJalali(range.from, 'date'), to: formatJalali(range.to, 'date') })" :description="builtAt ? formatJalali(builtAt, 'time') : undefined">
+        <div class="p-admin-reports-grid">
+          <QCard v-for="g in sections" :key="g.key">
+            <div class="p-admin-reports-group">
+              <div class="p-admin-reports-ghead"><QIcon :name="g.icon" :size="20" /><h3>{{ t(`a7.reports.g.${g.key}` as MessageKey) }}</h3></div>
+              <QFacts v-if="g.items.length" variant="list" dense :items="g.items" />
+              <p v-else class="p-admin-reports-sub">{{ t('ar.empty') }}</p>
+            </div>
+          </QCard>
+        </div>
+        <p class="p-admin-reports-note"><QIcon name="info" :size="16" />{{ t('ar.note') }}</p>
+      </QSection>
+
+      <QSection id="sponsor" small :title="t('a7.reports.sponsor')">
+        <QCard>
+          <div class="k-stack">
+            <p class="p-admin-reports-note"><QIcon name="shield" :size="16" />{{ t('ar.exportNote') }}</p>
+            <div class="p-admin-reports-export">
+              <QSelect v-model="eventId" :label="t('ar.event')" :placeholder="t('ar.chooseEvent')" required :options="events" />
+              <QButton variant="secondary" icon="download" :disabled="!eventId" :href="eventId ? esp07.sponsorCsvUrl(eventId) : undefined" download>{{ t('a7.reports.download') }}</QButton>
+            </div>
+            <div>
+              <h3 class="p-admin-reports-sub">{{ t('ar.cols') }}</h3>
+              <ul class="p-admin-reports-cols">
+                <li>{{ t('ar.c1') }}</li><li>{{ t('ar.c2') }}</li><li>{{ t('ar.c3') }}</li><li>{{ t('ar.c4') }}</li><li>{{ t('ar.c5') }}</li>
+              </ul>
+            </div>
+          </div>
+        </QCard>
+      </QSection>
     </div>
-  </section>
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: end; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--sp-3); align-items: start; }
-.kv { display: grid; grid-template-columns: 1fr auto; gap: var(--sp-1) var(--sp-3); margin: 0; }
-.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
-.block { margin-block-start: var(--sp-4); }
-.small { font-size: var(--fs-xs); }
-h2, p { margin: 0; }
+.p-admin-reports { gap: var(--space-7); }
+.p-admin-reports-form { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; }
+.p-admin-reports-quick { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-block-start: var(--space-4); }
+.p-admin-reports-sub { margin: 0; font-size: 12px; color: var(--ink-subtle); }
+.p-admin-reports-grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.p-admin-reports-group { display: flex; flex-direction: column; gap: var(--space-3); }
+.p-admin-reports-ghead { display: flex; align-items: center; gap: var(--space-2); }
+.p-admin-reports-ghead .q-icon { color: var(--green-text); }
+.p-admin-reports-ghead h3 { margin: 0; font-size: 16px; font-weight: 900; }
+.p-admin-reports-note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0; font-size: 13px; line-height: 22px; color: var(--ink-subtle); }
+.p-admin-reports-note .q-icon { flex: none; margin-block-start: 3px; }
+.p-admin-reports-export { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+.p-admin-reports-cols { margin: 0; padding-inline-start: var(--space-5); font-size: 13px; line-height: 22px; color: var(--ink-muted); columns: 2; }
+@media (max-width: 1100px) { .p-admin-reports-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .p-admin-reports-form, .p-admin-reports-export { grid-template-columns: minmax(0, 1fr); } .p-admin-reports-grid { grid-template-columns: minmax(0, 1fr); } .p-admin-reports-cols { columns: 1; } }
 </style>

@@ -60,7 +60,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/account/registrations', name: 'my-registrations', component: () => import('./views/MyRegistrationsView.vue'), meta: { requiresAuth: true, title: 'reg.mine', layout: 'panel', side: 'registrations' } },
   { path: '/account/certificates', name: 'my-certificates', component: () => import('./views/CertificatesView.vue'), meta: { requiresAuth: true, title: 'cert.title', layout: 'panel', side: 'certificates', redesigned: true } },
   { path: '/account/calendar', name: 'my-calendar', component: () => import('./views/MyCalendarView.vue'), meta: { requiresAuth: true, title: 'cal.title', layout: 'panel', side: 'calendar' } },
-  { path: '/events/:id/my-qr', name: 'my-qr', component: () => import('./views/MyQrView.vue'), meta: { requiresAuth: true, title: 'qr.title', layout: 'panel', side: 'registrations' } },
+  { path: '/events/:id/my-qr', name: 'my-qr', component: () => import('./views/MyQrView.vue'), meta: { requiresAuth: true, title: 'qr.title', layout: 'panel', side: 'registrations', redesigned: true } },
   { path: '/payments/return', name: 'payment-return', component: () => import('./views/PaymentReturnView.vue'), meta: { requiresAuth: true, title: 'pay.title', layout: 'panel', side: 'registrations' } },
   { path: '/account/settings', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'nav.settings', layout: 'panel', side: 'settings', redesigned: true } },
 
@@ -92,7 +92,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/admin/settings', name: 'admin-settings', component: () => import('./views/AdminSettingsView.vue'), meta: { requiresAuth: true, permission: 'platform.settings', title: 'a7.nav.settings', layout: 'panel', side: 'admin-settings' } },
   { path: '/admin/privacy', name: 'admin-privacy', component: () => import('./views/AdminPrivacyView.vue'), meta: { requiresAuth: true, permission: 'privacy.manage', title: 'a7.nav.privacy', layout: 'panel', side: 'admin-privacy' } },
   { path: '/admin/integrations', name: 'admin-integrations', component: () => import('./views/AdminIntegrationsView.vue'), meta: { requiresAuth: true, permission: 'providers.manage', title: 'a7.nav.integrations', layout: 'panel', side: 'admin-integrations' } },
-  { path: '/admin/reports', name: 'admin-reports', component: () => import('./views/AdminReportsView.vue'), meta: { requiresAuth: true, permission: 'admin.reports', title: 'a7.nav.reports', layout: 'panel', side: 'admin-reports' } },
+  { path: '/admin/reports', name: 'admin-reports', component: () => import('./views/AdminReportsView.vue'), meta: { requiresAuth: true, permission: 'admin.reports', title: 'a7.nav.reports', layout: 'panel', side: 'admin-reports', redesigned: true } },
 
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue'), meta: { title: 'nav.notFound', layout: 'public', redesigned: true } },
 ];
