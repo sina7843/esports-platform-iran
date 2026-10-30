@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { QAlert, QBadge, QButton, QCard, QCheckbox, QContainer, QDataState, QPageHeader, QSelect, QStatusBadge, QTabs, QTextField, fa, formatJalali, useToast } from '@esp/ui';
 import type { ApiClientError } from '../api/client';
 import { api } from '../api/client';
 import { esp02 } from '../api/esp02';
 import { esp03 as esp03Api } from '../api/esp03';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import FormField from '../components/FormField.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
-import { isForbidden, toClientError } from '../errors';
+import { toClientError } from '../errors';
 import { stateLabel, t } from '../i18n';
 import { useLoad } from '../useLoad';
-
 /** USR-010 (account reviews, never auto-merged) and ADM-002/004 (organizer application review) for staff. */
 const reviews = useLoad(() => esp02.accountReviews());
 const apps = useLoad(() => esp02.organizerApplications());
@@ -64,13 +59,13 @@ async function decide(id: string, decision: string, version: number) {
   }
 }
 
-const appForm = reactive<Record<string, { action: string; note: string; level: string; maxEvents: number; maxCapacity: number; paid: boolean }>>({});
-const form = (id: string) => (appForm[id] ??= { action: 'start_review', note: '', level: 'basic', maxEvents: 2, maxCapacity: 64, paid: false });
+const appForm = reactive<Record<string, { action: string; note: string; level: string; maxEvents: string; maxCapacity: string; paid: boolean }>>({});
+const form = (id: string) => (appForm[id] ??= { action: 'start_review', note: '', level: 'basic', maxEvents: '2', maxCapacity: '64', paid: false });
 async function review(id: string, version: number) {
   failure.value = null;
   const f = form(id);
   const body: Record<string, unknown> = { action: f.action, note: f.note, expectedVersion: version };
-  if (f.action === 'approve') Object.assign(body, { level: f.level, limits: { maxActiveEvents: f.maxEvents, maxCapacityPerEvent: f.maxCapacity, paidEventsAllowed: f.paid } });
+  if (f.action === 'approve') Object.assign(body, { level: f.level, limits: { maxActiveEvents: Number(f.maxEvents), maxCapacityPerEvent: Number(f.maxCapacity), paidEventsAllowed: f.paid } });
   try {
     await esp02.reviewOrganizer(id, body);
     await apps.load();
@@ -78,137 +73,163 @@ async function review(id: string, version: number) {
     failure.value = toClientError(e);
   }
 }
+const { push } = useToast();
+watch(notice, (n) => { if (n) push({ tone: 'success', message: t('rv.done'), duration: 3000 }); });
+watch(failure, (f) => { if (f) push({ tone: 'danger', message: f.message }); });
+type L = { loading: { value: boolean }; error: { value: ApiClientError | null }; data: { value: { items: unknown[] } | null } };
+const st = (l: L) => (l.error.value ? 'error' : !l.data.value ? 'loading' : !l.data.value.items.length ? 'empty' : 'content');
+const tab = ref('accounts');
+const tabs = computed(() => [
+  { key: 'accounts', label: t('nav.accountReviews'), icon: 'users' as const, count: (reviews.data.value?.items ?? []).filter((r) => r.state === 'open').length },
+  { key: 'ids', label: t('adm.pendingIds'), icon: 'gamepad' as const, count: pendingIds.data.value?.items.length ?? 0 },
+  { key: 'levels', label: t('rv.levels'), icon: 'shield' as const },
+  { key: 'ratings', label: t('adm.ratings'), icon: 'star' as const, count: ratings.data.value?.items.length ?? 0 },
+  { key: 'apps', label: t('org.review'), icon: 'flag' as const, count: (apps.data.value?.items ?? []).filter((a) => !['approved', 'rejected'].includes(a.state)).length },
+  { key: 'affs', label: t('evm.affReview'), icon: 'award' as const, count: affs.data.value?.items.length ?? 0 },
+]);
+const ACTIONS = ['start_review', 'request_info', 'approve', 'reject'].map((a) => ({ value: a, label: t(`rv.act.${a}` as never) }));
+const LEVELS = ['basic', 'trusted', 'partner'].map((a) => ({ value: a, label: a }));
 </script>
 
 <template>
-  <PageHeader :title="t('reviews.title')" :lead="t('reviews.noMerge')" />
-  <ErrorNote :error="failure" />
-
-  <section aria-labelledby="ar-h">
-    <h2 id="ar-h">{{ t('nav.accountReviews') }}</h2>
-    <DataState :loading="reviews.loading.value" :error="reviews.error.value" :forbidden="isForbidden(reviews.error.value)" :empty="!!reviews.data.value && reviews.data.value.items.length === 0" @retry="reviews.load">
-      <ul v-if="reviews.data.value" class="cards">
-        <li v-for="r in reviews.data.value.items" :key="r.id" class="card stack">
-          <span>{{ t('reviews.reason') }}: <bdi>{{ r.reason }}</bdi></span>
-          <span>{{ t('reviews.accounts') }}: <bdi v-for="p in r.principals" :key="p.id" class="ltr acc">{{ p.nickname ?? p.id }}</bdi></span>
-          <span class="muted"><JalaliDate :iso="r.createdAt" /> · {{ r.state }}</span>
-          <template v-if="r.state === 'open'">
-            <FormField :id="`n-${r.id}`" :label="t('org.note')"><template #default="{ id }"><input :id="id" v-model="notes[r.id]" class="input" dir="auto" /></template></FormField>
-            <div class="row">
-              <button type="button" class="btn btn-sm" :disabled="!notes[r.id]" @click="decide(r.id, 'resolved_distinct', r.version)">{{ t('reviews.distinct') }}</button>
-              <button type="button" class="btn btn-sm" :disabled="!notes[r.id]" @click="decide(r.id, 'resolved_merged_manually', r.version)">{{ t('reviews.mergedManually') }}</button>
+  <QContainer>
+    <div class="k-stack p-rv">
+      <QPageHeader compact :title="t('reviews.title')" :description="t('rv.lead')" :breadcrumb="[{ label: t('shell.platform_admin'), href: '/admin' }, { label: t('reviews.title') }]" />
+      <QTabs v-model="tab" variant="line" overflow="scroll" :items="tabs" :aria-label="t('reviews.title')">
+        <template #panel="{ item }">
+          <div v-if="item.key === 'accounts'" class="k-stack">
+            <QAlert tone="info">{{ t('reviews.noMerge') }}</QAlert>
+            <QDataState v-if="st(reviews) !== 'content'" :state="st(reviews) as never" :error="reviews.error.value" skeleton="cards" @retry="reviews.load" />
+            <div v-else class="p-rv-cards">
+              <QCard v-for="r in reviews.data.value!.items" :key="r.id">
+                <div class="k-stack">
+                  <div class="p-rv-head"><span class="q-ltr"><bdi v-for="(p, i) in r.principals" :key="p.id">{{ i ? ' + ' : '' }}{{ p.nickname ?? p.id }}</bdi></span><QStatusBadge :state="r.state" /></div>
+                  <p class="p-rv-p">{{ t('reviews.reason') }}: <bdi>{{ r.reason }}</bdi></p>
+                  <p class="p-rv-muted">{{ formatJalali(r.createdAt) }}</p>
+                  <template v-if="r.state === 'open'">
+                    <QTextField :id="`n-${r.id}`" v-model="notes[r.id]" :label="t('org.note')" />
+                    <div class="k-row">
+                      <QButton size="sm" variant="green" :disabled="!notes[r.id]" @click="decide(r.id, 'resolved_distinct', r.version)">{{ t('reviews.distinct') }}</QButton>
+                      <QButton size="sm" variant="secondary" :disabled="!notes[r.id]" @click="decide(r.id, 'resolved_merged_manually', r.version)">{{ t('reviews.mergedManually') }}</QButton>
+                    </div>
+                  </template>
+                </div>
+              </QCard>
             </div>
-          </template>
-        </li>
-      </ul>
-    </DataState>
-  </section>
-
-  <p v-if="notice" role="status">{{ notice }}</p>
-  <section class="block" aria-labelledby="gi-h">
-    <h2 id="gi-h">{{ t('adm.pendingIds') }}</h2>
-    <DataState :loading="pendingIds.loading.value" :error="pendingIds.error.value" :forbidden="isForbidden(pendingIds.error.value)" :empty="!!pendingIds.data.value && pendingIds.data.value.items.length === 0" @retry="pendingIds.load">
-      <ul v-if="pendingIds.data.value" class="list">
-        <li v-for="g in pendingIds.data.value.items" :key="g.id"><bdi class="ltr">{{ g.principalId }} · {{ g.gameId }} · {{ g.platform }} · {{ g.value }}</bdi> · {{ g.verification.state }}
-          <button v-if="g.verification.state !== 'disputed'" type="button" class="btn btn-sm" @click="verifyId(g.id)">{{ t('adm.verify') }}</button>
-        </li>
-      </ul>
-    </DataState>
-  </section>
-
-  <section class="block grid2">
-    <form class="card stack" novalidate @submit.prevent="setLevel">
-      <h2>{{ t('adm.verifyLevel') }}</h2>
-      <FormField id="vl-p" :label="t('adm.principal')"><template #default="{ id }"><input :id="id" v-model="level.principalId" class="input ltr" /></template></FormField>
-      <FormField id="vl-g" :label="t('adm.gameId')"><template #default="{ id }"><input :id="id" v-model="level.gameId" class="input ltr" /></template></FormField>
-      <FormField id="vl-v" :label="t('adm.value')"><template #default="{ id }"><input :id="id" v-model="level.value" class="input" dir="auto" /></template></FormField>
-      <button type="submit" class="btn" :disabled="!level.principalId || !level.gameId">{{ t('mgmt.save') }}</button>
-    </form>
-    <form class="card stack" novalidate @submit.prevent="issueBadge">
-      <h2>{{ t('adm.badge') }}</h2>
-      <FormField id="bd-k" :label="t('adm.badgeKind')">
-        <template #default="{ id }"><select :id="id" v-model="badge.kind" class="input"><option value="identity">{{ t('badge.identity') }}</option><option value="org_position">{{ t('badge.org_position') }}</option></select></template>
-      </FormField>
-      <FormField id="bd-p" :label="t('adm.principal')"><template #default="{ id }"><input :id="id" v-model="badge.principalId" class="input ltr" /></template></FormField>
-      <FormField v-if="badge.kind === 'identity'" id="bd-r" :label="t('adm.reference')"><template #default="{ id }"><input :id="id" v-model="badge.referenceText" class="input" dir="auto" /></template></FormField>
-      <template v-else>
-        <FormField id="bd-o" :label="t('teams.orgId')"><template #default="{ id }"><input :id="id" v-model="badge.organizationId" class="input ltr" /></template></FormField>
-        <FormField id="bd-pos" :label="t('teams.role')"><template #default="{ id }"><input :id="id" v-model="badge.position" class="input" dir="auto" /></template></FormField>
-      </template>
-      <button type="submit" class="btn" :disabled="!badge.principalId">{{ t('adm.badge') }}</button>
-    </form>
-  </section>
-
-  <section class="block" aria-labelledby="rt-h">
-    <h2 id="rt-h">{{ t('adm.ratings') }}</h2>
-    <DataState :loading="ratings.loading.value" :error="ratings.error.value" :forbidden="isForbidden(ratings.error.value)" :empty="!!ratings.data.value && ratings.data.value.items.length === 0" @retry="ratings.load">
-      <ul v-if="ratings.data.value" class="list">
-        <li v-for="r in ratings.data.value.items" :key="r.id" class="row">
-          <bdi class="ltr">{{ r.organizationId }} · {{ r.eventId }}</bdi> · {{ r.score }} · <bdi>{{ r.comment }}</bdi> · {{ r.state }}
-          <label class="sr-only" :for="`mr-${r.id}`">{{ t('adm.reason') }}</label>
-          <input :id="`mr-${r.id}`" v-model="modReason[r.id]" class="input sm" dir="auto" :placeholder="t('adm.reason')" />
-          <button type="button" class="btn btn-sm" :disabled="(modReason[r.id] ?? '').length < 5" @click="moderate(r.id, r.state === 'hidden' ? 'unhide' : 'hide')">{{ r.state === 'hidden' ? t('adm.unhide') : t('adm.hide') }}</button>
-        </li>
-      </ul>
-    </DataState>
-  </section>
-
-  <section class="block" aria-labelledby="oa-h">
-    <h2 id="oa-h">{{ t('org.review') }}</h2>
-    <DataState :loading="apps.loading.value" :error="apps.error.value" :forbidden="isForbidden(apps.error.value)" :empty="!!apps.data.value && apps.data.value.items.length === 0" @retry="apps.load">
-      <ul v-if="apps.data.value" class="cards">
-        <li v-for="a in apps.data.value.items" :key="a.id" class="card stack">
-          <span><bdi class="ltr">{{ a.organizationId }}</bdi> — {{ stateLabel(a.state) }}</span>
-          <p dir="auto">{{ a.description }}</p>
-          <form v-if="!['approved', 'rejected'].includes(a.state)" class="stack" novalidate @submit.prevent="review(a.id, a.version)">
-            <FormField :id="`a-${a.id}`" :label="t('org.action')">
-              <template #default="{ id }">
-                <select :id="id" v-model="form(a.id).action" class="input">
-                  <option value="start_review">start_review</option><option value="request_info">request_info</option><option value="approve">approve</option><option value="reject">reject</option>
-                </select>
-              </template>
-            </FormField>
-            <template v-if="form(a.id).action === 'approve'">
-              <FormField :id="`l-${a.id}`" :label="t('org.level')"><template #default="{ id }"><select :id="id" v-model="form(a.id).level" class="input"><option>basic</option><option>trusted</option><option>partner</option></select></template></FormField>
-              <FormField :id="`me-${a.id}`" :label="t('org.maxEvents')"><template #default="{ id }"><input :id="id" v-model.number="form(a.id).maxEvents" type="number" min="0" class="input ltr" /></template></FormField>
-              <FormField :id="`mc-${a.id}`" :label="t('org.maxCapacity')"><template #default="{ id }"><input :id="id" v-model.number="form(a.id).maxCapacity" type="number" min="0" class="input ltr" /></template></FormField>
-              <label class="row"><input v-model="form(a.id).paid" type="checkbox" /> {{ t('org.paidAllowed') }}</label>
-            </template>
-            <FormField :id="`no-${a.id}`" :label="t('org.note')" required><template #default="{ id }"><input :id="id" v-model="form(a.id).note" class="input" dir="auto" /></template></FormField>
-            <button type="submit" class="btn btn-primary" :disabled="!form(a.id).note">{{ t('org.submit') }}</button>
-          </form>
-        </li>
-      </ul>
-    </DataState>
-  </section>
-
-  <!-- EVT-008: official affiliation claims; the claimant can never decide their own -->
-  <section class="block" aria-labelledby="af-h">
-    <h2 id="af-h">{{ t('evm.affReview') }}</h2>
-    <DataState :loading="affs.loading.value" :error="affs.error.value" :forbidden="isForbidden(affs.error.value)" :empty="!!affs.data.value && affs.data.value.items.length === 0" @retry="affs.load">
-      <ul v-if="affs.data.value" class="cards">
-        <li v-for="a in affs.data.value.items" :key="a.eventId" class="card stack">
-          <RouterLink :to="`/events/${a.eventId}`"><bdi>{{ a.name }}</bdi></RouterLink>
-          <p>{{ t(`evm.aff.${a.affiliation.kind}` as never) }}: <bdi>{{ a.affiliation.body }}</bdi></p>
-          <button type="button" class="btn btn-sm" @click="openEvidence(a.affiliation.evidenceFileId)">{{ t('evm.affEvidence') }}</button>
-          <FormField :id="`afn-${a.eventId}`" :label="t('evm.reason')"><template #default="{ id }"><input :id="id" v-model="affNote[a.eventId]" class="input" dir="auto" /></template></FormField>
-          <div class="row">
-            <button type="button" class="btn btn-primary btn-sm" :disabled="(affNote[a.eventId] ?? '').length < 5" @click="staff(() => esp03.decideAffiliation(a.eventId, 'verify', affNote[a.eventId] ?? ''), affs.load)">{{ t('evm.affVerify') }}</button>
-            <button type="button" class="btn btn-danger btn-sm" :disabled="(affNote[a.eventId] ?? '').length < 5" @click="staff(() => esp03.decideAffiliation(a.eventId, 'reject', affNote[a.eventId] ?? ''), affs.load)">{{ t('evm.reject') }}</button>
           </div>
-        </li>
-      </ul>
-    </DataState>
-  </section>
+
+          <div v-else-if="item.key === 'ids'">
+            <QDataState v-if="st(pendingIds) !== 'content'" :state="st(pendingIds) as never" :error="pendingIds.error.value" skeleton="rows" @retry="pendingIds.load" />
+            <QCard v-else padding="none">
+              <ul class="p-rv-rows">
+                <li v-for="g in pendingIds.data.value!.items" :key="g.id">
+                  <span><code class="q-mono q-ltr">{{ g.principalId }}</code> · <bdi class="q-ltr">{{ g.gameId }} · {{ g.platform }}</bdi> · <code class="q-mono q-ltr">{{ g.value }}</code> <QStatusBadge :state="g.verification.state" /></span>
+                  <QButton v-if="g.verification.state !== 'disputed'" size="sm" variant="green" @click="verifyId(g.id)">{{ t('adm.verify') }}</QButton>
+                </li>
+              </ul>
+            </QCard>
+          </div>
+
+          <div v-else-if="item.key === 'levels'" class="p-rv-cols">
+            <QCard>
+              <form class="k-stack" novalidate @submit.prevent="setLevel">
+                <h2 class="h4 p-rv-p">{{ t('adm.verifyLevel') }}</h2>
+                <QTextField id="vl-p" v-model="level.principalId" :label="t('adm.principal')" required ltr />
+                <QTextField id="vl-g" v-model="level.gameId" :label="t('adm.gameId')" required ltr />
+                <QTextField id="vl-v" v-model="level.value" :label="t('adm.value')" />
+                <div><QButton type="submit" variant="green" :disabled="!level.principalId || !level.gameId">{{ t('mgmt.save') }}</QButton></div>
+              </form>
+            </QCard>
+            <QCard>
+              <form class="k-stack" novalidate @submit.prevent="issueBadge">
+                <h2 class="h4 p-rv-p">{{ t('adm.badge') }}</h2>
+                <QSelect id="bd-k" v-model="badge.kind" :label="t('adm.badgeKind')" :options="[{ value: 'identity', label: t('badge.identity') }, { value: 'org_position', label: t('badge.org_position') }]" />
+                <QTextField id="bd-p" v-model="badge.principalId" :label="t('adm.principal')" required ltr />
+                <QTextField v-if="badge.kind === 'identity'" id="bd-r" v-model="badge.referenceText" :label="t('adm.reference')" />
+                <template v-else>
+                  <QTextField id="bd-o" v-model="badge.organizationId" :label="t('teams.orgId')" ltr />
+                  <QTextField id="bd-pos" v-model="badge.position" :label="t('teams.role')" />
+                </template>
+                <div><QButton type="submit" variant="green" icon="award" :disabled="!badge.principalId">{{ t('adm.badge') }}</QButton></div>
+              </form>
+            </QCard>
+          </div>
+
+          <div v-else-if="item.key === 'ratings'">
+            <QDataState v-if="st(ratings) !== 'content'" :state="st(ratings) as never" :error="ratings.error.value" skeleton="rows" @retry="ratings.load" />
+            <QCard v-else padding="none">
+              <ul class="p-rv-rows">
+                <li v-for="r in ratings.data.value!.items" :key="r.id">
+                  <div class="k-stack p-rv-grow">
+                    <span><code class="q-mono q-ltr">{{ r.organizationId }} · {{ r.eventId }}</code> · <QBadge tone="neutral">{{ fa(r.score) }}</QBadge> <QStatusBadge :state="r.state" /></span>
+                    <p class="p-rv-p"><bdi>{{ r.comment }}</bdi></p>
+                  </div>
+                  <span class="k-row">
+                    <QTextField :id="`mr-${r.id}`" v-model="modReason[r.id]" :label="t('adm.reason')" hide-label :placeholder="t('adm.reason')" />
+                    <QButton size="sm" :variant="r.state === 'hidden' ? 'secondary' : 'danger'" :disabled="(modReason[r.id] ?? '').length < 5" @click="moderate(r.id, r.state === 'hidden' ? 'unhide' : 'hide')">{{ r.state === 'hidden' ? t('adm.unhide') : t('adm.hide') }}</QButton>
+                  </span>
+                </li>
+              </ul>
+            </QCard>
+          </div>
+
+          <div v-else-if="item.key === 'apps'">
+            <QDataState v-if="st(apps) !== 'content'" :state="st(apps) as never" :error="apps.error.value" skeleton="cards" @retry="apps.load" />
+            <div v-else class="p-rv-cards">
+              <QCard v-for="a in apps.data.value!.items" :key="a.id">
+                <div class="k-stack">
+                  <div class="p-rv-head"><code class="q-mono q-ltr">{{ a.organizationId }}</code><QBadge tone="neutral">{{ stateLabel(a.state) }}</QBadge></div>
+                  <p class="p-rv-p"><bdi>{{ a.description }}</bdi></p>
+                  <form v-if="!['approved', 'rejected'].includes(a.state)" class="k-stack" novalidate @submit.prevent="review(a.id, a.version)">
+                    <QSelect :id="`a-${a.id}`" v-model="form(a.id).action" :label="t('org.action')" :options="ACTIONS" />
+                    <template v-if="form(a.id).action === 'approve'">
+                      <QSelect :id="`l-${a.id}`" v-model="form(a.id).level" :label="t('org.level')" :options="LEVELS" />
+                      <div class="p-rv-grid">
+                        <QTextField :id="`me-${a.id}`" v-model="form(a.id).maxEvents" :label="t('org.maxEvents')" type="number" ltr />
+                        <QTextField :id="`mc-${a.id}`" v-model="form(a.id).maxCapacity" :label="t('org.maxCapacity')" type="number" ltr />
+                      </div>
+                      <QCheckbox :model-value="form(a.id).paid" :label="t('org.paidAllowed')" @update:model-value="(v) => (form(a.id).paid = !!v)" />
+                    </template>
+                    <QTextField :id="`no-${a.id}`" v-model="form(a.id).note" :label="t('org.note')" required />
+                    <div><QButton type="submit" :variant="form(a.id).action === 'reject' ? 'danger' : 'green'" :disabled="!form(a.id).note">{{ t('org.submit') }}</QButton></div>
+                  </form>
+                </div>
+              </QCard>
+            </div>
+          </div>
+
+          <div v-else>
+            <QDataState v-if="st(affs) !== 'content'" :state="st(affs) as never" :error="affs.error.value" skeleton="cards" @retry="affs.load" />
+            <div v-else class="p-rv-cards">
+              <QCard v-for="a in affs.data.value!.items" :key="a.eventId">
+                <div class="k-stack">
+                  <RouterLink :to="`/events/${a.eventId}`" class="p-rv-link"><bdi>{{ a.name }}</bdi></RouterLink>
+                  <p class="p-rv-p">{{ t(`evm.aff.${a.affiliation.kind}` as never) }}: <bdi>{{ a.affiliation.body }}</bdi></p>
+                  <div><QButton size="sm" variant="ghost" icon="file" @click="openEvidence(a.affiliation.evidenceFileId)">{{ t('evm.affEvidence') }}</QButton></div>
+                  <QTextField :id="`afn-${a.eventId}`" v-model="affNote[a.eventId]" :label="t('evm.reason')" />
+                  <div class="k-row">
+                    <QButton size="sm" variant="green" :disabled="(affNote[a.eventId] ?? '').length < 5" @click="staff(() => esp03.decideAffiliation(a.eventId, 'verify', affNote[a.eventId] ?? ''), affs.load)">{{ t('evm.affVerify') }}</QButton>
+                    <QButton size="sm" variant="danger" :disabled="(affNote[a.eventId] ?? '').length < 5" @click="staff(() => esp03.decideAffiliation(a.eventId, 'reject', affNote[a.eventId] ?? ''), affs.load)">{{ t('evm.reject') }}</QButton>
+                  </div>
+                </div>
+              </QCard>
+            </div>
+          </div>
+        </template>
+      </QTabs>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.cards { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: var(--sp-4); }
-.block { margin-block-start: var(--sp-6); }
-.acc { margin-inline-end: var(--sp-2); }
-.list { margin: 0; padding-inline-start: var(--sp-5); display: grid; gap: var(--sp-2); }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: var(--sp-4); }
-.sm { max-inline-size: 12rem; }
-.row { gap: var(--sp-2); flex-wrap: wrap; }
-p { margin: 0; }
+.p-rv-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--space-4); }
+.p-rv-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--space-4); align-items: start; }
+.p-rv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.p-rv-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-weight: 800; }
+.p-rv-rows { margin: 0; padding: 0; list-style: none; }
+.p-rv-rows > li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-block-end: 1px solid var(--line); }
+.p-rv-grow { flex: 1 1 260px; gap: var(--space-1); }
+.p-rv-p { margin: 0; }
+.p-rv-muted { margin: 0; color: var(--ink-muted); font-size: 13px; }
+.p-rv-link { font-weight: 800; color: var(--ink); }
 </style>

@@ -79,7 +79,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/finance', name: 'finance', component: () => import('./views/FinanceView.vue'), meta: { requiresAuth: true, permission: 'finance.read', title: 'nav.finance', layout: 'panel', side: 'finance', redesigned: true } },
   { path: '/finance/approvals', name: 'finance-approvals', component: () => import('./views/FinanceApprovalsView.vue'), meta: { requiresAuth: true, permission: 'approval.read', title: 'nav.approvals', layout: 'panel', side: 'finance-approvals', redesigned: true } },
   { path: '/admin', name: 'admin', component: Shell, meta: { requiresAuth: true, permission: 'platform.settings', title: 'nav.admin', shell: true, layout: 'panel', side: 'admin' } },
-  { path: '/admin/reviews', name: 'admin-reviews', component: () => import('./views/AdminReviewsView.vue'), meta: { requiresAuth: true, permission: 'account.review', title: 'nav.accountReviews', layout: 'panel', side: 'admin-reviews' } },
+  { path: '/admin/reviews', name: 'admin-reviews', component: () => import('./views/AdminReviewsView.vue'), meta: { requiresAuth: true, permission: 'account.review', title: 'nav.accountReviews', layout: 'panel', side: 'admin-reviews', redesigned: true } },
   { path: '/admin/ops', name: 'admin-ops', component: () => import('./views/AdminOpsView.vue'), meta: { requiresAuth: true, permission: 'outbox.read', title: 'nav.ops', layout: 'panel', side: 'admin-ops', redesigned: true } },
 
   { path: '/support', name: 'support', component: () => import('./views/SupportView.vue'), meta: { requiresAuth: true, title: 'a7.nav.support', layout: 'panel', side: 'support', redesigned: true } },
