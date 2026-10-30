@@ -1,116 +1,163 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue';
-import type { ApiClientError } from '../api/client';
-import { esp06 as esp06Api, type NotificationPrefs } from '../api/esp06';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import PageHeader from '../components/PageHeader.vue';
+import { computed, ref, watch } from 'vue';
+import { QBadge, QButton, QContainer, QDataState, QEmptyState, QFeedItem, QPageHeader, QSwitch, QTabs, dateTag, fa, formatJalali, isRtl, useToast, type IconName } from '@esp/ui';
+import { esp06, type Notification } from '../api/esp06';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
+import { useDataState } from '../useDataState';
 import { useLoad } from '../useLoad';
 
 /**
- * COM-001..004 notification centre: inbox with read and acknowledgement (separate), per-channel status (sent,
- * failed, delivered are shown as they are), preferences with quiet hours, categories, promotional opt-in and
- * aggregation. Essential notices are explained and cannot be turned off.
+ * Spec docs/redesign/03-specs/notifications.md — NTF-001..006: in-site inbox grouped by Tehran day, unread filter,
+ * mark read, acknowledgement for essential notices, delivery status per channel. Preferences live in Settings.
  */
-const esp06: typeof esp06Api = esp06Api;
+const { push } = useToast();
 const unreadOnly = ref(false);
-const form = reactive({ quiet: false, from: '23:00', to: '07:00' });
+const filter = ref('all');
+const more = ref<string | null>(null);
+const busy = ref(false);
+const PAGE_HINT = 50;
 const { data, loading, error, load } = useLoad(async () => {
-  const prefs = await esp06.prefs();
-  Object.assign(form, prefs.quietHours ? { quiet: true, from: prefs.quietHours.from, to: prefs.quietHours.to } : { quiet: false });
-  return { box: await esp06.notifications({ unread: unreadOnly.value }), prefs };
+  const r = await esp06.notifications({ unread: unreadOnly.value });
+  more.value = r.items.length >= PAGE_HINT ? (r.items.at(-1)?.deliverAt ?? null) : null;
+  return r;
 });
-const failure = ref<ApiClientError | null>(null);
-const notice = ref('');
-async function act(fn: () => Promise<unknown>, ok = '') {
-  failure.value = null;
-  notice.value = '';
+watch(unreadOnly, () => void load());
+const items = computed(() => data.value?.items ?? []);
+const unread = computed(() => data.value?.unread ?? 0);
+const ds = useDataState({ loading, error, empty: () => !!data.value && !items.value.length && !unreadOnly.value });
+
+async function older() {
+  if (!more.value || !data.value) return;
+  busy.value = true;
   try {
-    await fn();
-    notice.value = ok;
-    await load();
-  } catch (e) {
-    failure.value = toClientError(e);
+    const r = await esp06.notifications({ before: more.value, unread: unreadOnly.value });
+    data.value = { ...data.value, items: [...data.value.items, ...r.items.filter((n) => !data.value!.items.some((x) => x.id === n.id))] };
+    more.value = r.items.length >= PAGE_HINT ? (r.items.at(-1)?.deliverAt ?? null) : null;
+  } finally {
+    busy.value = false;
   }
 }
-const CATS = ['registration', 'payment', 'invitation', 'checkin', 'match', 'schedule', 'result', 'decision', 'honor', 'follow.start', 'follow.end', 'follow.time'];
-function prefsBody(p: NotificationPrefs) {
-  return { channels: { sms: p.channels.sms, email: p.channels.email, push: p.channels.push }, quietHours: form.quiet ? { from: form.from, to: form.to } : null, promotional: p.promotional, digestFrequent: p.digestFrequent, categories: p.categories };
+async function act(fn: () => Promise<unknown>, ok?: string) {
+  try {
+    await fn();
+    if (ok) push({ tone: 'success', message: ok, duration: 4000 });
+    await load();
+  } catch (e) {
+    push({ tone: 'danger', message: toClientError(e).message });
+  }
 }
+const markAll = () => act(() => esp06.markRead('all'), t('nt.allRead'));
+const markOne = (n: Notification) => { if (!n.readAt) void act(() => esp06.markRead([n.id])); };
+const ack = (n: Notification) => act(() => esp06.ack(n.id), t('nt.ackDone'));
+
+const GROUP: Record<string, string> = {
+  match: 'matches', checkin: 'matches', schedule: 'matches', result: 'matches', decision: 'matches', 'follow.start': 'matches', 'follow.end': 'matches', 'follow.time': 'matches',
+  registration: 'registrations', payment: 'registrations', invitation: 'teams', team: 'teams',
+};
+const ICON: Record<string, IconName> = {
+  match: 'swords', checkin: 'check-circle', schedule: 'clock', result: 'trophy', decision: 'gavel', 'follow.start': 'play', 'follow.end': 'flag', 'follow.time': 'clock',
+  registration: 'ticket', payment: 'wallet', invitation: 'users', team: 'users', honor: 'award', official: 'flag',
+};
+const groupOf = (n: Notification) => GROUP[n.category] ?? 'system';
+const inFilter = (n: Notification, f: string) => f === 'all' || groupOf(n) === f;
+const tabs = computed(() => (['all', 'matches', 'registrations', 'teams', 'system'] as const).map((k) => {
+  const count = items.value.filter((n) => inFilter(n, k) && !n.readAt).length;
+  return { key: k, label: t(`nt.${k}` as MessageKey), ...(count ? { count } : {}) };
+}));
+const shown = computed(() => items.value.filter((n) => inFilter(n, filter.value)));
+
+const dayKey = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+const groups = computed(() => {
+  const out: { key: string; at: string; items: Notification[] }[] = [];
+  for (const n of shown.value) {
+    const k = dayKey(n.deliverAt);
+    const g = out.find((x) => x.key === k);
+    if (g) g.items.push(n); else out.push({ key: k, at: n.deliverAt, items: [n] });
+  }
+  return out;
+});
+const today = dayKey(new Date().toISOString());
+const yesterday = dayKey(new Date(Date.now() - 864e5).toISOString());
+const dayLabel = (g: { key: string; at: string }) => g.key === today ? t('nt.today') : g.key === yesterday ? t('nt.yesterday')
+  : new Intl.DateTimeFormat(dateTag(), { timeZone: 'Asia/Tehran', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(g.at));
+const CH: Record<string, MessageKey> = { sms: 'nt.chSms', email: 'nt.chEmail', push: 'nt.chPush' };
+const ST: Record<string, MessageKey> = { delivered: 'nt.stDelivered', sent: 'nt.stSent', failed: 'nt.stFailed', pending: 'nt.stPending', skipped: 'nt.stSkipped' };
+const cat = (c: string) => t(`ntf.cat.${c}` as MessageKey);
+const linkOf = (n: Notification) => (n.link && n.link.startsWith('/') && !n.link.startsWith('//') ? n.link : undefined);
+const needsAck = (n: Notification) => n.ackRequired && !n.ackAt;
 </script>
 
 <template>
-  <PageHeader :title="t('nav.notifications')" :lead="t('ntf.lead')" />
-  <ErrorNote :error="failure" />
-  <p v-if="notice" role="status" class="ok">{{ notice }}</p>
-  <DataState :loading="loading" :error="error" @retry="load">
-    <template v-if="data">
-      <section class="card stack" aria-labelledby="ib-h">
-        <div class="row between">
-          <h2 id="ib-h">{{ t('ntf.inbox') }} <span class="muted small">({{ t('ntf.unread', { n: num(data.box.unread) }) }})</span></h2>
-          <span class="row">
-            <label class="small"><input v-model="unreadOnly" type="checkbox" @change="load" /> {{ t('ntf.unreadOnly') }}</label>
-            <button type="button" class="btn btn-sm" :disabled="!data.box.unread" @click="act(() => esp06.markRead('all'))">{{ t('ntf.markAll') }}</button>
-          </span>
+  <QContainer>
+    <div class="k-stack p-notifications">
+      <QPageHeader compact :title="t('nt.title')" :description="t('nt.desc')">
+        <template #actions>
+          <QButton variant="secondary" icon="check" :disabled="!unread || ds.state.value !== 'content'" @click="markAll">{{ t('nt.markAll') }}</QButton>
+          <QButton variant="ghost" icon="settings" href="/account/settings#set-ntf">{{ t('nt.prefs') }}</QButton>
+        </template>
+      </QPageHeader>
+      <div class="p-notifications-bar">
+        <div class="p-notifications-bar__tabs"><QTabs v-model="filter" variant="pill" :aria-label="t('nt.type')" :items="tabs" /></div>
+        <QSwitch v-model="unreadOnly" :label="t('nt.unreadOnly')" />
+      </div>
+      <QDataState v-if="ds.state.value !== 'content'" v-bind="ds.props.value" skeleton="rows" icon="bell" :empty-title="t('nt.empty')" :empty-body="t('nt.emptyBody')" @retry="load" />
+      <QEmptyState v-else-if="!shown.length" compact icon="filter" :title="unreadOnly ? t('nt.noUnread') : t('nt.noneHere')">
+        <template #action><QButton variant="ghost" @click="filter = 'all'; unreadOnly = false">{{ t('nt.showAll') }}</QButton></template>
+      </QEmptyState>
+      <div v-else class="p-notifications-days">
+        <section v-for="g in groups" :key="g.key" class="p-notifications-day" :aria-labelledby="`nd-${g.key}`">
+          <h2 :id="`nd-${g.key}`" class="p-notifications-day__h">{{ dayLabel(g) }}</h2>
+          <ul class="p-notifications-list">
+            <QFeedItem
+              v-for="n in g.items" :key="n.id" as="li" title-as="h3" :icon="ICON[n.category] ?? 'bell'" :tone="n.essential ? 'warning' : 'neutral'"
+              :unread="!n.readAt" :unread-label="t('nt.unread')" :title="n.count > 1 ? `${n.title} ×${fa(n.count)}` : n.title"
+              :time-text="formatJalali(n.deliverAt, 'time')" :href="needsAck(n) ? undefined : linkOf(n)" @click="markOne(n)"
+            >
+              <template #body>
+                <span dir="auto">{{ n.body }}</span>
+                <span class="p-notifications-meta">
+                  {{ cat(n.category) }}<template v-if="n.essential"> · {{ t('nt.essential') }}</template>
+                  <span v-for="c in n.channels.filter((x) => x.channel !== 'in_app')" :key="c.channel" :class="{ 'is-failed': c.status === 'failed' }">
+                    · {{ CH[c.channel] ? t(CH[c.channel]!) : c.channel }}: {{ ST[c.status] ? t(ST[c.status]!) : c.status }}
+                  </span>
+                </span>
+              </template>
+              <template v-if="n.essential" #badge><QBadge tone="warning">{{ t('nt.essential') }}</QBadge></template>
+              <template v-if="needsAck(n) || n.ackAt || (!n.readAt && !n.ackRequired)" #actions>
+                <div class="p-notifications-acts">
+                  <QButton v-if="needsAck(n)" variant="primary" size="sm" @click.stop="ack(n)">{{ t('nt.ack') }}</QButton>
+                  <span v-if="n.ackAt" class="p-notifications-acked">{{ t('nt.acked', { time: formatJalali(n.ackAt, 'time') }) }}</span>
+                  <QButton v-if="!n.readAt && !n.ackRequired" variant="ghost" size="sm" @click.stop="markOne(n)">{{ t('nt.read') }}</QButton>
+                  <QButton v-if="needsAck(n) && linkOf(n)" variant="ghost" size="sm" :href="linkOf(n)" :icon-end="isRtl() ? 'arrow-left' : 'arrow-right'">{{ t('nt.open') }}</QButton>
+                </div>
+              </template>
+            </QFeedItem>
+          </ul>
+        </section>
+        <div class="p-notifications-more">
+          <QButton v-if="more" variant="secondary" icon="chevron-down" :loading="busy" @click="older">{{ t('nt.older') }}</QButton>
+          <p v-else class="p-notifications-summary">{{ t('nt.allShown') }}</p>
         </div>
-        <p v-if="!data.box.items.length" class="muted">{{ t('ntf.empty') }}</p>
-        <ul class="cards">
-          <li v-for="n in data.box.items" :key="n.id" class="item stack" :class="{ unread: !n.readAt }">
-            <div class="row between">
-              <strong dir="auto">{{ n.title }}<span v-if="n.count > 1" class="muted"> ×{{ num(n.count) }}</span></strong>
-              <span class="small muted"><JalaliDate :iso="n.deliverAt" /></span>
-            </div>
-            <p v-if="n.body" dir="auto">{{ n.body }}</p>
-            <p class="small muted">{{ t(`ntf.cat.${n.category}` as never) }}<span v-if="n.essential"> · {{ t('ntf.essential') }}</span> · <span v-for="c in n.channels.filter((x) => x.channel !== 'in_app')" :key="c.channel">{{ t(`ntf.ch.${c.channel}` as never) }}: {{ t(`ntf.st.${c.status}` as never) }}; </span></p>
-            <div class="row">
-              <RouterLink v-if="n.link" :to="n.link" @click="act(() => esp06.markRead([n.id]))">{{ t('ntf.open') }}</RouterLink>
-              <button v-if="!n.readAt" type="button" class="btn btn-sm" @click="act(() => esp06.markRead([n.id]))">{{ t('ntf.markRead') }}</button>
-              <button v-if="n.ackRequired && !n.ackAt" type="button" class="btn btn-sm btn-primary" @click="act(() => esp06.ack(n.id), t('ntf.acked'))">{{ t('ntf.ack') }}</button>
-              <span v-if="n.ackAt" class="small ok">{{ t('ntf.ackedAt') }} <JalaliDate :iso="n.ackAt" /></span>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <section class="card stack block" aria-labelledby="pf-h">
-        <h2 id="pf-h">{{ t('ntf.prefs') }}</h2>
-        <p class="small muted">{{ t('ntf.essentialNote') }}</p>
-        <fieldset class="row"><legend>{{ t('ntf.channels') }}</legend>
-          <label><input type="checkbox" checked disabled /> {{ t('ntf.ch.in_app') }}</label>
-          <label><input v-model="data.prefs.channels.sms" type="checkbox" /> {{ t('ntf.ch.sms') }}</label>
-          <label><input v-model="data.prefs.channels.email" type="checkbox" /> {{ t('ntf.ch.email') }}</label>
-          <label><input v-model="data.prefs.channels.push" type="checkbox" /> {{ t('ntf.ch.push') }}</label>
-        </fieldset>
-        <p class="small muted">{{ t('ntf.pushNote') }}</p>
-        <fieldset class="row"><legend>{{ t('ntf.quiet') }}</legend>
-          <label><input v-model="form.quiet" type="checkbox" /> {{ t('ntf.quietOn') }}</label>
-          <label>{{ t('ntf.from') }} <input v-model="form.from" type="time" class="input" :disabled="!form.quiet" /></label>
-          <label>{{ t('ntf.to') }} <input v-model="form.to" type="time" class="input" :disabled="!form.quiet" /></label>
-        </fieldset>
-        <fieldset class="grid"><legend>{{ t('ntf.categories') }}</legend>
-          <label v-for="c in CATS" :key="c"><input type="checkbox" :checked="data.prefs.categories[c] !== false" @change="data.prefs.categories[c] = ($event.target as HTMLInputElement).checked" /> {{ t(`ntf.cat.${c}` as never) }}</label>
-        </fieldset>
-        <label><input v-model="data.prefs.digestFrequent" type="checkbox" /> {{ t('ntf.digest') }}</label>
-        <label><input v-model="data.prefs.promotional" type="checkbox" /> {{ t('ntf.promotional') }}</label>
-        <button type="button" class="btn btn-primary" @click="act(() => esp06.savePrefs(prefsBody(data!.prefs)), t('ntf.saved'))">{{ t('ntf.save') }}</button>
-      </section>
-    </template>
-  </DataState>
+      </div>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.between { justify-content: space-between; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-2); }
-.cards { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--sp-2); }
-.item { border-block-end: 1px solid var(--border); padding-block: var(--sp-2); }
-.unread { border-inline-start: 3px solid var(--info); padding-inline-start: var(--sp-2); }
-.block { margin-block-start: var(--sp-4); }
-fieldset { border: 0; padding: 0; margin: 0; }
-.small { font-size: var(--fs-xs); }
-.ok { color: var(--ok); }
-h2, p { margin: 0; }
+.p-notifications { gap: var(--space-6); }
+.p-notifications-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); flex-wrap: wrap; }
+.p-notifications-bar__tabs { min-width: 0; flex: 1 1 520px; overflow-x: auto; }
+.p-notifications-day { display: flex; flex-direction: column; gap: var(--space-3); }
+.p-notifications-day__h { margin: 0; display: flex; align-items: center; gap: var(--space-3); font-size: 14px; font-weight: 800; color: var(--ink-muted); }
+.p-notifications-day__h::after { content: ''; flex: 1 1 auto; block-size: 1px; background: var(--line); }
+.p-notifications-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); overflow: hidden; }
+.p-notifications-list > li + li { border-block-start: 1px solid var(--line); }
+.p-notifications-meta { display: block; margin-block-start: var(--space-1); font-size: 12px; color: var(--ink-subtle); }
+.p-notifications-meta .is-failed { color: var(--danger-text); }
+.p-notifications-acts { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.p-notifications-acked { font-size: 12px; color: var(--success-text); }
+.p-notifications-days { display: flex; flex-direction: column; gap: var(--space-6); }
+.p-notifications-more { display: flex; justify-content: center; }
+.p-notifications-summary { margin: 0; font-size: 13px; color: var(--ink-subtle); }
 </style>
