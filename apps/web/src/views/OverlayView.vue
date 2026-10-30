@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { esp06 as esp06Api } from '../api/esp06';
-import { num, t } from '../i18n';
+import { QAlert, QLowerThird, QScoreBug, QSponsorStrip, fa, isRtl } from '@esp/ui';
+import { esp06 } from '../api/esp06';
+import { t } from '../i18n';
 
 /**
- * CAST-004..006 broadcast graphics for an OBS browser source. Data comes only from the overlay endpoint, which
- * applies the stream delay on the server; the label says whether it is synced to the stream or the latest result.
+ * Spec docs/redesign/03-specs/overlay.md — CAST-004..006 broadcast graphics for an OBS browser source (bare layout,
+ * transparent). Data comes only from the overlay endpoint, which applies the stream delay on the server.
  */
-const esp06: typeof esp06Api = esp06Api;
 const route = useRoute();
 const token = computed(() => String(route.params['token']));
 const s = ref<Record<string, unknown> | null>(null);
@@ -29,39 +29,40 @@ onMounted(() => {
 onBeforeUnmount(() => clearInterval(timer));
 type Score = { sides: string[]; state: string; outcome: { kind: string; winnerSide?: number; scores?: [number, number] | null; maps?: [number, number] | null } | null; provisional: boolean } | null;
 const sb = computed(() => s.value?.['scoreboard'] as Score | undefined);
-const sc = computed(() => {
+const score = computed<[number, number] | undefined>(() => {
   const o = sb.value?.outcome;
-  const v = o?.maps ?? o?.scores;
-  return v ? `${num(v[0])} – ${num(v[1])}` : '';
+  return o?.maps ?? o?.scores ?? undefined;
 });
+const lineup = computed(() => (s.value?.['lineup'] as Array<{ name: string; players: string[] } | null> | undefined) ?? []);
+const veto = computed(() => (s.value?.['veto'] as Array<{ kind: string; value: string }> | undefined) ?? []);
+const sponsors = computed(() => (s.value?.['sponsors'] as Array<{ name: string; logoUrl: string | null }> | undefined) ?? []);
+const sync = computed(() => (s.value?.['label'] === 'latest_result' ? { mode: 'latest' as const } : { mode: 'synced' as const, delaySeconds: Number(s.value?.['delaySeconds'] ?? 0) }));
+const sep = computed(() => (isRtl() ? '، ' : ', '));
 </script>
 
 <template>
-  <main class="overlay" :aria-label="t('ovl.title')">
-    <p v-if="failed" class="err">{{ t('ovl.invalid') }}</p>
+  <div class="p-overlay" :aria-label="t('ovl.title')">
+    <QAlert v-if="failed" tone="danger">{{ t('ovl.invalid') }}</QAlert>
     <template v-else-if="s">
-      <p class="label">{{ s['label'] === 'latest_result' ? t('ovl.latest') : t('ovl.synced', { n: num(Number(s['delaySeconds'])) }) }}</p>
-      <section v-if="sb" class="score">
-        <bdi>{{ sb.sides[0] }}</bdi>
-        <strong class="ltr">{{ sc || t('ovl.vs') }}</strong>
-        <bdi>{{ sb.sides[1] }}</bdi>
-        <small v-if="sb.provisional">{{ t('live.provisional') }}</small>
-      </section>
-      <section v-if="s['lineup']" class="lineup">
-        <div v-for="(l, i) in s['lineup'] as Array<{ name: string; players: string[] } | null>" :key="i"><template v-if="l"><strong><bdi>{{ l.name }}</bdi></strong> <bdi>{{ l.players.join('، ') }}</bdi></template></div>
-      </section>
-      <section v-if="s['veto']" class="veto"><span v-for="(v, i) in s['veto'] as Array<{ kind: string; value: string }>" :key="i">{{ v.kind }}: <bdi class="ltr">{{ v.value }}</bdi></span></section>
-      <section v-if="s['bracket']" class="bracket"><span v-for="(b, i) in s['bracket'] as Array<{ sides: string[]; state: string }>" :key="i"><bdi>{{ b.sides.join(' — ') }}</bdi></span></section>
-      <section v-if="s['sponsors']" class="sponsors"><span v-for="(sp, i) in s['sponsors'] as Array<{ name: string; logoUrl: string | null }>" :key="i"><img v-if="sp.logoUrl" :src="sp.logoUrl" :alt="sp.name" /><bdi v-else>{{ sp.name }}</bdi></span><small>{{ t('ovl.sponsor') }}</small></section>
+      <p class="p-overlay-label">{{ s['label'] === 'latest_result' ? t('ovl.latest') : t('ovl.synced', { n: fa(Number(s['delaySeconds'])) }) }}<span v-if="sb && !score" class="q-sr"> · {{ t('ovl.vs') }}</span></p>
+      <QScoreBug
+        v-if="sb" transparent :home="sb.sides[0] ?? '—'" :away="sb.sides[1] ?? '—'" :score="score" :live="sb.state === 'live'" :provisional="sb.provisional"
+        :label="s['label'] === 'latest_result' ? t('ovl.latest') : t('ovl.synced', { n: fa(Number(s['delaySeconds'])) })"
+      />
+      <div v-if="lineup.length" class="p-overlay-row">
+        <template v-for="(l, i) in lineup" :key="i">
+          <QLowerThird v-if="l" transparent :title="l.name" :subtitle="l.players.join(sep)" />
+        </template>
+      </div>
+      <QLowerThird v-if="veto.length" transparent :kicker="t('ovl.title')" :title="veto.map((v) => `${v.kind}: ${v.value}`).join(' · ')" />
+      <QSponsorStrip v-if="sponsors.length" transparent :sponsors="sponsors" :label="t('ovl.sponsor')" :sync="sync" />
     </template>
-  </main>
+  </div>
 </template>
 
 <style scoped>
-.overlay { font-family: inherit; color: #fff; background: transparent; padding: 12px; display: grid; gap: 8px; direction: rtl; }
-.label { font-size: 12px; opacity: 0.8; margin: 0; }
-.score { display: flex; gap: 16px; align-items: center; background: rgba(15, 23, 42, 0.85); padding: 8px 16px; border-radius: 8px; font-size: 28px; }
-.lineup, .veto, .bracket, .sponsors { display: flex; flex-wrap: wrap; gap: 12px; background: rgba(15, 23, 42, 0.7); padding: 6px 12px; border-radius: 6px; font-size: 16px; }
-.sponsors img { block-size: 32px; }
-.err { color: #fca5a5; }
+:global(html:has(.p-overlay)), :global(body:has(.p-overlay)), :global(.k-bare:has(.p-overlay)) { background: transparent; }
+.p-overlay { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); }
+.p-overlay-label { margin: 0; align-self: flex-start; padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink-muted); font-size: 13px; font-weight: 700; }
+.p-overlay-row { display: flex; flex-wrap: wrap; gap: var(--space-4); }
 </style>
