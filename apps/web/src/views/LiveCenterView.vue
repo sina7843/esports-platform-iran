@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import {
+  QAlert, QBadge, QButton, QCard, QContainer, QDataState, QDataTable, QEmptyState, QFacts, QIcon, QLiveDot, QLivePost, QMatchCard, QPageHeader,
+  QSection, QSegmentedControl, QSelect, QSwitch, QTabs, QTextField, EVENT_STATUS, MATCH_STATE, fa, formatJalali, statusBadge, useToast,
+  type QDataTableColumn,
+} from '@esp/ui';
 import { api, type ApiClientError } from '../api/client';
 import { esp06 as esp06Api, type LiveFilters, type LiveSnapshot, type ProjectedMatch, type PublicPost } from '../api/esp06';
-import DataState from '../components/DataState.vue';
-import ErrorNote from '../components/ErrorNote.vue';
-import JalaliDate from '../components/JalaliDate.vue';
-import LivePost from '../components/LivePost.vue';
-import PageHeader from '../components/PageHeader.vue';
-import StatusBadge from '../components/StatusBadge.vue';
 import { toClientError } from '../errors';
-import { num, t } from '../i18n';
+import { t, type MessageKey } from '../i18n';
 import { appendOlder, applyEvents, createFeed, reveal, type FeedState } from '../liveFeed';
 import { session } from '../session';
 import { setLowData, settings } from '../settings';
+import { useDataState } from '../useDataState';
 
 /**
  * LIVE-001..006, CAST-002/005, AUD-002..004 live centre. The default view follows the broadcast (server-side delay);
@@ -124,7 +124,7 @@ const score = (m: ProjectedMatch) => {
   const o = m.outcome;
   if (!o) return '';
   const sc = o.maps ?? o.scores;
-  return sc ? `${num(sc[0])}–${num(sc[1])}` : o.kind === 'win' ? `${t('live.winner')}: ${m.sides[o.winnerSide ?? 0]?.displayName ?? ''}` : o.kind;
+  return sc ? `${fa(sc[0])}–${fa(sc[1])}` : o.kind === 'win' ? `${t('live.winner')}: ${m.sides[o.winnerSide ?? 0]?.displayName ?? ''}` : o.kind;
 };
 // chat (AUD-002)
 const chat = reactive({ open: false, items: [] as Array<{ _id: string; nickname: string | null; text: string; removed: boolean; createdAt: string }>, text: '' });
@@ -162,172 +162,200 @@ onBeforeUnmount(() => {
   window.removeEventListener('scroll', onScroll);
 });
 const tabs = ['timeline', 'schedule', 'results', 'bracket', 'stats', 'gallery', 'video'] as const;
+const { push } = useToast();
+watch(failure, (f) => { if (f) push({ tone: 'danger', message: f.message }); });
+const ds = useDataState({ loading: computed(() => loading.value && !snap.value), error });
+const tabItems = computed(() => tabs.map((k) => ({ key: k, label: t(`live.tab.${k}` as MessageKey) })));
+const eventStatus = computed(() => {
+  const b = statusBadge(EVENT_STATUS, snap.value?.event.state);
+  return { label: b.label, ...b.props, ...(b.props.tone === 'live' ? { dot: true } : {}) };
+});
+const viewOptions = computed(() => [
+  { value: 'synced', label: snap.value?.view.delaySeconds && !latest.value ? `${t('live.synced')} (${t('live.delay', { n: fa(snap.value.view.delaySeconds) })})` : t('live.synced') },
+  { value: 'latest', label: t('live.latest') },
+]);
+const outcomeScore = (m: ProjectedMatch, i: number) => (m.outcome?.maps ?? m.outcome?.scores ?? undefined)?.[i];
+const card = (m: ProjectedMatch) => ({
+  state: m.state as never, home: { name: m.sides[0]?.displayName, score: outcomeScore(m, 0) }, away: { name: m.sides[1]?.displayName, score: outcomeScore(m, 1) },
+  time: m.scheduledAt ? formatJalali(m.scheduledAt, 'time') : undefined, date: m.scheduledAt ? formatJalali(m.scheduledAt, 'dateShort') : undefined,
+  href: `/matches/${encodeURIComponent(m.id)}`,
+});
+const postProps = (p: PublicPost) => ({
+  kind: (p.format === 'result' ? 'result' : p.media.length ? 'media' : 'announcement') as 'result' | 'media' | 'announcement',
+  time: p.occurredAt, source: p.source, title: p.title, body: p.body, pinned: p.pinned,
+  edited: p.edited ? (p.edited.reason ?? t('live.edited')) : undefined, withdrawn: p.withdrawal ? p.withdrawal.reason : undefined,
+  mediaCount: p.media.length || undefined, lowData: settings.lowData,
+});
+const filterSel = (k: keyof LiveFilters) => computed({
+  get: () => (filters[k] as string | undefined) ?? '',
+  set: (v: string) => { (filters as Record<string, string | undefined>)[k] = v || undefined; },
+});
+const fDiscipline = filterSel('disciplineId');
+const fStage = filterSel('stageId');
+const fDay = filterSel('day');
+const fTeam = filterSel('teamId');
+const all = () => ({ value: '', label: t('live.all') });
+const matchCols = computed<QDataTableColumn<ProjectedMatch>[]>(() => [
+  { key: 'slot', header: t('live.slot') }, { key: 'sides', header: t('live.sides') }, { key: 'state', header: t('live.state') },
+  { key: 'scheduledAt', header: t('live.time') }, { key: 'score', header: t('live.score') },
+]);
+const stateLabel = (s: string) => statusBadge(MATCH_STATE, s);
+const slotKey = (m: ProjectedMatch) => m.slot?.key ?? '—';
+
 </script>
 
 <template>
-  <DataState :loading="loading" :error="error" @retry="load">
-    <template v-if="snap && feed">
-      <PageHeader :title="snap.event.name">
-        <template #title><bdi>{{ snap.event.name }}</bdi></template>
-        <template #actions><StatusBadge :state="snap.event.state" /></template>
-      </PageHeader>
-      <ErrorNote :error="failure" />
+  <QContainer>
+    <QDataState v-if="ds.state.value !== 'content' || !snap || !feed" v-bind="ds.props.value" @retry="load" />
+    <div v-else class="k-stack p-live">
+      <QPageHeader :title="snap.event.name" :status="eventStatus" :breadcrumb="[{ label: t('shell.events'), href: '/events' }, { label: snap.event.name, href: `/events/${encodeURIComponent(id)}` }, { label: t('live.title') }]" />
 
-      <!-- view and connection (CAST-005, LIVE-004) -->
-      <section class="card row between" aria-label="view">
-        <div class="row" role="group" :aria-label="t('live.viewLabel')">
-          <button type="button" class="btn btn-sm" :aria-pressed="!latest" @click="setView('synced')">{{ t('live.synced') }}<span v-if="!latest && snap.view.delaySeconds"> ({{ t('live.delay', { n: num(snap.view.delaySeconds) }) }})</span></button>
-          <button type="button" class="btn btn-sm" :aria-pressed="latest" @click="setView('latest')">{{ t('live.latest') }}</button>
+      <QCard padding="none">
+        <div class="p-live-bar">
+          <QSegmentedControl size="sm" :aria-label="t('live.viewLabel')" :model-value="latest ? 'latest' : 'synced'" :options="viewOptions" @update:model-value="(v) => setView(v === 'latest' ? 'latest' : 'synced')" />
+          <p class="p-live-conn" role="status" aria-live="polite">
+            <QLiveDot v-if="conn.state === 'live'" /><QIcon v-else :name="conn.state === 'offline' ? 'wifi-off' : 'refresh'" :size="16" />
+            {{ t(`live.conn.${conn.state}` as MessageKey) }}<template v-if="conn.lastUpdate"> · {{ t('live.lastUpdate') }} {{ formatJalali(conn.lastUpdate, 'time') }}</template>
+          </p>
+          <QSwitch :label="t('live.lowData')" :model-value="settings.lowData" @update:model-value="(v) => setLowData(!!v)" />
         </div>
-        <p class="muted small conn-status" role="status" aria-live="polite">
-          <span class="dot" :data-state="conn.state" aria-hidden="true" /> {{ t(`live.conn.${conn.state}` as never) }} · {{ t('live.lastUpdate') }} <JalaliDate :iso="conn.lastUpdate" format="time" />
-        </p>
-        <label class="small"><input type="checkbox" :checked="settings.lowData" @change="setLowData(($event.target as HTMLInputElement).checked)" /> {{ t('live.lowData') }}</label>
-      </section>
-      <p v-if="latest" class="warn small block-sm">{{ t('live.latestWarning') }}</p>
+      </QCard>
+      <QAlert v-if="latest" tone="warning">{{ t('live.latestWarning') }}</QAlert>
 
-      <section v-if="snap.mode === 'archive'" class="card stack block-sm">
-        <h2>{{ t('live.archive') }}</h2>
-        <p>{{ t('live.archiveLead') }} <JalaliDate :iso="snap.archive?.closedAt ?? null" format="date" /></p>
+      <QAlert v-if="snap.mode === 'archive'" tone="info" icon="clock" :title="t('live.archive')">
+        {{ t('live.archiveLead') }} {{ formatJalali(snap.archive?.closedAt ?? null, 'date') }}
         <RouterLink v-if="snap.finalReport" :to="`/news/${encodeURIComponent(snap.finalReport.slug)}`">{{ snap.finalReport.title }}</RouterLink>
-      </section>
+      </QAlert>
 
-      <!-- streams (CAST-001/002) -->
-      <section v-if="snap.streams.length" class="card stack block-sm" aria-labelledby="st-h">
-        <h2 id="st-h">{{ t('live.streams') }}</h2>
-        <div v-for="s in snap.streams" :key="s.id" class="stream">
-          <div class="row between">
-            <strong><bdi>{{ s.label }}</bdi></strong>
-            <span class="row small"><StatusBadge :state="s.status" /> {{ s.language }} · {{ t(`live.role.${s.role}` as never) }}
-              <button v-if="!latest && streamId !== s.id" type="button" class="btn btn-sm" @click="setView('synced', s.id)">{{ t('live.syncTo') }}</button></span>
-          </div>
-          <p v-if="!s.provider.configured || !s.playbackUrl" class="muted small">{{ t('live.noProvider') }}</p>
-          <!-- CAST-002: never autoplay with sound; nothing loads until the viewer presses play -->
-          <video v-else-if="!settings.lowData || videoError[s.id] === undefined" :src="s.playbackUrl" controls muted playsinline preload="none" class="player" @error="videoError[s.id] = t('live.playerError')" />
-          <p v-if="videoError[s.id]" class="danger small" role="alert">{{ videoError[s.id] }}</p>
-          <p v-if="s.nextProgramme" class="small">{{ t('live.next') }}: <bdi>{{ s.nextProgramme.title }}</bdi> — <JalaliDate :iso="s.nextProgramme.at" /></p>
+      <QSection v-if="snap.streams.length" id="streams" small :title="t('live.streams')">
+        <div class="p-live-streams">
+          <QCard v-for="s in snap.streams" :key="s.id">
+            <div class="k-stack">
+              <div class="p-live-stream__head">
+                <strong><bdi>{{ s.label }}</bdi></strong>
+                <span class="p-live-sub"><QBadge :tone="s.status === 'live' ? 'live' : 'neutral'">{{ s.status === 'live' ? t('live.now') : s.status }}</QBadge> {{ s.language }} · {{ t(`live.role.${s.role}` as MessageKey) }}</span>
+                <QButton v-if="!latest && streamId !== s.id" size="sm" variant="secondary" @click="setView('synced', s.id)">{{ t('live.syncTo') }}</QButton>
+              </div>
+              <p v-if="!s.provider.configured || !s.playbackUrl" class="p-live-sub">{{ t('live.noProvider') }}</p>
+              <!-- CAST-002: never autoplay with sound; nothing loads until the viewer presses play -->
+              <video v-else-if="!settings.lowData || videoError[s.id] === undefined" :src="s.playbackUrl" controls muted playsinline preload="none" class="p-live-player" @error="videoError[s.id] = t('live.playerError')" />
+              <QAlert v-if="videoError[s.id]" tone="danger">{{ videoError[s.id] }}</QAlert>
+              <p v-if="s.nextProgramme" class="p-live-sub">{{ t('live.next') }}: <bdi>{{ s.nextProgramme.title }}</bdi> — {{ formatJalali(s.nextProgramme.at) }}</p>
+            </div>
+          </QCard>
         </div>
-      </section>
+      </QSection>
 
-      <!-- now / next / results (LIVE-001) -->
-      <section class="grid3 block-sm">
-        <div class="card stack">
-          <h2>{{ t('live.now') }}</h2>
-          <p v-if="!snap.now.length" class="muted">{{ t('live.none') }}</p>
-          <ul class="list"><li v-for="m in snap.now" :key="m.id"><RouterLink :to="`/matches/${m.id}`"><bdi>{{ sideNames(m) }}</bdi></RouterLink> <span v-if="m.provisional" class="warn small">{{ t('live.provisional') }}</span></li></ul>
-        </div>
-        <div class="card stack">
-          <h2>{{ t('live.upNext') }}</h2>
-          <p v-if="!snap.next.length" class="muted">{{ t('live.none') }}</p>
-          <ul class="list"><li v-for="m in snap.next" :key="m.id"><bdi>{{ sideNames(m) }}</bdi> <span class="muted small"><JalaliDate :iso="m.scheduledAt" /></span></li></ul>
-        </div>
-        <div class="card stack">
-          <h2>{{ t('live.results') }}</h2>
-          <p v-if="!snap.results.length" class="muted">{{ t('live.none') }}</p>
-          <ul class="list"><li v-for="m in snap.results" :key="m.id"><bdi>{{ sideNames(m) }}</bdi> <bdi class="ltr">{{ score(m) }}</bdi></li></ul>
-        </div>
-      </section>
-
-      <section v-for="p in snap.pinned" :key="p.id" class="card block-sm" :aria-label="t('live.pinned')"><LivePost :post="p" /></section>
-
-      <!-- filters (LIVE-003) -->
-      <form class="row filters block-sm" @submit.prevent>
-        <label>{{ t('live.f.discipline') }} <select v-model="filters.disciplineId" class="input"><option :value="undefined">{{ t('live.all') }}</option><option v-for="d in snap.filters.disciplines" :key="d.id" :value="d.id">{{ d.name }}</option></select></label>
-        <label>{{ t('live.f.stage') }} <select v-model="filters.stageId" class="input"><option :value="undefined">{{ t('live.all') }}</option><option v-for="s in snap.filters.stages.filter((x) => !filters.disciplineId || x.disciplineId === filters.disciplineId)" :key="s.id" :value="s.id">{{ s.name }}</option></select></label>
-        <label>{{ t('live.f.day') }} <select v-model="filters.day" class="input"><option :value="undefined">{{ t('live.all') }}</option><option v-for="d in snap.filters.days" :key="d" :value="d"><JalaliDate :iso="`${d}T08:30:00Z`" format="date" /></option></select></label>
-        <label>{{ t('live.f.team') }} <select v-model="filters.teamId" class="input"><option :value="undefined">{{ t('live.all') }}</option><option v-for="tm in snap.filters.teams" :key="tm.id" :value="tm.id">{{ tm.name }}</option></select></label>
-      </form>
-
-      <!-- tabs (LIVE-002) -->
-      <div class="tabs block-sm" role="tablist" :aria-label="t('live.tabs')">
-        <button v-for="x in tabs" :key="x" type="button" role="tab" class="tab" :aria-selected="tab === x" :tabindex="tab === x ? 0 : -1" @click="tab = x">{{ t(`live.tab.${x}` as never) }}</button>
+      <div class="p-live-boards">
+        <QSection id="now" small :title="t('live.now')">
+          <p v-if="!snap.now.length" class="p-live-sub">{{ t('live.none') }}</p>
+          <div class="p-live-list"><QMatchCard v-for="m in snap.now" :key="m.id" v-bind="card(m)" /></div>
+        </QSection>
+        <QSection id="next" small :title="t('live.upNext')">
+          <p v-if="!snap.next.length" class="p-live-sub">{{ t('live.none') }}</p>
+          <div class="p-live-list"><QMatchCard v-for="m in snap.next" :key="m.id" v-bind="card(m)" /></div>
+        </QSection>
+        <QSection id="results" small :title="t('live.results')">
+          <p v-if="!snap.results.length" class="p-live-sub">{{ t('live.none') }}</p>
+          <div class="p-live-list"><QMatchCard v-for="m in snap.results" :key="m.id" v-bind="card(m)" /></div>
+        </QSection>
       </div>
 
-      <section v-show="tab === 'timeline'" ref="timelineEl" class="card stack" tabindex="-1" role="tabpanel" :aria-label="t('live.tab.timeline')">
-        <button v-if="feed.pending.length" type="button" class="btn btn-primary sticky" @click="showNew">{{ t('live.newItems', { n: num(feed.pending.length) }) }}</button>
-        <p v-if="!feed.posts.length" class="muted">{{ t('live.empty') }}</p>
-        <LivePost v-for="p in feed.posts" :key="p.id" :post="p" show-actions />
-        <button v-if="olderCursor" type="button" class="btn" @click="older">{{ t('live.older') }}</button>
+      <QLivePost v-for="p in snap.pinned" :key="p.id" v-bind="postProps(p)" :aria-label="t('live.pinned')" />
+
+      <div class="p-live-filters">
+        <QSelect v-model="fDiscipline" :label="t('live.f.discipline')" :options="[all(), ...snap.filters.disciplines.map((d) => ({ value: d.id, label: d.name }))]" />
+        <QSelect v-model="fStage" :label="t('live.f.stage')" :options="[all(), ...snap.filters.stages.filter((x) => !filters.disciplineId || x.disciplineId === filters.disciplineId).map((x) => ({ value: x.id, label: x.name }))]" />
+        <QSelect v-model="fDay" :label="t('live.f.day')" :options="[all(), ...snap.filters.days.map((d) => ({ value: d, label: formatJalali(`${d}T08:30:00Z`, 'date') }))]" />
+        <QSelect v-model="fTeam" :label="t('live.f.team')" :options="[all(), ...snap.filters.teams.map((x) => ({ value: x.id, label: x.name }))]" />
+      </div>
+
+      <QTabs v-model="tab" :items="tabItems" :aria-label="t('live.tabs')" overflow="scroll" />
+
+      <section v-show="tab === 'timeline'" ref="timelineEl" class="k-stack p-live-timeline" tabindex="-1" role="tabpanel" :aria-label="t('live.tab.timeline')">
+        <QButton v-if="feed.pending.length" class="p-live-new" variant="primary" icon="chevron-up" @click="showNew">{{ t('live.newItems', { n: fa(feed.pending.length) }) }}</QButton>
+        <QEmptyState v-if="!feed.posts.length" compact icon="news" :title="t('live.empty')" />
+        <QLivePost v-for="(p, i) in feed.posts" :key="p.id" v-bind="postProps(p)" :newest="i === 0" />
+        <QButton v-if="olderCursor" variant="secondary" icon="chevron-down" @click="older">{{ t('live.older') }}</QButton>
       </section>
-      <section v-if="tab !== 'timeline' && tabData" class="card stack" role="tabpanel" :aria-label="t(`live.tab.${tab}` as never)">
+      <section v-if="tab !== 'timeline' && tabData" class="k-stack" :aria-label="t(`live.tab.${tab}` as MessageKey)">
         <template v-if="['schedule', 'results', 'bracket'].includes(tab)">
-          <p v-if="!(tabData['items'] as ProjectedMatch[]).length" class="muted">{{ t('live.none') }}</p>
-          <table v-else class="table">
-            <caption class="sr-only">{{ t(`live.tab.${tab}` as never) }}</caption>
-            <thead><tr><th scope="col">{{ t('live.slot') }}</th><th scope="col">{{ t('live.sides') }}</th><th scope="col">{{ t('live.state') }}</th><th scope="col">{{ t('live.time') }}</th><th scope="col">{{ t('live.score') }}</th></tr></thead>
-            <tbody><tr v-for="m in tabData['items'] as ProjectedMatch[]" :key="m.id"><td class="ltr">{{ m.slot?.key }}</td><th scope="row"><bdi>{{ sideNames(m) }}</bdi></th><td><StatusBadge :state="m.state" /></td><td><JalaliDate :iso="m.scheduledAt" /></td><td><bdi class="ltr">{{ score(m) }}</bdi></td></tr></tbody>
-          </table>
+          <QEmptyState v-if="!(tabData['items'] as ProjectedMatch[]).length" compact icon="calendar" :title="t('live.none')" />
+          <QDataTable v-else :caption="t(`live.tab.${tab}` as MessageKey)" caption-hidden row-key="id" row-header="sides" :columns="matchCols" :rows="tabData['items'] as ProjectedMatch[]">
+            <template #cell-slot="{ row }"><span class="q-ltr">{{ slotKey(row) }}</span></template>
+            <template #cell-sides="{ row }"><RouterLink :to="`/matches/${encodeURIComponent(row.id)}`"><bdi>{{ sideNames(row) }}</bdi></RouterLink></template>
+            <template #cell-state="{ row }"><QBadge v-bind="stateLabel(row.state).props">{{ stateLabel(row.state).label }}</QBadge></template>
+            <template #cell-scheduledAt="{ row }">{{ formatJalali(row.scheduledAt) }}</template>
+            <template #cell-score="{ row }"><bdi class="q-ltr">{{ score(row) }}</bdi></template>
+          </QDataTable>
         </template>
         <template v-else-if="tab === 'stats'">
-          <dl class="facts"><div v-for="(v, k) in tabData['totals'] as Record<string, number>" :key="k"><dt>{{ t(`live.stat.${k}` as never) }}</dt><dd>{{ num(v) }}</dd></div></dl>
-          <ol class="list"><li v-for="l in tabData['leaders'] as Array<{ participationId: string; name: string; wins: number; played: number }>" :key="l.participationId"><bdi>{{ l.name }}</bdi> — {{ num(l.wins) }}/{{ num(l.played) }}</li></ol>
+          <QFacts :columns="4" :items="Object.entries(tabData['totals'] as Record<string, number>).map(([k, v]) => ({ label: t(`live.stat.${k}` as MessageKey), value: fa(v) }))" />
+          <ol class="p-live-leaders"><li v-for="l in tabData['leaders'] as Array<{ participationId: string; name: string; wins: number; played: number }>" :key="l.participationId"><bdi>{{ l.name }}</bdi> — {{ fa(l.wins) }}/{{ fa(l.played) }}</li></ol>
         </template>
         <template v-else-if="tab === 'gallery'">
-          <p v-if="!(tabData['items'] as unknown[]).length" class="muted">{{ t('live.none') }}</p>
-          <div class="gallery">
+          <QEmptyState v-if="!(tabData['items'] as unknown[]).length" compact icon="image" :title="t('live.none')" />
+          <div class="p-live-gallery">
             <figure v-for="g in tabData['items'] as Array<{ postId: string; url: string | null; caption: string | null; credit: string }>" :key="g.postId + (g.url ?? '')">
               <img v-if="g.url && !settings.lowData" :src="g.url" :alt="g.caption ?? ''" loading="lazy" decoding="async" />
               <a v-else-if="g.url" :href="g.url">{{ t('live.openImage') }}</a>
-              <figcaption class="small muted" dir="auto">{{ g.caption }} · {{ g.credit }}</figcaption>
+              <figcaption class="p-live-sub" dir="auto">{{ g.caption }} · {{ g.credit }}</figcaption>
             </figure>
           </div>
         </template>
         <template v-else-if="tab === 'video'">
-          <p v-if="!(tabData['items'] as unknown[]).length" class="muted">{{ t('live.none') }}</p>
-          <ul class="list"><li v-for="v in tabData['items'] as Array<{ id: string; kind: string; title: string; url: string | null; matchId: string | null; occurredAt: string }>" :key="v.id">{{ t(`live.vid.${v.kind}` as never) }} — <a v-if="v.url" :href="v.url" rel="noopener noreferrer" target="_blank" dir="auto">{{ v.title }}</a><span v-else dir="auto">{{ v.title }}</span> <span class="muted small"><JalaliDate :iso="v.occurredAt" /></span></li></ul>
+          <QEmptyState v-if="!(tabData['items'] as unknown[]).length" compact icon="play" :title="t('live.none')" />
+          <ul class="p-live-leaders">
+            <li v-for="v in tabData['items'] as Array<{ id: string; kind: string; title: string; url: string | null; matchId: string | null; occurredAt: string }>" :key="v.id">
+              {{ t(`live.vid.${v.kind}` as MessageKey) }} — <a v-if="v.url" :href="v.url" rel="noopener noreferrer" target="_blank" dir="auto">{{ v.title }}</a><span v-else dir="auto">{{ v.title }}</span>
+              <span class="p-live-sub"> {{ formatJalali(v.occurredAt) }}</span>
+            </li>
+          </ul>
         </template>
       </section>
 
       <!-- spectator chat, separate from the official timeline (AUD-002) -->
-      <details class="card block-sm" @toggle="chat.open = ($event.target as HTMLDetailsElement).open; chat.open && loadChat()">
-        <summary>{{ t('live.chat') }}</summary>
-        <p class="muted small">{{ t('live.chatNote') }}</p>
-        <ul class="list chat">
-          <li v-for="m in chat.items" :key="m._id"><strong><bdi>{{ m.nickname ?? '—' }}</bdi></strong>: <span v-if="m.removed" class="muted">{{ t('live.removed') }}</span><span v-else dir="auto">{{ m.text }}</span>
-            <button v-if="session.me && !m.removed" type="button" class="btn btn-sm link" @click="reportChat(m._id)">{{ t('live.report') }}</button></li>
-        </ul>
-        <form v-if="session.me" class="row" novalidate @submit.prevent="sendChat">
-          <label class="sr-only" for="lc-chat">{{ t('live.chat') }}</label>
-          <input id="lc-chat" v-model="chat.text" class="input grow" dir="auto" maxlength="1000" />
-          <button type="submit" class="btn btn-sm" :disabled="!chat.text.trim()">{{ t('live.send') }}</button>
-        </form>
-        <p v-else class="small"><RouterLink :to="`/login?redirect=${encodeURIComponent(route.fullPath)}`">{{ t('live.loginToChat') }}</RouterLink></p>
-      </details>
-    </template>
-  </DataState>
+      <QCard>
+        <details class="p-live-chat" @toggle="chat.open = ($event.target as HTMLDetailsElement).open; chat.open && loadChat()">
+          <summary class="h4">{{ t('live.chat') }}</summary>
+          <p class="p-live-sub">{{ t('live.chatNote') }}</p>
+          <ul class="p-live-chatlist">
+            <li v-for="m in chat.items" :key="m._id">
+              <strong><bdi>{{ m.nickname ?? '—' }}</bdi></strong>: <span v-if="m.removed" class="p-live-sub">{{ t('live.removed') }}</span><span v-else dir="auto">{{ m.text }}</span>
+              <QButton v-if="session.me && !m.removed" variant="ghost" size="sm" icon="flag" @click="reportChat(m._id)">{{ t('live.report') }}</QButton>
+            </li>
+          </ul>
+          <form v-if="session.me" class="p-live-chatform" novalidate @submit.prevent="sendChat">
+            <QTextField id="lc-chat" v-model="chat.text" :label="t('live.chat')" hide-label :max-length="1000" />
+            <QButton type="submit" variant="green" icon="send" :disabled="!chat.text.trim()">{{ t('live.send') }}</QButton>
+          </form>
+          <p v-else class="p-live-sub"><RouterLink :to="`/login?redirect=${encodeURIComponent(route.fullPath)}`">{{ t('live.loginToChat') }}</RouterLink></p>
+        </details>
+      </QCard>
+    </div>
+  </QContainer>
 </template>
 
 <style scoped>
-/* reserve two lines: the connection text changes length (connecting → live → last update) and must not reflow the page (CLS) */
-.conn-status { min-block-size: 2.8em; margin: 0; }
-.row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.between { justify-content: space-between; }
-.block-sm { margin-block-start: var(--sp-3); }
-.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--sp-3); }
-.list { margin: 0; padding-inline-start: var(--sp-5); }
-.tabs { display: flex; gap: var(--sp-1); overflow-x: auto; border-block-end: 1px solid var(--border); }
-.tab { background: none; border: 0; padding: var(--sp-2) var(--sp-3); cursor: pointer; color: inherit; white-space: nowrap; }
-.tab[aria-selected='true'] { border-block-end: 3px solid var(--accent, var(--info)); font-weight: 600; }
-.sticky { position: sticky; inset-block-start: var(--sp-2); z-index: 2; justify-self: center; }
-.table { inline-size: 100%; border-collapse: collapse; }
-.table th, .table td { text-align: start; padding: var(--sp-2); border-block-end: 1px solid var(--border); }
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: var(--sp-2); margin: 0; }
-.facts dt { color: var(--text-muted); font-size: var(--fs-sm); }
-.facts dd { margin: 0; font-weight: 600; }
-.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: var(--sp-2); }
-.gallery img { inline-size: 100%; block-size: auto; border-radius: var(--radius, 6px); }
-.gallery figure { margin: 0; }
-.player { inline-size: 100%; max-block-size: 60vh; background: #000; border-radius: var(--radius, 6px); }
-.stream { border-block-end: 1px solid var(--border); padding-block: var(--sp-2); }
-.dot { display: inline-block; inline-size: 0.6rem; block-size: 0.6rem; border-radius: 50%; background: var(--text-muted); }
-.dot[data-state='live'] { background: var(--ok); }
-.dot[data-state='retrying'] { background: var(--warn); }
-.dot[data-state='offline'] { background: var(--danger); }
-.chat { max-block-size: 18rem; overflow-y: auto; }
-.grow { flex: 1 1 12rem; }
-.link { background: none; border: 0; text-decoration: underline; }
-.small { font-size: var(--fs-xs); }
-.warn { color: var(--warn); }
-.danger { color: var(--danger); }
-h2, p { margin: 0; }
+.p-live { gap: var(--space-6); }
+.p-live-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); padding: var(--space-3) var(--space-4); }
+.p-live-conn { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; font-size: 13px; color: var(--ink-muted); }
+.p-live-sub { margin: 0; font-size: 13px; color: var(--ink-subtle); }
+.p-live-streams { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.p-live-stream__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); }
+.p-live-player { inline-size: 100%; aspect-ratio: 16 / 9; background: var(--surface-sunken); border-radius: var(--radius-sm); }
+.p-live-boards { display: grid; gap: var(--space-5); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.p-live-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.p-live-filters { display: grid; gap: var(--space-4); grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.p-live-timeline:focus { outline: none; }
+.p-live-new { position: sticky; inset-block-start: var(--space-3); z-index: 2; align-self: center; }
+.p-live-leaders { margin: 0; padding-inline-start: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); }
+.p-live-gallery { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+.p-live-gallery figure { margin: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.p-live-gallery img { inline-size: 100%; border-radius: var(--radius-sm); }
+.p-live-chat summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; }
+.p-live-chatlist { margin: var(--space-3) 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.p-live-chatform { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: end; }
+@media (max-width: 1100px) { .p-live-boards { grid-template-columns: minmax(0, 1fr); } .p-live-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .p-live-filters { grid-template-columns: minmax(0, 1fr); } }
 </style>
