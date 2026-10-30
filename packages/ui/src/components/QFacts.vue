@@ -8,9 +8,9 @@ export interface QFactsItem { label: string; value: string | number; ltr?: boole
 /** Key/value grid (dl) for event detail: «شروع ۱۲ آذر», «ظرفیت ۱۱ از ۱۶ تیم». columns 2|3|4, variant grid | list. Numbers go through fa(). */
 export interface QFactsProps {
   items: QFactsItem[];
-  columns?: 2 | 3 | 4;
-  variant?: 'grid' | 'list';
-  dense?: boolean;
+  columns?: (2 | 3 | 4) | undefined;
+  variant?: ('grid' | 'list') | undefined;
+  dense?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QFactsProps>(), { columns: 3, variant: 'grid' });
 const cols = computed(() => ([2, 3, 4].includes(Number(p.columns)) ? Number(p.columns) : 3));

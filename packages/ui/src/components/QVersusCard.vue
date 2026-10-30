@@ -17,13 +17,13 @@ export interface QVersusCardProps {
   home: QVersusCardTeam;
   away: QVersusCardTeam;
   event: string;
-  stage?: string;
-  info?: QVersusCardFact[];
-  sponsor?: { name: string; logoUrl?: string | null };
+  stage?: (string) | undefined;
+  info?: (QVersusCardFact[]) | undefined;
+  sponsor?: ({ name: string; logoUrl?: string | null }) | undefined;
   /** Show the QeSB mark. Default true. */
-  logo?: boolean;
-  logoVariant?: 'auto' | 'color' | 'white' | 'black';
-  labels?: Partial<Record<'vs' | 'sponsor' | 'seed', string>>;
+  logo?: (boolean) | undefined;
+  logoVariant?: ('auto' | 'color' | 'white' | 'black') | undefined;
+  labels?: (Partial<Record<'vs' | 'sponsor' | 'seed', string>>) | undefined;
 }
 const p = withDefaults(defineProps<QVersusCardProps>(), { logo: true, logoVariant: 'auto' });
 

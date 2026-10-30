@@ -9,10 +9,10 @@ export interface QSponsorStripSponsor { name: string; logoUrl?: string | null }
 export interface QSponsorStripProps {
   sponsors: QSponsorStripSponsor[];
   /** Label before the slots. Default «اسپانسر». */
-  label?: string;
+  label?: (string) | undefined;
   /** synced → «هماهنگ با پخش (تأخیر ۳۰ ثانیه)», latest → «آخرین نتیجه». */
-  sync?: { mode: 'synced' | 'latest'; delaySeconds?: number; label?: string };
-  transparent?: boolean;
+  sync?: ({ mode: 'synced' | 'latest'; delaySeconds?: number; label?: string }) | undefined;
+  transparent?: (boolean) | undefined;
 }
 const p = defineProps<QSponsorStripProps>();
 

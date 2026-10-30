@@ -12,19 +12,19 @@ export interface QScoreBugProps {
   home: QScoreBugTeam | string;
   away: QScoreBugTeam | string;
   /** [home, away]; omit before the first result («–»). */
-  score?: [number, number];
-  live?: boolean;
-  liveLabel?: string;
+  score?: ([number, number]) | undefined;
+  live?: (boolean) | undefined;
+  liveLabel?: (string) | undefined;
   /** Round or map number, e.g. «نقشه ۲». */
-  round?: string;
+  round?: (string) | undefined;
   /** Map name in Latin (isolated LTR). */
-  map?: string;
-  timer?: string;
-  provisional?: boolean;
-  provisionalLabel?: string;
-  transparent?: boolean;
+  map?: (string) | undefined;
+  timer?: (string) | undefined;
+  provisional?: (boolean) | undefined;
+  provisionalLabel?: (string) | undefined;
+  transparent?: (boolean) | undefined;
   /** Accessible prefix for the group label. Default «امتیاز». */
-  label?: string;
+  label?: (string) | undefined;
 }
 const p = defineProps<QScoreBugProps>();
 

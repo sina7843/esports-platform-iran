@@ -11,15 +11,15 @@ import QButton from './QButton.vue';
  */
 export interface QDrawerProps {
   /** start = inline-start (right in RTL; mobile nav), end = inline-end (filters, row details). */
-  side?: 'start' | 'end';
-  title?: string;
-  footer?: string;
+  side?: ('start' | 'end') | undefined;
+  title?: (string) | undefined;
+  footer?: (string) | undefined;
   /** Panel width in px (default 360 from CSS, never wider than the container minus 48px). */
-  width?: number;
-  closeLabel?: string;
-  inline?: boolean;
-  inlineHeight?: number;
-  backdrop?: string;
+  width?: (number) | undefined;
+  closeLabel?: (string) | undefined;
+  inline?: (boolean) | undefined;
+  inlineHeight?: (number) | undefined;
+  backdrop?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QDrawerProps>(), { side: 'start' });
 const open = defineModel<boolean>('open', { required: true });

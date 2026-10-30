@@ -4,12 +4,12 @@ import QLink from './QLink.vue';
 
 /** Card: the Arena surface. chamfer cuts the corners (feature cards); live adds the red glow; href/interactive add hover; as picks the element. */
 export interface QCardProps {
-  as?: string;
-  href?: string;
-  padding?: 'default' | 'lg' | 'none';
-  chamfer?: boolean;
-  live?: boolean;
-  interactive?: boolean;
+  as?: (string) | undefined;
+  href?: (string) | undefined;
+  padding?: ('default' | 'lg' | 'none') | undefined;
+  chamfer?: (boolean) | undefined;
+  live?: (boolean) | undefined;
+  interactive?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QCardProps>(), { padding: 'default' });
 const classes = computed(() => ['q-card', p.padding === 'none' ? 'q-card--flush' : p.padding === 'lg' ? 'q-card--lg' : null,

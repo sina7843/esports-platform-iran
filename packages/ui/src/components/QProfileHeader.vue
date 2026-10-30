@@ -20,33 +20,33 @@ export interface QProfileHeaderMenuItem { label: string; icon?: IconName; danger
  * Default «…» menu items emit `report` / `block`. Slot: actions (before the menu).
  */
 export interface QProfileHeaderProps {
-  kind?: 'player' | 'team' | 'organizer';
+  kind?: ('player' | 'team' | 'organizer') | undefined;
   name: string;
-  handle?: string;
-  initial?: string;
-  avatarSrc?: string;
-  coverSrc?: string;
-  coverText?: string;
-  verified?: boolean;
-  verifiedLabel?: string;
-  kindLabel?: string;
-  badges?: QProfileHeaderBadge[];
-  honours?: QProfileHeaderHonour[];
-  facts?: QProfileHeaderFact[];
+  handle?: (string) | undefined;
+  initial?: (string) | undefined;
+  avatarSrc?: (string) | undefined;
+  coverSrc?: (string) | undefined;
+  coverText?: (string) | undefined;
+  verified?: (boolean) | undefined;
+  verifiedLabel?: (string) | undefined;
+  kindLabel?: (string) | undefined;
+  badges?: (QProfileHeaderBadge[]) | undefined;
+  honours?: (QProfileHeaderHonour[]) | undefined;
+  facts?: (QProfileHeaderFact[]) | undefined;
   careerSummary?: string | null | false | undefined;
-  emptyCareerLabel?: string;
-  hideCareer?: boolean;
-  careerIcon?: IconName;
+  emptyCareerLabel?: (string) | undefined;
+  hideCareer?: (boolean) | undefined;
+  careerIcon?: (IconName) | undefined;
   following?: boolean | undefined;
-  defaultFollowing?: boolean;
+  defaultFollowing?: (boolean) | undefined;
   /** Listener of @follow-change; false hides the follow toggle. */
   onFollowChange?: ((following: boolean) => void) | false | undefined;
-  followLabel?: string;
-  followingLabel?: string;
-  menuItems?: QProfileHeaderMenuItem[];
-  defaultMenuOpen?: boolean;
-  actions?: string;
-  headingLevel?: 1 | 2 | 3;
+  followLabel?: (string) | undefined;
+  followingLabel?: (string) | undefined;
+  menuItems?: (QProfileHeaderMenuItem[]) | undefined;
+  defaultMenuOpen?: (boolean) | undefined;
+  actions?: (string) | undefined;
+  headingLevel?: (1 | 2 | 3) | undefined;
 }
 const p = withDefaults(defineProps<QProfileHeaderProps>(), {
   kind: 'player', careerSummary: undefined, following: undefined, onFollowChange: undefined, careerIcon: 'chart',

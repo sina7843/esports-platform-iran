@@ -8,14 +8,14 @@ export interface SegmentedControlOption { value: string; label: string; icon?: I
 /** SegmentedControl — one-of-few choice (view «کارت‌ها / فهرست», theme). role radiogroup; selected = green-soft. `v-model` + `change`. */
 export interface QSegmentedControlProps {
   options: SegmentedControlOption[];
-  defaultValue?: string;
-  size?: 'sm' | 'md';
+  defaultValue?: (string) | undefined;
+  size?: ('sm' | 'md') | undefined;
   /** Show icons only; label becomes aria-label + title. */
-  iconOnly?: boolean;
+  iconOnly?: (boolean) | undefined;
   /** Stretch to the container width. */
-  block?: boolean;
+  block?: (boolean) | undefined;
   /** Required by the DS; optional in TS only because vue-tsc does not map the kebab `aria-label` attribute onto it. */
-  ariaLabel?: string;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QSegmentedControlProps>(), { size: 'md' });
 const model = defineModel<string>();

@@ -12,18 +12,18 @@ import QIcon from './QIcon.vue';
  */
 export interface QTicketPassProps {
   event: string;
-  game?: string;
-  discipline?: string;
-  date?: string;
+  game?: (string) | undefined;
+  discipline?: (string) | undefined;
+  date?: (string) | undefined;
   attendee: { name: string; team?: string; role?: string };
-  code?: string;
-  qrLabel?: string;
-  sample?: boolean;
-  rotateNote?: string;
-  gate?: string;
-  venue?: { name?: string; address?: string; station?: string; parking?: string };
-  equipment?: { item: string; state?: 'declared' | 'approved' | 'rejected' }[];
-  eyebrow?: string;
+  code?: (string) | undefined;
+  qrLabel?: (string) | undefined;
+  sample?: (boolean) | undefined;
+  rotateNote?: (string) | undefined;
+  gate?: (string) | undefined;
+  venue?: ({ name?: string; address?: string; station?: string; parking?: string }) | undefined;
+  equipment?: ({ item: string; state?: 'declared' | 'approved' | 'rejected' }[]) | undefined;
+  eyebrow?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QTicketPassProps>(), { sample: true });
 const hid = useId();

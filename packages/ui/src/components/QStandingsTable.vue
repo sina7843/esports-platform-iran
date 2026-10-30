@@ -31,15 +31,15 @@ export interface QStandingsTableRow {
 export interface QStandingsTableProps {
   rows: QStandingsTableRow[];
   /** default «جدول رتبه‌بندی» */
-  caption?: string;
+  caption?: (string) | undefined;
   /** Visible heading; the caption then becomes screen-reader only. */
-  title?: string;
-  participantLabel?: string;
-  provisional?: boolean;
-  showDraws?: boolean;
-  showForm?: boolean;
-  showChange?: boolean;
-  footnote?: string;
+  title?: (string) | undefined;
+  participantLabel?: (string) | undefined;
+  provisional?: (boolean) | undefined;
+  showDraws?: (boolean) | undefined;
+  showForm?: (boolean) | undefined;
+  showChange?: (boolean) | undefined;
+  footnote?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QStandingsTableProps>(), { showDraws: true, showForm: true, showChange: true });
 

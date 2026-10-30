@@ -22,7 +22,7 @@ export interface QAlertProps {
   icon?: IconName | undefined;
   role?: string | undefined;
   /** Listener presence (@dismiss) shows the ×, as in the DS. */
-  onDismiss?: () => void;
+  onDismiss?: (() => void) | undefined;
 }
 const p = withDefaults(defineProps<QAlertProps>(), { open: undefined });
 const emit = defineEmits<{ dismiss: [] }>();

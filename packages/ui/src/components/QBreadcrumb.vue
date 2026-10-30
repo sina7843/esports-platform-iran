@@ -9,8 +9,8 @@ export interface BreadcrumbItem { label: string; href?: string }
 export interface QBreadcrumbProps {
   items: BreadcrumbItem[];
   /** Collapse the middle into «…» when longer than this (≥3). */
-  maxItems?: number;
-  ariaLabel?: string;
+  maxItems?: (number) | undefined;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QBreadcrumbProps>(), { maxItems: 0 });
 

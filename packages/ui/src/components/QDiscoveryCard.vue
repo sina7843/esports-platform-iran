@@ -6,16 +6,16 @@ import QLink from './QLink.vue';
 
 /** DiscoveryCard: «مسیرت را انتخاب کن» shortcut — chamfered green icon tile, title, description, forward arrow; the whole card is the link. */
 export interface QDiscoveryCardProps {
-  icon?: IconName;
+  icon?: (IconName) | undefined;
   title: string;
-  description?: string;
-  meta?: string;
+  description?: (string) | undefined;
+  meta?: (string) | undefined;
   /** Renders the card as a link; otherwise a native `@click` makes it a button. */
-  href?: string;
+  href?: (string) | undefined;
   /** aria-current="page". */
-  current?: boolean;
-  arrow?: boolean;
-  headingLevel?: 2 | 3 | 4;
+  current?: (boolean) | undefined;
+  arrow?: (boolean) | undefined;
+  headingLevel?: (2 | 3 | 4) | undefined;
 }
 const p = withDefaults(defineProps<QDiscoveryCardProps>(), { icon: 'trophy', arrow: true, headingLevel: 3 });
 const attrs = useAttrs();

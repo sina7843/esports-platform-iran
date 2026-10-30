@@ -15,11 +15,11 @@ export interface AccordionItem {
  */
 export interface QAccordionProps {
   items: AccordionItem[];
-  type?: 'single' | 'multiple';
-  defaultValue?: string | string[] | null;
+  type?: ('single' | 'multiple') | undefined;
+  defaultValue?: (string | string[] | null) | undefined;
   /** single: allow closing the open item (default true). */
-  collapsible?: boolean;
-  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  collapsible?: (boolean) | undefined;
+  headingLevel?: (2 | 3 | 4 | 5 | 6) | undefined;
 }
 const p = withDefaults(defineProps<QAccordionProps>(), { type: 'single', collapsible: true, headingLevel: 3 });
 const model = defineModel<string | string[] | null | undefined>({ default: undefined });

@@ -7,13 +7,13 @@ import QIcon from './QIcon.vue';
 export interface QMoneyProps {
   rial: number;
   /** amount (default) | fee (0 → «رایگان») | prize (adds «بدون تضمین»). */
-  kind?: 'amount' | 'fee' | 'prize';
-  free?: boolean;
-  freeLabel?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  kind?: ('amount' | 'fee' | 'prize') | undefined;
+  free?: (boolean) | undefined;
+  freeLabel?: (string) | undefined;
+  size?: ('sm' | 'md' | 'lg' | 'xl') | undefined;
   /** Prize note: false hides it, a string replaces «بدون تضمین». */
   note?: boolean | string | undefined;
-  noteDetail?: string;
+  noteDetail?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QMoneyProps>(), { kind: 'amount', size: 'md', note: undefined });
 

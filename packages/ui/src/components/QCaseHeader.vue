@@ -12,17 +12,17 @@ export interface QCaseHeaderProps {
   caseId: string;
   title: string;
   state: 'filed' | 'assigned' | 'defense_received' | 'under_review' | 'first_decision' | 'appeal' | 'closed';
-  category?: string;
-  eyebrow?: string;
-  parties?: QCaseHeaderParty[];
+  category?: (string) | undefined;
+  eyebrow?: (string) | undefined;
+  parties?: (QCaseHeaderParty[]) | undefined;
   /** Countdown turns warning under 24h, danger when passed. */
-  deadline?: { label?: string; at: string };
+  deadline?: ({ label?: string; at: string }) | undefined;
   /** Reference "now" (ISO) for deterministic rendering. Default Date.now(). */
-  now?: string;
-  referee?: string;
-  match?: string;
-  matchHref?: string;
-  actions?: string;
+  now?: (string) | undefined;
+  referee?: (string) | undefined;
+  match?: (string) | undefined;
+  matchHref?: (string) | undefined;
+  actions?: (string) | undefined;
 }
 const p = defineProps<QCaseHeaderProps>();
 const hid = useId();

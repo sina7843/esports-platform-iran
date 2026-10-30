@@ -5,9 +5,9 @@ import logoBlack from '../assets/qesb-logo-black.svg';
 
 /** The QeSB mark. variant 'auto' shows the white mark on dark and the colour mark on light. */
 export interface QLogoProps {
-  variant?: 'auto' | 'color' | 'white' | 'black';
-  size?: number;
-  alt?: string;
+  variant?: ('auto' | 'color' | 'white' | 'black') | undefined;
+  size?: (number) | undefined;
+  alt?: (string) | undefined;
 }
 defineOptions({ inheritAttrs: false });
 withDefaults(defineProps<QLogoProps>(), { variant: 'auto', size: 56, alt: 'QeSB' });

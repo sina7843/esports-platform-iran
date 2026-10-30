@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /** Hairline separator. orientation horizontal | vertical; optional centred label (prop or slot). */
 export interface QDividerProps {
-  orientation?: 'horizontal' | 'vertical';
-  label?: string;
-  align?: 'center' | 'start';
-  spacing?: 'md' | 'lg';
+  orientation?: ('horizontal' | 'vertical') | undefined;
+  label?: (string) | undefined;
+  align?: ('center' | 'start') | undefined;
+  spacing?: ('md' | 'lg') | undefined;
 }
 withDefaults(defineProps<QDividerProps>(), { orientation: 'horizontal', align: 'center', spacing: 'md' });
 </script>

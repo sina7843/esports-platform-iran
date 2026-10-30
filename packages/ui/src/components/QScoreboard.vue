@@ -13,19 +13,19 @@ export interface QScoreboardMap { name: string; /** «13–7»; digits are local
 export interface QScoreboardProps {
   home: QScoreboardTeam;
   away: QScoreboardTeam;
-  state?: MatchCardState;
+  state?: (MatchCardState) | undefined;
   /** Shortcut for state 'live'. */
-  live?: boolean;
-  stateLabel?: string;
+  live?: (boolean) | undefined;
+  stateLabel?: (string) | undefined;
   /** Shown instead of the score before the match starts. */
-  time?: string;
-  eventName?: string;
+  time?: (string) | undefined;
+  eventName?: (string) | undefined;
   /** «یک‌چهارم نهایی · نقشه ۲ از ۳» */
-  context?: string;
-  maps?: QScoreboardMap[];
-  roomHref?: string;
+  context?: (string) | undefined;
+  maps?: (QScoreboardMap[]) | undefined;
+  roomHref?: (string) | undefined;
   /** default «ورود به اتاق مسابقه» */
-  roomLabel?: string;
+  roomLabel?: (string) | undefined;
 }
 const p = defineProps<QScoreboardProps>();
 

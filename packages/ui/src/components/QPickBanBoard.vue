@@ -15,16 +15,16 @@ export interface QPickBanBoardMap { id: string; name: string; image?: string; st
 export interface QPickBanBoardProps {
   teams: Array<{ name: string }>;
   sequence: QPickBanBoardStep[];
-  step?: number;
+  step?: (number) | undefined;
   maps: QPickBanBoardMap[];
-  secondsLeft?: number;
-  running?: boolean;
-  viewerSide?: number;
-  state?: 'running' | 'waiting_referee' | 'complete';
-  title?: string;
-  context?: string;
+  secondsLeft?: (number) | undefined;
+  running?: (boolean) | undefined;
+  viewerSide?: (number) | undefined;
+  state?: ('running' | 'waiting_referee' | 'complete') | undefined;
+  title?: (string) | undefined;
+  context?: (string) | undefined;
   /** null hides the rule note. */
-  note?: string | null;
+  note?: (string | null) | undefined;
 }
 const p = defineProps<QPickBanBoardProps>();
 const emit = defineEmits<{

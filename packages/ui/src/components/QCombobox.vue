@@ -14,20 +14,20 @@ export interface QComboboxOption { value: string; label: string; description?: s
  * v-model: string | null (single) or string[] (multiple); change(value, option).
  */
 export interface QComboboxProps {
-  label?: string;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
+  label?: (string) | undefined;
+  hint?: (string) | undefined;
+  error?: (string) | undefined;
+  required?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
   options: QComboboxOption[];
-  multiple?: boolean;
-  placeholder?: string;
-  addPlaceholder?: string;
-  emptyText?: string;
-  prefixIcon?: IconName;
-  defaultOpen?: boolean;
-  id?: string;
-  defaultValue?: string | string[] | null;
+  multiple?: (boolean) | undefined;
+  placeholder?: (string) | undefined;
+  addPlaceholder?: (string) | undefined;
+  emptyText?: (string) | undefined;
+  prefixIcon?: (IconName) | undefined;
+  defaultOpen?: (boolean) | undefined;
+  id?: (string) | undefined;
+  defaultValue?: (string | string[] | null) | undefined;
 }
 type Val = string | string[] | null;
 const p = defineProps<QComboboxProps>();

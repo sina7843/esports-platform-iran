@@ -64,7 +64,7 @@ function lineAt(src, idx) { return src.slice(0, idx).split('\n').length; }
 
 const OLD_TOKENS = ['--sp-1', '--sp-2', '--sp-3', '--sp-4', '--sp-5', '--sp-6', '--sp-7', '--fs-xs', '--fs-sm', '--fs-md', '--fs-lg', '--fs-xl', '--fs-2xl',
   '--lh-tight', '--lh-body', '--text', '--text-muted', '--accent', '--accent-strong', '--accent-soft', '--on-accent', '--border', '--surface-2',
-  '--ok', '--ok-soft', '--warn', '--warn-soft', '--danger', '--danger-soft', '--info', '--focus', '--shadow', '--topbar-h', '--sidebar-w', '--radius',
+  '--ok', '--ok-soft', '--warn', '--warn-soft', '--danger', '--info', '--focus', '--shadow', '--topbar-h', '--sidebar-w', '--radius',
   '--card', '--secondary', '--foreground', '--background', '--brand', '--brand-foreground', '--destructive', '--success', '--warning', '--muted-foreground',
   '--ring', '--depth-surface', '--dir-flip', '--info-soft'];
 const OLD_CLASSES = ['btn', 'btn-primary', 'btn-danger', 'btn-sm', 'input', 'card', 'stack', 'row', 'grid', 'grid2', 'grid3', 'muted', 'num', 'bidi', 'mono', 'sr-only', 'skip-link'];
@@ -80,7 +80,7 @@ const rules = [
   { id: 'cdn-font', level: 'error', where: 'css', re: /fonts\.googleapis\.com|fonts\.gstatic\.com/g, msg: 'CDN font — the product loads Vazirmatn from the local `vazirmatn` package only' },
   { id: 'old-token', level: 'legacy', where: 'css', re: new RegExp(`var\\((?:${OLD_TOKENS.map((t) => t.replace(/-/g, '\\-')).join('|')})(?![\\w-])`, 'g'), msg: 'old (Violet Arena / Graphite) token — map it with 02-token-migration.md' },
   // template rules
-  { id: 'old-class', level: 'legacy', where: 'template', re: new RegExp(`class="[^"]*\\b(?:${OLD_CLASSES.join('|')})\\b(?![\\w-])[^"]*"`, 'g'), msg: 'old base.css class — use the DS component / q-* class' },
+  { id: 'old-class', level: 'legacy', where: 'template', re: new RegExp(`class="[^"]*(?<![\\w-])(?:${OLD_CLASSES.join('|')})\\b(?![\\w-])[^"]*"`, 'g'), msg: 'old base.css class — use the DS component / q-* class' },
   { id: 'inline-colour', level: 'error', where: 'template', re: /style="[^"]*(?:#[0-9a-fA-F]{3,8}\b|rgba?\()/g, msg: 'literal colour in an inline style' },
   // script rules
   { id: 'raw-number-format', level: 'error', where: 'script', re: /\.toLocaleString\(|\.toFixed\(/g, msg: 'raw toLocaleString/toFixed — use num()/dec()/toman() from @esp/ui (locale digits and «٬»/«٫»)' },

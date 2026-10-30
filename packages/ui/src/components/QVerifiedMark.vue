@@ -4,11 +4,11 @@ import { tr } from '../locale';
 /** Small green check-in-circle mark. Without `text` it is an image with an accessible label. class/title fall through. */
 export interface QVerifiedMarkProps {
   /** Accessible name when no visible text. Default «تأییدشده». */
-  label?: string;
+  label?: (string) | undefined;
   /** Visible text after the mark, e.g. «برگزارکنندهٔ تأییدشده». */
-  text?: string;
+  text?: (string) | undefined;
   /** Icon size in px. Default 18. */
-  size?: number;
+  size?: (number) | undefined;
 }
 withDefaults(defineProps<QVerifiedMarkProps>(), { size: 18 });
 </script>

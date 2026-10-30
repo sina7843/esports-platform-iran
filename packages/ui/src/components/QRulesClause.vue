@@ -12,18 +12,18 @@ import QIcon from './QIcon.vue';
  */
 export interface QRulesClauseProps {
   number: string;
-  anchor?: string;
+  anchor?: (string) | undefined;
   title: string;
-  body?: string;
-  kind?: 'mandatory' | 'configurable' | 'human_review';
-  version?: string;
-  citation?: string;
-  amended?: { version?: string; note?: string };
-  requireAcceptance?: boolean;
+  body?: (string) | undefined;
+  kind?: ('mandatory' | 'configurable' | 'human_review') | undefined;
+  version?: (string) | undefined;
+  citation?: (string) | undefined;
+  amended?: ({ version?: string; note?: string }) | undefined;
+  requireAcceptance?: (boolean) | undefined;
   accepted?: boolean | undefined;
-  defaultAccepted?: boolean;
-  acceptedAt?: string;
-  acceptLocked?: boolean;
+  defaultAccepted?: (boolean) | undefined;
+  acceptedAt?: (string) | undefined;
+  acceptLocked?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QRulesClauseProps>(), { accepted: undefined });
 const emit = defineEmits<{ 'update:accepted': [accepted: boolean]; acceptChange: [accepted: boolean] }>();

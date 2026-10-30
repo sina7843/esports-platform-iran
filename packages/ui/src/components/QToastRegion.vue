@@ -9,11 +9,11 @@ export interface QToastRegionItem extends QToastProps { id?: string | number }
  * <QToastRegion :toasts="toasts" @dismiss="dismiss" />. Or pass QToast children. inline renders it in flow (previews).
  */
 export interface QToastRegionProps {
-  toasts?: readonly QToastRegionItem[];
-  label?: string;
-  inline?: boolean;
+  toasts?: (readonly QToastRegionItem[]) | undefined;
+  label?: (string) | undefined;
+  inline?: (boolean) | undefined;
   /** Listener presence (@dismiss) gives every toast a close button, as in the DS. */
-  onDismiss?: (id: string | number) => void;
+  onDismiss?: ((id: string | number) => void) | undefined;
 }
 const p = defineProps<QToastRegionProps>();
 const emit = defineEmits<{ dismiss: [id: string | number] }>();

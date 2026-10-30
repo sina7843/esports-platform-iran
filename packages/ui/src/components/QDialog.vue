@@ -13,22 +13,22 @@ import QIcon from './QIcon.vue';
  * Without a `close` / `update:open` listener (or with dismissible=false) there is no close button, like the DS without onClose.
  */
 export interface QDialogProps {
-  title?: string;
-  description?: string;
+  title?: (string) | undefined;
+  description?: (string) | undefined;
   /** Footer actions (or the `footer` slot), end-aligned (secondary first, the primary last). */
-  footer?: string;
-  size?: 'sm' | 'md' | 'lg';
+  footer?: (string) | undefined;
+  size?: ('sm' | 'md' | 'lg') | undefined;
   /** Leading icon tile and its tone. */
-  icon?: IconName;
-  tone?: 'neutral' | 'danger' | 'warning' | 'success' | 'info';
+  icon?: (IconName) | undefined;
+  tone?: ('neutral' | 'danger' | 'warning' | 'success' | 'info') | undefined;
   /** false: no close button, Escape and scrim do nothing. */
-  dismissible?: boolean;
-  role?: 'dialog' | 'alertdialog';
-  closeLabel?: string;
+  dismissible?: (boolean) | undefined;
+  role?: ('dialog' | 'alertdialog') | undefined;
+  closeLabel?: (string) | undefined;
   /** Render inside its container instead of fixed to the viewport (no focus move, no scroll lock). */
-  inline?: boolean;
-  inlineHeight?: number;
-  backdrop?: string;
+  inline?: (boolean) | undefined;
+  inlineHeight?: (number) | undefined;
+  backdrop?: (string) | undefined;
 }
 defineOptions({ inheritAttrs: false });
 const p = withDefaults(defineProps<QDialogProps>(), { size: 'md', tone: 'neutral', dismissible: true, role: 'dialog' });

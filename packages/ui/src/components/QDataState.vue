@@ -16,25 +16,25 @@ export type QDataStateKind = 'loading' | 'empty' | 'error' | 'forbidden' | 'offl
  * message / detail / emptyTitle / emptyBody / emptyAction: prop or same-named slot.
  */
 export interface QDataStateProps {
-  state?: QDataStateKind;
-  loading?: boolean;
-  error?: unknown;
-  empty?: boolean;
-  forbidden?: boolean;
-  offline?: boolean;
-  message?: string;
-  detail?: string;
-  requestId?: string;
-  requestIdLabel?: string;
-  retryLabel?: string;
-  emptyTitle?: string;
-  emptyBody?: string;
-  emptyAction?: string;
-  skeleton?: 'cards' | 'rows';
-  minHeight?: number | string;
-  icon?: IconName;
+  state?: (QDataStateKind) | undefined;
+  loading?: (boolean) | undefined;
+  error?: (unknown) | undefined;
+  empty?: (boolean) | undefined;
+  forbidden?: (boolean) | undefined;
+  offline?: (boolean) | undefined;
+  message?: (string) | undefined;
+  detail?: (string) | undefined;
+  requestId?: (string) | undefined;
+  requestIdLabel?: (string) | undefined;
+  retryLabel?: (string) | undefined;
+  emptyTitle?: (string) | undefined;
+  emptyBody?: (string) | undefined;
+  emptyAction?: (string) | undefined;
+  skeleton?: ('cards' | 'rows') | undefined;
+  minHeight?: (number | string) | undefined;
+  icon?: (IconName) | undefined;
   /** Listener presence (@retry) shows the retry button, as in the DS. */
-  onRetry?: (e: MouseEvent) => void;
+  onRetry?: ((e: MouseEvent) => void) | undefined;
 }
 const p = withDefaults(defineProps<QDataStateProps>(), { skeleton: 'cards' });
 const emit = defineEmits<{ retry: [e: MouseEvent] }>();

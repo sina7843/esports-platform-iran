@@ -16,24 +16,24 @@ export interface QOpsPanelCounter {
  * region (each default-slot child becomes an <li>), bulk-action bar with preview. The refresh button renders only with @refresh.
  */
 export interface QOpsPanelProps {
-  title?: string;
-  cadence?: string;
-  subtitle?: string;
-  updatedAt?: string;
-  updatedLabel?: string;
-  refreshing?: boolean;
-  refreshLabel?: string;
-  counters?: QOpsPanelCounter[];
-  countersNote?: string;
-  listTitle?: string;
-  emptyLabel?: string;
-  selectedCount?: number;
-  selectedLabel?: string;
+  title?: (string) | undefined;
+  cadence?: (string) | undefined;
+  subtitle?: (string) | undefined;
+  updatedAt?: (string) | undefined;
+  updatedLabel?: (string) | undefined;
+  refreshing?: (boolean) | undefined;
+  refreshLabel?: (string) | undefined;
+  counters?: (QOpsPanelCounter[]) | undefined;
+  countersNote?: (string) | undefined;
+  listTitle?: (string) | undefined;
+  emptyLabel?: (string) | undefined;
+  selectedCount?: (number) | undefined;
+  selectedLabel?: (string) | undefined;
   /** Bulk action kinds. The bar renders only when given. */
-  bulkKinds?: Array<{ value: string; label: string }>;
-  bulkKindLabel?: string;
-  previewLabel?: string;
-  bulkHint?: string;
+  bulkKinds?: (Array<{ value: string; label: string }>) | undefined;
+  bulkKindLabel?: (string) | undefined;
+  previewLabel?: (string) | undefined;
+  bulkHint?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QOpsPanelProps>(), { selectedCount: 0 });
 const emit = defineEmits<{ refresh: []; preview: [kind: string] }>();

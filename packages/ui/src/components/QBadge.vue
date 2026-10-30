@@ -4,9 +4,9 @@ import QIcon from './QIcon.vue';
 
 /** Badge: a small status or category tag. `dot` adds a leading dot (live always pulses). */
 export interface QBadgeProps {
-  tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'live' | 'red' | 'green';
-  dot?: boolean;
-  icon?: IconName;
+  tone?: ('neutral' | 'success' | 'warning' | 'danger' | 'info' | 'live' | 'red' | 'green') | undefined;
+  dot?: (boolean) | undefined;
+  icon?: (IconName) | undefined;
 }
 withDefaults(defineProps<QBadgeProps>(), { tone: 'neutral' });
 </script>

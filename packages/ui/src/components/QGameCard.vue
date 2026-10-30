@@ -9,14 +9,14 @@ import QLink from './QLink.vue';
 /** Catalogue game: 3:4 cover (image or stripes + outlined Latin name), title, publisher, catalogue state, per-mode readiness. */
 export interface QGameCardProps {
   title: string;
-  latinName?: string;
-  coverSrc?: string;
-  publisher?: string;
-  state?: 'proposed' | 'under_review' | 'ready' | 'suspended' | 'archived';
-  modes?: { name: string; ready: boolean }[];
-  testOnly?: boolean;
-  testOnlyNote?: string;
-  href?: string;
+  latinName?: (string) | undefined;
+  coverSrc?: (string) | undefined;
+  publisher?: (string) | undefined;
+  state?: ('proposed' | 'under_review' | 'ready' | 'suspended' | 'archived') | undefined;
+  modes?: ({ name: string; ready: boolean }[]) | undefined;
+  testOnly?: (boolean) | undefined;
+  testOnlyNote?: (string) | undefined;
+  href?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QGameCardProps>(), { state: 'proposed' });
 const hid = useId();

@@ -4,14 +4,14 @@ import { useControlled, useUid } from '../composables/inputs-field';
 
 /** Switch: role=switch button with a 44×24 track (on = green), label at the inline start, optional description. v-model = checked + change(checked, event). */
 export interface QSwitchProps {
-  label?: string;
-  description?: string;
-  disabled?: boolean;
-  block?: boolean;
-  defaultChecked?: boolean;
-  id?: string;
-  name?: string;
-  hideLabel?: boolean;
+  label?: (string) | undefined;
+  description?: (string) | undefined;
+  disabled?: (boolean) | undefined;
+  block?: (boolean) | undefined;
+  defaultChecked?: (boolean) | undefined;
+  id?: (string) | undefined;
+  name?: (string) | undefined;
+  hideLabel?: (boolean) | undefined;
 }
 const p = defineProps<QSwitchProps>();
 const model = defineModel<boolean | null>({ default: null });

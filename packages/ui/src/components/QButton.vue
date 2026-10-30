@@ -10,18 +10,18 @@ import QLink from './QLink.vue';
  * href renders a link. iconOnly needs aria-label. aria-*, id, title, target, rel and @click fall through to the root.
  */
 export interface QButtonProps {
-  variant?: 'primary' | 'green' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  icon?: IconName;
-  iconEnd?: IconName;
-  flipIcon?: boolean;
-  iconOnly?: boolean;
-  chamfer?: boolean;
-  block?: boolean;
-  loading?: boolean;
-  disabled?: boolean;
-  href?: string;
-  type?: 'button' | 'submit' | 'reset';
+  variant?: ('primary' | 'green' | 'secondary' | 'ghost' | 'danger') | undefined;
+  size?: ('sm' | 'md' | 'lg' | 'xl') | undefined;
+  icon?: (IconName) | undefined;
+  iconEnd?: (IconName) | undefined;
+  flipIcon?: (boolean) | undefined;
+  iconOnly?: (boolean) | undefined;
+  chamfer?: (boolean) | undefined;
+  block?: (boolean) | undefined;
+  loading?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  href?: (string) | undefined;
+  type?: ('button' | 'submit' | 'reset') | undefined;
 }
 const p = withDefaults(defineProps<QButtonProps>(), { variant: 'secondary', size: 'md', type: 'button' });
 

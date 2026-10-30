@@ -12,39 +12,39 @@ import QMoney from './QMoney.vue';
 export interface QDecisionBoxFact { label: string; value: string }
 export interface QDecisionBoxRecord { by: string; at?: string; reason?: string }
 export interface QDecisionBoxProps {
-  title?: string;
+  title?: (string) | undefined;
   /** Machine action key, shown in mono LTR (e.g. refund.request). */
-  action?: string;
-  summary?: string;
+  action?: (string) | undefined;
+  summary?: (string) | undefined;
   /** Amount in rial. */
-  rial?: number;
-  amountLabel?: string;
-  requestedBy?: string;
-  requestedAt?: string;
-  facts?: QDecisionBoxFact[];
-  state?: DecisionState;
-  stateLabel?: string;
-  requiresSecond?: boolean;
-  firstApproval?: QDecisionBoxRecord;
-  secondHint?: string;
-  decision?: QDecisionBoxRecord;
-  defaultReason?: string;
-  reasonLabel?: string;
-  reasonPlaceholder?: string;
-  reasonError?: string;
+  rial?: (number) | undefined;
+  amountLabel?: (string) | undefined;
+  requestedBy?: (string) | undefined;
+  requestedAt?: (string) | undefined;
+  facts?: (QDecisionBoxFact[]) | undefined;
+  state?: (DecisionState) | undefined;
+  stateLabel?: (string) | undefined;
+  requiresSecond?: (boolean) | undefined;
+  firstApproval?: (QDecisionBoxRecord) | undefined;
+  secondHint?: (string) | undefined;
+  decision?: (QDecisionBoxRecord) | undefined;
+  defaultReason?: (string) | undefined;
+  reasonLabel?: (string) | undefined;
+  reasonPlaceholder?: (string) | undefined;
+  reasonError?: (string) | undefined;
   /** 'both' (default) | 'reject' | 'none'. */
-  reasonRequired?: 'both' | 'reject' | 'none';
-  minReasonLength?: number;
-  note?: string;
-  cancelLabel?: string;
+  reasonRequired?: ('both' | 'reject' | 'none') | undefined;
+  minReasonLength?: (number) | undefined;
+  note?: (string) | undefined;
+  cancelLabel?: (string) | undefined;
   /** Which button shows the spinner; any truthy value disables both. */
-  busy?: false | 'approve' | 'reject' | true;
+  busy?: (false | 'approve' | 'reject' | true) | undefined;
   /** false disables deciding (e.g. requester = approver). */
-  canDecide?: boolean;
-  blockedText?: string;
-  approveLabel?: string;
-  rejectLabel?: string;
-  hint?: string;
+  canDecide?: (boolean) | undefined;
+  blockedText?: (string) | undefined;
+  approveLabel?: (string) | undefined;
+  rejectLabel?: (string) | undefined;
+  hint?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QDecisionBoxProps>(), { state: 'pending', reasonRequired: 'both', minReasonLength: 1, busy: false, canDecide: true });
 const emit = defineEmits<{ reasonChange: [value: string]; approve: [reason: string]; reject: [reason: string]; cancel: [] }>();

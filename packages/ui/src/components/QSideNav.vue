@@ -23,19 +23,19 @@ export interface SideNavSection { title: string; items: SideNavItem[] }
 export interface QSideNavProps {
   sections: SideNavSection[];
   /** Key of the current item. */
-  active?: string;
+  active?: (string) | undefined;
   /** Icons only (76px); labels stay for screen readers, title gives the tooltip. */
-  collapsed?: boolean;
-  mode?: 'rail' | 'drawer';
+  collapsed?: (boolean) | undefined;
+  mode?: ('rail' | 'drawer') | undefined;
   /** drawer mode: inline rendering for docs. */
-  inline?: boolean;
-  inlineHeight?: number;
-  backdrop?: string;
+  inline?: (boolean) | undefined;
+  inlineHeight?: (number) | undefined;
+  backdrop?: (string) | undefined;
   /** drawer mode heading next to the logo; default «میدان رقابت». */
-  drawerTitle?: string;
+  drawerTitle?: (string) | undefined;
   /** id of the <nav> (the TopBar menu button's aria-controls). */
-  id?: string;
-  ariaLabel?: string;
+  id?: (string) | undefined;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QSideNavProps>(), { mode: 'rail' });
 const open = defineModel<boolean>('open', { default: false });

@@ -29,28 +29,28 @@ export interface QEventHeaderRegistration {
 /** Event-detail hero: chamfered panel with cover band, title, status, verified organiser, facts and the registration box. */
 export interface QEventHeaderProps {
   /** Used to label the section with the title. */
-  id?: string;
+  id?: (string) | undefined;
   title: string;
-  game?: string;
-  cover?: string;
+  game?: (string) | undefined;
+  cover?: (string) | undefined;
   status: EventCardStatus;
-  statusLabel?: string;
-  featured?: boolean;
-  verified?: boolean;
-  organizer?: string;
-  badges?: string[];
-  eyebrow?: string;
-  startsAt?: string;
-  endsAt?: string;
-  timeZone?: string;
-  presence?: EventCardPresence;
-  city?: string;
+  statusLabel?: (string) | undefined;
+  featured?: (boolean) | undefined;
+  verified?: (boolean) | undefined;
+  organizer?: (string) | undefined;
+  badges?: (string[]) | undefined;
+  eyebrow?: (string) | undefined;
+  startsAt?: (string) | undefined;
+  endsAt?: (string) | undefined;
+  timeZone?: (string) | undefined;
+  presence?: (EventCardPresence) | undefined;
+  city?: (string) | undefined;
   /** Replaces the default facts (start, end, time zone, presence). */
-  facts?: QEventHeaderFact[];
+  facts?: (QEventHeaderFact[]) | undefined;
   /** null hides the registration box. */
-  registration?: QEventHeaderRegistration | null;
+  registration?: (QEventHeaderRegistration | null) | undefined;
   /** null hides the note; default is the reg.badgeNote copy. */
-  note?: string | null;
+  note?: (string | null) | undefined;
 }
 const p = defineProps<QEventHeaderProps>();
 const emit = defineEmits<{ register: [e: MouseEvent] }>();

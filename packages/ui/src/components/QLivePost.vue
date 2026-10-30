@@ -9,19 +9,19 @@ import QIcon from './QIcon.vue';
 export interface QLivePostScore { home: string; away: string; homeScore: number; awayScore: number; map?: string; final?: boolean }
 /** Live-centre timeline post: green time, type icon, body, attached score line, pinned / newest («زنده») states. */
 export interface QLivePostProps {
-  kind?: 'goal' | 'result' | 'announcement' | 'media';
-  time?: string;
-  timeText?: string;
-  source?: 'official' | 'reporter' | 'automatic';
-  title?: string;
-  body?: string;
-  score?: QLivePostScore;
-  pinned?: boolean;
-  newest?: boolean;
-  edited?: string;
-  withdrawn?: string;
-  mediaCount?: number;
-  lowData?: boolean;
+  kind?: ('goal' | 'result' | 'announcement' | 'media') | undefined;
+  time?: (string) | undefined;
+  timeText?: (string) | undefined;
+  source?: ('official' | 'reporter' | 'automatic') | undefined;
+  title?: (string) | undefined;
+  body?: (string) | undefined;
+  score?: (QLivePostScore) | undefined;
+  pinned?: (boolean) | undefined;
+  newest?: (boolean) | undefined;
+  edited?: (string) | undefined;
+  withdrawn?: (string) | undefined;
+  mediaCount?: (number) | undefined;
+  lowData?: (boolean) | undefined;
 }
 const p = defineProps<QLivePostProps>();
 const hid = useId();

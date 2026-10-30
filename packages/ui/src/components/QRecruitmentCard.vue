@@ -9,17 +9,17 @@ import QLink from './QLink.vue';
 /** Recruitment ad. Long Latin text wraps; closed ads keep their content but disable applying. Emits apply. */
 export interface QRecruitmentCardProps {
   team: { name: string; initial?: string; logoSrc?: string; href?: string };
-  game?: string;
-  kind?: 'player' | 'coach' | 'analyst' | 'manager';
-  role?: string;
-  level?: string;
-  city?: string;
-  activityHours?: string;
-  description?: string;
-  state?: 'open' | 'closed';
-  postedAt?: string;
-  applied?: boolean;
-  applyLabel?: string;
+  game?: (string) | undefined;
+  kind?: ('player' | 'coach' | 'analyst' | 'manager') | undefined;
+  role?: (string) | undefined;
+  level?: (string) | undefined;
+  city?: (string) | undefined;
+  activityHours?: (string) | undefined;
+  description?: (string) | undefined;
+  state?: ('open' | 'closed') | undefined;
+  postedAt?: (string) | undefined;
+  applied?: (boolean) | undefined;
+  applyLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QRecruitmentCardProps>(), { kind: 'player', state: 'open' });
 const emit = defineEmits<{ apply: [] }>();

@@ -14,19 +14,19 @@ import QVerifiedMark from './QVerifiedMark.vue';
  */
 export interface QOrganizerCardProps {
   name: string;
-  initial?: string;
-  logoSrc?: string;
-  city?: string;
-  verified?: boolean;
-  verifiedLabel?: string;
-  disclaimer?: string;
-  defaultDisclaimerOpen?: boolean;
-  rating?: { average: number | null; count?: number } | number | null;
-  ratingCount?: number;
-  events?: number;
-  level?: string;
-  href?: string;
-  linkLabel?: string;
+  initial?: (string) | undefined;
+  logoSrc?: (string) | undefined;
+  city?: (string) | undefined;
+  verified?: (boolean) | undefined;
+  verifiedLabel?: (string) | undefined;
+  disclaimer?: (string) | undefined;
+  defaultDisclaimerOpen?: (boolean) | undefined;
+  rating?: ({ average: number | null; count?: number } | number | null) | undefined;
+  ratingCount?: (number) | undefined;
+  events?: (number) | undefined;
+  level?: (string) | undefined;
+  href?: (string) | undefined;
+  linkLabel?: (string) | undefined;
 }
 const p = defineProps<QOrganizerCardProps>();
 const tipId = useId();

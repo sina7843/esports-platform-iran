@@ -24,17 +24,17 @@ export interface MenuItem {
 export interface QMenuProps {
   /** Trigger label (also aria-label when iconOnly). */
   label: string;
-  icon?: IconName;
-  iconOnly?: boolean;
-  triggerVariant?: 'secondary' | 'ghost';
+  icon?: (IconName) | undefined;
+  iconOnly?: (boolean) | undefined;
+  triggerVariant?: ('secondary' | 'ghost') | undefined;
   items: MenuItem[];
-  defaultOpen?: boolean;
+  defaultOpen?: (boolean) | undefined;
   /** Close after toggling a checkable item (default: stay open). */
-  closeOnCheck?: boolean;
+  closeOnCheck?: (boolean) | undefined;
   /** Align the list to the trigger's inline end. */
-  align?: 'start' | 'end';
+  align?: ('start' | 'end') | undefined;
   /** Render the list in flow instead of absolutely positioned (docs, previews). */
-  inline?: boolean;
+  inline?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QMenuProps>(), { triggerVariant: 'secondary', align: 'start' });
 const model = defineModel<boolean | undefined>('open', { default: undefined });

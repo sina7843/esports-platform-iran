@@ -7,10 +7,15 @@ WORKDIR /app
 FROM base AS build
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY packages/contracts/package.json packages/contracts/
+COPY packages/ui/package.json packages/ui/
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile --filter @esp/web...
 COPY packages/contracts packages/contracts
+COPY packages/ui packages/ui
 COPY apps/web apps/web
+# The dev sign-in block ships only when the deployment enables dev login (private trial); never in a real production build.
+ARG VITE_DEV_LOGIN=false
+ENV VITE_DEV_LOGIN=$VITE_DEV_LOGIN
 RUN pnpm --filter @esp/contracts build && pnpm --filter @esp/web build
 
 # Unprivileged nginx serving the static bundle; /api is proxied to the api service on the internal network.

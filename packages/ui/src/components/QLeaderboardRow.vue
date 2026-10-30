@@ -9,19 +9,19 @@ import QLink from './QLink.vue';
 export interface QLeaderboardRowProps {
   rank: number | null;
   name: string;
-  handle?: string;
-  avatar?: string;
-  initial?: string;
-  kind?: 'player' | 'team';
-  game?: string;
+  handle?: (string) | undefined;
+  avatar?: (string) | undefined;
+  initial?: (string) | undefined;
+  kind?: ('player' | 'team') | undefined;
+  game?: (string) | undefined;
   rating: number;
   /** Rating deviation, shown as ±. */
-  rd?: number;
-  delta?: number;
-  mine?: boolean;
-  inactive?: boolean;
-  href?: string;
-  as?: string;
+  rd?: (number) | undefined;
+  delta?: (number) | undefined;
+  mine?: (boolean) | undefined;
+  inactive?: (boolean) | undefined;
+  href?: (string) | undefined;
+  as?: (string) | undefined;
 }
 const p = defineProps<QLeaderboardRowProps>();
 

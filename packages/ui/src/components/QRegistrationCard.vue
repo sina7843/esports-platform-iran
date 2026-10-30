@@ -17,25 +17,25 @@ export interface QRegistrationCardAction { key: string; label: string; variant: 
  */
 export interface QRegistrationCardProps {
   event: string;
-  eventHref?: string;
-  game?: string;
-  discipline?: string;
-  team?: string;
-  kind?: 'team' | 'player';
+  eventHref?: (string) | undefined;
+  game?: (string) | undefined;
+  discipline?: (string) | undefined;
+  team?: (string) | undefined;
+  kind?: ('team' | 'player') | undefined;
   state: QRegistrationCardState;
-  stateLabel?: string;
-  trackingCode?: string;
+  stateLabel?: (string) | undefined;
+  trackingCode?: (string) | undefined;
   /** Entry fee in rial; 0 → «رایگان». */
-  amountRial?: number;
-  deadlines?: { label: string; at: string; urgent?: boolean }[];
-  note?: string;
+  amountRial?: (number) | undefined;
+  deadlines?: ({ label: string; at: string; urgent?: boolean }[]) | undefined;
+  note?: (string) | undefined;
   /** Override the next action; null hides it. */
   action?: QRegistrationCardAction | null | undefined;
-  checkedIn?: boolean;
-  receiptHref?: string;
+  checkedIn?: (boolean) | undefined;
+  receiptHref?: (string) | undefined;
   /** Listener of @withdraw (declared as a prop: its presence shows the button). */
-  onWithdraw?: () => void;
-  actions?: string;
+  onWithdraw?: (() => void) | undefined;
+  actions?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QRegistrationCardProps>(), { state: 'draft', action: undefined });
 const emit = defineEmits<{ action: [key: string] }>();

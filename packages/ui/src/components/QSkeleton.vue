@@ -4,11 +4,11 @@ import { px } from '../maps/display';
 
 /** Loading placeholder: line | block | circle | card | table-row. Decorative (aria-hidden); the container announces loading. */
 export interface QSkeletonProps {
-  variant?: 'line' | 'block' | 'circle' | 'card' | 'table-row';
-  lines?: number;
-  width?: number | string;
-  height?: number | string;
-  size?: number;
+  variant?: ('line' | 'block' | 'circle' | 'card' | 'table-row') | undefined;
+  lines?: (number) | undefined;
+  width?: (number | string) | undefined;
+  height?: (number | string) | undefined;
+  size?: (number) | undefined;
 }
 const p = withDefaults(defineProps<QSkeletonProps>(), { variant: 'line', lines: 1, size: 40 });
 const style = computed(() => (p.variant === 'circle' ? { width: px(p.size), height: px(p.size) } : { width: px(p.width), height: px(p.height) }));

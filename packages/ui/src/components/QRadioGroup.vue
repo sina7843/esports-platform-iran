@@ -5,18 +5,18 @@ import QFormField from './QFormField.vue';
 export interface QRadioGroupOption { value: string; label: string; description?: string; meta?: string; disabled?: boolean }
 /** RadioGroup: native radios in a fieldset; selected = green dot ring. orientation vertical | horizontal; variant default | card. v-model + change(value, event). */
 export interface QRadioGroupProps {
-  label?: string;
+  label?: (string) | undefined;
   options: QRadioGroupOption[];
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  orientation?: 'vertical' | 'horizontal';
-  variant?: 'default' | 'card';
-  hideLabel?: boolean;
-  id?: string;
-  name?: string;
-  defaultValue?: string | null;
+  hint?: (string) | undefined;
+  error?: (string) | undefined;
+  required?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  orientation?: ('vertical' | 'horizontal') | undefined;
+  variant?: ('default' | 'card') | undefined;
+  hideLabel?: (boolean) | undefined;
+  id?: (string) | undefined;
+  name?: (string) | undefined;
+  defaultValue?: (string | null) | undefined;
 }
 const p = withDefaults(defineProps<QRadioGroupProps>(), { orientation: 'vertical', variant: 'default' });
 const model = defineModel<string | null>();

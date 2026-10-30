@@ -13,17 +13,17 @@ export interface QSearchFieldGroup { label: string; icon?: IconName; items: QSea
  * v-model + change(value, event); submit(value); select(item, group). Filtering is the consumer's job.
  */
 export interface QSearchFieldProps {
-  label?: string;
-  placeholder?: string;
-  submitLabel?: string;
-  clearLabel?: string;
-  suggestions?: QSearchFieldGroup[];
-  suggestionsLabel?: string;
-  defaultOpen?: boolean;
-  disabled?: boolean;
-  id?: string;
-  name?: string;
-  defaultValue?: string;
+  label?: (string) | undefined;
+  placeholder?: (string) | undefined;
+  submitLabel?: (string) | undefined;
+  clearLabel?: (string) | undefined;
+  suggestions?: (QSearchFieldGroup[]) | undefined;
+  suggestionsLabel?: (string) | undefined;
+  defaultOpen?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  id?: (string) | undefined;
+  name?: (string) | undefined;
+  defaultValue?: (string) | undefined;
 }
 const p = defineProps<QSearchFieldProps>();
 const model = defineModel<string>();

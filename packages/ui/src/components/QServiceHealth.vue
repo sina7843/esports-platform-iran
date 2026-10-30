@@ -11,23 +11,23 @@ export interface QServiceHealthCheck { /** Response time in ms (bar height). */ 
 export interface QServiceHealthProps {
   /** Provider name, Latin shown LTR. */
   name: string;
-  kind?: string;
+  kind?: (string) | undefined;
   /** Default 'server'. */
-  icon?: IconName;
+  icon?: (IconName) | undefined;
   status: Health;
-  statusLabels?: Partial<Record<Health, string>>;
-  detail?: string;
-  checkedAt?: string;
-  checkedLabel?: string;
+  statusLabels?: (Partial<Record<Health, string>>) | undefined;
+  detail?: (string) | undefined;
+  checkedAt?: (string) | undefined;
+  checkedLabel?: (string) | undefined;
   /** Last checks, oldest first; the last 12 are drawn. */
-  checks?: QServiceHealthCheck[];
+  checks?: (QServiceHealthCheck[]) | undefined;
   /** Caption under the bars (say when data is sample). */
-  sparkCaption?: string;
-  outbox?: number;
-  outboxLabel?: string;
+  sparkCaption?: (string) | undefined;
+  outbox?: (number) | undefined;
+  outboxLabel?: (string) | undefined;
   /** Dead-letter count (danger-text when > 0). */
-  deadLetters?: number;
-  deadLabel?: string;
+  deadLetters?: (number) | undefined;
+  deadLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QServiceHealthProps>(), { icon: 'server', status: 'unconfigured' });
 

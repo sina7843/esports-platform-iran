@@ -1,6 +1,36 @@
-/** New copy for the redesigned `forbidden` page (docs/redesign/03-specs/forbidden.md § Copy, rows marked new). fa and en side by side. */
+/** New copy for the redesigned `forbidden` page (docs/redesign/03-specs/forbidden.md § Copy). */
 export const fa = {
+  'fb.code': 'خطای {code} · دسترسی محدود',
+  'fb.titleGuest': 'برای دیدن این صفحه وارد شوید',
+  'fb.title': 'به این صفحه دسترسی ندارید',
+  'fb.bodyGuest': 'این بخش فقط برای کاربرانی است که نقش لازم را دارند. وارد شوید؛ پس از ورود به همین صفحه برمی\u200cگردید.',
+  'fb.body': 'حساب شما نقش لازم برای این بخش را ندارد. اگر فکر می\u200cکنید باید دسترسی داشته باشید، از مسئول رویداد یا پشتیبانی بخواهید نقش را به شما بدهند.',
+  'fb.signIn': 'ورود',
+  'fb.home': 'بازگشت به خانه',
+  'fb.back': 'صفحه\u200cی قبل',
+  'fb.request': 'درخواست دسترسی',
+  'fb.helpServer': 'دسترسی\u200cها را سرور تعیین می\u200cکند؛ این صفحه فقط راهنماست.',
+  'fb.helpOtp': 'ورود با شماره موبایل و کد یک\u200cبارمصرف انجام می\u200cشود.',
+  'fb.helpAccounts': 'اگر چند حساب دارید، شاید با حساب دیگری وارد شده\u200cاید.',
+  'fb.helpDelay': 'نقش تازه ممکن است چند دقیقه بعد فعال شود؛ صفحه را دوباره باز کنید.',
+  'fb.path': 'مسیر:',
+  'fb.noAccess': 'بدون دسترسی',
 } satisfies Record<string, string>;
 
 export const en: Record<keyof typeof fa, string> = {
+  'fb.code': 'Error {code} · Restricted',
+  'fb.titleGuest': 'Sign in to see this page',
+  'fb.title': 'You don’t have access to this page',
+  'fb.bodyGuest': 'This area is only for users with the right role. Sign in and you will come back to this page.',
+  'fb.body': 'Your account does not have the role this area needs. If you think you should have access, ask the event lead or support to grant it.',
+  'fb.signIn': 'Sign in',
+  'fb.home': 'Back to home',
+  'fb.back': 'Go back',
+  'fb.request': 'Request access',
+  'fb.helpServer': 'The server decides access; this page is only a guide.',
+  'fb.helpOtp': 'Sign in with your mobile number and a one-time code.',
+  'fb.helpAccounts': 'If you have more than one account, you may be signed in with another one.',
+  'fb.helpDelay': 'A newly granted role can take a few minutes; reopen the page.',
+  'fb.path': 'Path:',
+  'fb.noAccess': 'No access',
 };

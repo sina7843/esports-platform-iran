@@ -7,11 +7,11 @@ import QBadge from './QBadge.vue';
 /** Product state → Badge tone + label in the current locale. Pass machine for shared names (pending, ready, open …). Tables: maps/display.ts. */
 export interface QStatusBadgeProps {
   state: string;
-  machine?: StatusBadgeMachine;
-  label?: string;
-  tone?: StatusBadgeTone;
-  dot?: boolean;
-  icon?: IconName;
+  machine?: (StatusBadgeMachine) | undefined;
+  label?: (string) | undefined;
+  tone?: (StatusBadgeTone) | undefined;
+  dot?: (boolean) | undefined;
+  icon?: (IconName) | undefined;
 }
 const p = defineProps<QStatusBadgeProps>();
 const r = computed(() => resolveStatus(p.state, p.machine));

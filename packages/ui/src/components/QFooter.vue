@@ -11,14 +11,14 @@ export interface FooterLink { label: string; href?: string }
 export interface FooterGroup { title: string; links: FooterLink[] }
 /** Footer — site footer: brand, link groups, the eNAMAD trust-seal slot (always at the inline end), tricolour and copyright. */
 export interface QFooterProps {
-  groups?: FooterGroup[];
-  title?: string;
-  subtitle?: string;
-  description?: string;
+  groups?: (FooterGroup[]) | undefined;
+  title?: (string) | undefined;
+  subtitle?: (string) | undefined;
+  description?: (string) | undefined;
   /** eNAMAD trust seal. Without src an empty bordered slot «نماد اعتماد الکترونیکی» is shown. */
-  seal?: { src?: string; href?: string; alt?: string; width?: number };
-  copyright?: string;
-  legalLinks?: FooterLink[];
+  seal?: ({ src?: string; href?: string; alt?: string; width?: number }) | undefined;
+  copyright?: (string) | undefined;
+  legalLinks?: (FooterLink[]) | undefined;
 }
 const p = withDefaults(defineProps<QFooterProps>(), { groups: () => [] });
 

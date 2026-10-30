@@ -8,23 +8,23 @@ import QLink from './QLink.vue';
 
 /** News item: featured (16:9 cover, h2) or compact row; category, Jalali meta, corrected / retracted states, low-data mode. */
 export interface QNewsCardProps {
-  variant?: 'featured' | 'compact';
+  variant?: ('featured' | 'compact') | undefined;
   title: string;
-  excerpt?: string;
-  category?: string;
-  format?: string;
-  coverSrc?: string;
-  coverAlt?: string;
-  coverText?: string;
-  publishedAt?: string;
-  author?: string;
-  readMinutes?: number;
-  state?: 'published' | 'corrected' | 'retracted';
-  correctionNote?: string;
-  retractionReason?: string;
-  lowData?: boolean;
-  href?: string;
-  headingLevel?: 2 | 3 | 4;
+  excerpt?: (string) | undefined;
+  category?: (string) | undefined;
+  format?: (string) | undefined;
+  coverSrc?: (string) | undefined;
+  coverAlt?: (string) | undefined;
+  coverText?: (string) | undefined;
+  publishedAt?: (string) | undefined;
+  author?: (string) | undefined;
+  readMinutes?: (number) | undefined;
+  state?: ('published' | 'corrected' | 'retracted') | undefined;
+  correctionNote?: (string) | undefined;
+  retractionReason?: (string) | undefined;
+  lowData?: (boolean) | undefined;
+  href?: (string) | undefined;
+  headingLevel?: (2 | 3 | 4) | undefined;
 }
 const p = withDefaults(defineProps<QNewsCardProps>(), { variant: 'compact', state: 'published' });
 const hid = useId();

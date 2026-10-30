@@ -23,8 +23,8 @@ export interface QRosterListProps {
   /** Heading; false hides the header. Default «اعضای فعلی». */
   title?: string | false | undefined;
   members: QRosterListMember[];
-  headerAction?: string;
-  emptyLabel?: string;
+  headerAction?: (string) | undefined;
+  emptyLabel?: (string) | undefined;
   /** The «ترکیب و حضور» column. Default: shown only when a member has roster or checkIn. */
   showStates?: boolean | undefined;
 }

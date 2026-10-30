@@ -18,18 +18,18 @@ export interface QHeroProps {
   /** false hides it. Default «خانه ورزش‌های الکترونیکی ایران». */
   eyebrow?: string | false | undefined;
   /** Default «رقابت از اینجا شروع می‌شود.» */
-  title?: string;
+  title?: (string) | undefined;
   /** One word of the title to colour (default «شروع» with the default title). */
-  accentWord?: string;
-  accent?: 'red' | 'green';
-  body?: string;
+  accentWord?: (string) | undefined;
+  accent?: ('red' | 'green') | undefined;
+  body?: (string) | undefined;
   /** Red, chamfered, xl — the one primary action (or the `primaryAction` slot). */
-  primaryAction?: QHeroAction;
+  primaryAction?: (QHeroAction) | undefined;
   /** Green secondary, xl (or the `secondaryAction` slot). */
-  secondaryAction?: QHeroAction;
+  secondaryAction?: (QHeroAction) | undefined;
   /** true / config for the built-in Arena search (or the `search` slot). Submits emit `search`. */
-  search?: boolean | QHeroSearchConfig;
-  headingLevel?: 1 | 2;
+  search?: (boolean | QHeroSearchConfig) | undefined;
+  headingLevel?: (1 | 2) | undefined;
 }
 const p = withDefaults(defineProps<QHeroProps>(), { eyebrow: undefined, accent: 'red', headingLevel: 1 });
 const emit = defineEmits<{ search: [query: string] }>();

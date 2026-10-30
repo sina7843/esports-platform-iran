@@ -12,19 +12,19 @@ export interface QReadyCheckSide { name: string; initial?: string; logo?: string
 export interface QReadyCheckProps {
   sides: QReadyCheckSide[];
   /** Index of the viewer's side; shows «اعلام آمادگی» while it is not ready. */
-  viewerSide?: number;
+  viewerSide?: (number) | undefined;
   /** Seconds to start. */
-  seconds?: number;
+  seconds?: (number) | undefined;
   /** Tick the countdown locally (server time stays authoritative). */
-  running?: boolean;
+  running?: (boolean) | undefined;
   /** Officials only; when false a waiting note is shown instead. */
-  canStart?: boolean;
-  title?: string;
-  context?: string;
-  bothReadyText?: string;
-  startLabel?: string;
+  canStart?: (boolean) | undefined;
+  title?: (string) | undefined;
+  context?: (string) | undefined;
+  bothReadyText?: (string) | undefined;
+  startLabel?: (string) | undefined;
   /** Readiness comes only from sides[].ready (no local optimistic update). */
-  controlled?: boolean;
+  controlled?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QReadyCheckProps>(), { canStart: true });
 const emit = defineEmits<{ ready: [side: number]; startSelection: [] }>();

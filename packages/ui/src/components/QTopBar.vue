@@ -23,34 +23,34 @@ export interface TopBarUser {
  * `@menu` listener the bar opens its own inline nav sheet below 900px. Links go through QLink (SPA navigation).
  */
 export interface QTopBarProps {
-  variant?: 'public' | 'panel';
+  variant?: ('public' | 'panel') | undefined;
   /** Nav links; default رویدادها، رده‌بندی، بازی‌ها، اخبار، جذب و تمرین، برگزارکنندگان. */
-  items?: TopBarNavItem[];
+  items?: (TopBarNavItem[]) | undefined;
   /** Key of the current section (aria-current="page"). */
-  active?: string;
+  active?: (string) | undefined;
   /** Show nav links. Default true for public, false for panel. */
   showNav?: boolean | undefined;
   /** Signed-in user; omit for a guest («ورود» primary button). */
-  user?: TopBarUser | null;
+  user?: (TopBarUser | null) | undefined;
   /** Unread notifications. The bell shows in panel, or in public when this is set. */
-  notifications?: number;
+  notifications?: (number) | undefined;
   /** Panel live-connection state: «زنده (SSE)» | «به‌روزرسانی دوره‌ای» | «آفلاین». */
-  connection?: 'sse' | 'poll' | 'offline';
+  connection?: ('sse' | 'poll' | 'offline') | undefined;
   /** Time of the last update, already formatted (e.g. «۱۸:۳۲»). */
-  lastUpdate?: string;
-  title?: string;
-  subtitle?: string;
-  homeHref?: string;
-  loginLabel?: string;
-  loginHref?: string;
-  searchLabel?: string;
-  searchHref?: string;
-  settingsLabel?: string;
-  notificationsHref?: string;
+  lastUpdate?: (string) | undefined;
+  title?: (string) | undefined;
+  subtitle?: (string) | undefined;
+  homeHref?: (string) | undefined;
+  loginLabel?: (string) | undefined;
+  loginHref?: (string) | undefined;
+  searchLabel?: (string) | undefined;
+  searchHref?: (string) | undefined;
+  settingsLabel?: (string) | undefined;
+  notificationsHref?: (string) | undefined;
   /** Uncontrolled initial state of the inline nav sheet (public, narrow). */
-  defaultMenuOpen?: boolean;
+  defaultMenuOpen?: (boolean) | undefined;
   /** id of the element the menu button controls (e.g. 'side-nav'). */
-  menuControls?: string;
+  menuControls?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QTopBarProps>(), { variant: 'public', showNav: undefined, homeHref: '/' });
 const menuModel = defineModel<boolean | undefined>('menuOpen', { default: undefined });

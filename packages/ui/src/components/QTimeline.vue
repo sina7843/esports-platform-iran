@@ -23,10 +23,10 @@ export interface QTimelineItem {
 }
 export interface QTimelineProps {
   items: QTimelineItem[];
-  compact?: boolean;
+  compact?: (boolean) | undefined;
   /** time (default) | datetime (adds the short date under the time). */
-  timeFormat?: 'time' | 'datetime';
-  emptyText?: string;
+  timeFormat?: ('time' | 'datetime') | undefined;
+  emptyText?: (string) | undefined;
 }
 withDefaults(defineProps<QTimelineProps>(), { timeFormat: 'time' });
 

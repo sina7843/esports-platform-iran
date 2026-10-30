@@ -14,26 +14,26 @@ export type QReceiptPaymentState = 'created' | 'awaiting_gateway' | 'verified' |
  * @retry shows «پرداخت دوباره» on failed, @print shows «چاپ رسید», `:on-download="false"` hides «دانلود رسید».
  */
 export interface QReceiptProps {
-  title?: string;
-  subtitle?: string;
-  receiptNo?: string;
-  orderId?: string;
-  date?: string;
-  gateway?: string;
-  gatewayRef?: string;
-  payer?: string;
+  title?: (string) | undefined;
+  subtitle?: (string) | undefined;
+  receiptNo?: (string) | undefined;
+  orderId?: (string) | undefined;
+  date?: (string) | undefined;
+  gateway?: (string) | undefined;
+  gatewayRef?: (string) | undefined;
+  payer?: (string) | undefined;
   items: { label: string; amountRial: number }[];
-  discountRial?: number;
-  feeRial?: number;
-  refundedRial?: number;
+  discountRial?: (number) | undefined;
+  feeRial?: (number) | undefined;
+  refundedRial?: (number) | undefined;
   /** Defaults to items − discount + fee. */
-  totalRial?: number;
-  state?: QReceiptPaymentState;
-  note?: string;
+  totalRial?: (number) | undefined;
+  state?: (QReceiptPaymentState) | undefined;
+  note?: (string) | undefined;
   onDownload?: (() => void) | false | undefined;
-  downloadHref?: string;
-  onPrint?: () => void;
-  onRetry?: () => void;
+  downloadHref?: (string) | undefined;
+  onPrint?: (() => void) | undefined;
+  onRetry?: (() => void) | undefined;
 }
 const p = withDefaults(defineProps<QReceiptProps>(), { state: 'verified', onDownload: undefined });
 const hid = useId();

@@ -8,17 +8,17 @@ defineOptions({ inheritAttrs: false });
  * segments → step meter. label: prop or slot (a string label also names the progressbar; else pass aria-label).
  */
 export interface QProgressProps {
-  value?: number;
-  max?: number;
-  label?: string;
-  valueText?: string;
-  unit?: string;
-  showValue?: boolean;
-  tone?: 'brand' | 'warning' | 'danger';
-  size?: 'thin' | 'thick';
-  indeterminate?: boolean;
-  segments?: number;
-  current?: boolean;
+  value?: (number) | undefined;
+  max?: (number) | undefined;
+  label?: (string) | undefined;
+  valueText?: (string) | undefined;
+  unit?: (string) | undefined;
+  showValue?: (boolean) | undefined;
+  tone?: ('brand' | 'warning' | 'danger') | undefined;
+  size?: ('thin' | 'thick') | undefined;
+  indeterminate?: (boolean) | undefined;
+  segments?: (number) | undefined;
+  current?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QProgressProps>(), { value: 0, tone: 'brand', size: 'thin', showValue: true, current: true });
 // aria-label goes on the progressbar (DS); class / style / the rest stay on the root.

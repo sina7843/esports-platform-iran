@@ -28,12 +28,12 @@ export interface QBracketSection { key?: string; label?: string; rounds: QBracke
  * (falls back to navigating to match.href when nobody listens). Below `breakpoint` (720px) one round at a time.
  */
 export interface QBracketProps {
-  rounds?: QBracketRound[];
-  sections?: QBracketSection[];
-  title?: string;
-  layout?: 'auto' | 'full' | 'stepped';
-  breakpoint?: number;
-  'aria-label'?: string;
+  rounds?: (QBracketRound[]) | undefined;
+  sections?: (QBracketSection[]) | undefined;
+  title?: (string) | undefined;
+  layout?: ('auto' | 'full' | 'stepped') | undefined;
+  breakpoint?: (number) | undefined;
+  'aria-label'?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QBracketProps>(), { layout: 'auto', breakpoint: 720 });
 const emit = defineEmits<{ open: [match: QBracketMatch] }>();

@@ -5,13 +5,13 @@ import QLogo from './QLogo.vue';
 export interface QLowerThirdProps {
   /** Name line, e.g. «علی رضایی». */
   title: string;
-  subtitle?: string;
+  subtitle?: (string) | undefined;
   /** Role above the name in green-text, e.g. «مفسر». */
-  kicker?: string;
-  accent?: 'green' | 'tricolor';
-  logo?: boolean;
-  logoVariant?: 'auto' | 'color' | 'white' | 'black';
-  transparent?: boolean;
+  kicker?: (string) | undefined;
+  accent?: ('green' | 'tricolor') | undefined;
+  logo?: (boolean) | undefined;
+  logoVariant?: ('auto' | 'color' | 'white' | 'black') | undefined;
+  transparent?: (boolean) | undefined;
 }
 withDefaults(defineProps<QLowerThirdProps>(), { accent: 'green', logoVariant: 'auto' });
 </script>

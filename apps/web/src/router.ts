@@ -49,9 +49,9 @@ export const routes: RouteRecordRaw[] = [
   { path: '/rules/:id', name: 'rules-package', component: () => import('./views/RulesPackageView.vue'), meta: { title: 'nav.rules', layout: 'public' } },
   { path: '/search', name: 'search', component: () => import('./views/SearchView.vue'), meta: { title: 'nav.search', layout: 'public' } },
   { path: '/messages', name: 'messages', component: () => import('./views/MessagesView.vue'), meta: { requiresAuth: true, title: 'msg.title', layout: 'panel', side: 'messages' } },
-  { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { title: 'nav.login', layout: 'auth' } },
-  { path: '/403', name: 'forbidden', component: () => import('./views/ForbiddenView.vue'), meta: { title: 'forbidden.title', layout: 'public' } },
-  { path: '/offline', name: 'offline', component: () => import('./views/OfflineView.vue'), meta: { title: 'offline.title', layout: 'public' } },
+  { path: '/login', name: 'login', component: () => import('./views/LoginView.vue'), meta: { title: 'nav.login', layout: 'auth', redesigned: true } },
+  { path: '/403', name: 'forbidden', component: () => import('./views/ForbiddenView.vue'), meta: { title: 'forbidden.title', layout: 'public', redesigned: true } },
+  { path: '/offline', name: 'offline', component: () => import('./views/OfflineView.vue'), meta: { title: 'offline.title', layout: 'public', redesigned: true } },
 
   { path: '/account', name: 'account', component: () => import('./views/AccountView.vue'), meta: { requiresAuth: true, title: 'nav.account', layout: 'panel', side: 'account' } },
   { path: '/account/profile', name: 'profile', component: () => import('./views/ProfileView.vue'), meta: { requiresAuth: true, title: 'nav.profile', layout: 'panel', side: 'profile' } },
@@ -62,7 +62,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/account/calendar', name: 'my-calendar', component: () => import('./views/MyCalendarView.vue'), meta: { requiresAuth: true, title: 'cal.title', layout: 'panel', side: 'calendar' } },
   { path: '/events/:id/my-qr', name: 'my-qr', component: () => import('./views/MyQrView.vue'), meta: { requiresAuth: true, title: 'qr.title', layout: 'panel', side: 'registrations' } },
   { path: '/payments/return', name: 'payment-return', component: () => import('./views/PaymentReturnView.vue'), meta: { requiresAuth: true, title: 'pay.title', layout: 'panel', side: 'registrations' } },
-  { path: '/account/settings', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'nav.settings', layout: 'panel', side: 'settings' } },
+  { path: '/account/settings', name: 'settings', component: () => import('./views/SettingsView.vue'), meta: { title: 'nav.settings', layout: 'panel', side: 'settings', redesigned: true } },
 
   { path: '/team', name: 'team', component: Shell, meta: { requiresAuth: true, permission: 'team.read_private', title: 'nav.team', shell: true, layout: 'panel', side: 'team-panel' } },
   { path: '/organizer', name: 'organizer', component: () => import('./views/OrganizerEventsView.vue'), meta: { requiresAuth: true, permission: 'event.manage', title: 'nav.organizer', layout: 'panel', side: 'organizer' } },
@@ -94,7 +94,7 @@ export const routes: RouteRecordRaw[] = [
   { path: '/admin/integrations', name: 'admin-integrations', component: () => import('./views/AdminIntegrationsView.vue'), meta: { requiresAuth: true, permission: 'providers.manage', title: 'a7.nav.integrations', layout: 'panel', side: 'admin-integrations' } },
   { path: '/admin/reports', name: 'admin-reports', component: () => import('./views/AdminReportsView.vue'), meta: { requiresAuth: true, permission: 'admin.reports', title: 'a7.nav.reports', layout: 'panel', side: 'admin-reports' } },
 
-  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue'), meta: { title: 'nav.notFound', layout: 'public' } },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('./views/NotFoundView.vue'), meta: { title: 'nav.notFound', layout: 'public', redesigned: true } },
 ];
 
 export function createAppRouter(history: RouterHistory = createWebHistory()) {
@@ -106,12 +106,12 @@ export function createAppRouter(history: RouterHistory = createWebHistory()) {
       await ensureMe();
     } catch {
       // /auth/me unreachable: protected pages cannot be decided, public pages still render
-      if (protectedRoute && to.name !== 'offline') return { name: 'offline' };
+      if (protectedRoute && to.name !== 'offline') return { name: 'offline', query: { from: to.fullPath } };
       return true;
     }
     if (!protectedRoute) return true;
     if (!session.me) return { name: 'login', query: { redirect: to.fullPath } };
-    if (to.meta.permission && !can(to.meta.permission)) return { name: 'forbidden' };
+    if (to.meta.permission && !can(to.meta.permission)) return { name: 'forbidden', query: { from: to.fullPath } };
     return true;
   });
 

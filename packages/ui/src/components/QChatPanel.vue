@@ -19,22 +19,22 @@ export interface QChatPanelMessage {
 export interface QChatPanelChannel { value: string; label: string }
 export interface QChatPanelProps {
   messages: QChatPanelMessage[];
-  title?: string;
-  defaultChannel?: string;
-  channels?: QChatPanelChannel[];
-  showChannel?: boolean;
-  channelLabel?: string;
-  placeholder?: string;
-  inputLabel?: string;
-  sendLabel?: string;
-  maxLength?: number;
-  disabled?: boolean;
+  title?: (string) | undefined;
+  defaultChannel?: (string) | undefined;
+  channels?: (QChatPanelChannel[]) | undefined;
+  showChannel?: (boolean) | undefined;
+  channelLabel?: (string) | undefined;
+  placeholder?: (string) | undefined;
+  inputLabel?: (string) | undefined;
+  sendLabel?: (string) | undefined;
+  maxLength?: (number) | undefined;
+  disabled?: (boolean) | undefined;
   /** Max height of the message log. Default 360px. */
-  height?: number | string;
-  emptyText?: string;
-  headerExtra?: string;
+  height?: (number | string) | undefined;
+  emptyText?: (string) | undefined;
+  headerExtra?: (string) | undefined;
   /** false hides the «۴ پیام» count. */
-  showCount?: boolean;
+  showCount?: (boolean) | undefined;
 }
 const p = withDefaults(defineProps<QChatPanelProps>(), { showChannel: true, showCount: true, maxLength: 1000 });
 const emit = defineEmits<{ send: [text: string, channel: string]; channelChange: [value: string] }>();

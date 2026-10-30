@@ -3,14 +3,14 @@ import QTricolor from './QTricolor.vue';
 
 /** Kit page section: heading row (eyebrow with Tricolor, title, description, action at the inline end) + content. */
 export interface QSectionProps {
-  id?: string;
-  eyebrow?: string;
-  title?: string;
-  description?: string;
+  id?: (string) | undefined;
+  eyebrow?: (string) | undefined;
+  title?: (string) | undefined;
+  description?: (string) | undefined;
   /** heading element, default h2 */
-  level?: 'h1' | 'h2' | 'h3' | 'h4';
+  level?: ('h1' | 'h2' | 'h3' | 'h4') | undefined;
   /** smaller h4-styled title */
-  small?: boolean;
+  small?: (boolean) | undefined;
 }
 withDefaults(defineProps<QSectionProps>(), { level: 'h2' });
 </script>

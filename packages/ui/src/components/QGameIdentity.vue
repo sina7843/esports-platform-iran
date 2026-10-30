@@ -10,10 +10,10 @@ export type QGameIdentityState = 'unverified' | 'pending' | 'verified' | 'reject
 /** One game-account ID row: game, platform, ID (LTR), verification state and edit action (@edit; `:on-edit="false"` hides it). */
 export interface QGameIdentityProps {
   game: string;
-  platform?: string;
+  platform?: (string) | undefined;
   value: string;
-  state?: QGameIdentityState;
-  note?: string;
+  state?: (QGameIdentityState) | undefined;
+  note?: (string) | undefined;
   /** Listener of @edit; false hides the edit button. */
   onEdit?: (() => void) | false | undefined;
 }

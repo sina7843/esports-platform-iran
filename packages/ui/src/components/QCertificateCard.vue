@@ -14,19 +14,19 @@ import QTricolor from './QTricolor.vue';
  */
 export interface QCertificateCardProps {
   title: string;
-  kind?: 'placement' | 'attendance';
-  kindLabel?: string;
-  rank?: 1 | 2 | 3;
-  recipient?: string;
-  event?: string;
-  date?: string;
+  kind?: ('placement' | 'attendance') | undefined;
+  kindLabel?: (string) | undefined;
+  rank?: (1 | 2 | 3) | undefined;
+  recipient?: (string) | undefined;
+  event?: (string) | undefined;
+  date?: (string) | undefined;
   code: string;
   /** Default `/verify?code=<code>`. */
-  verifyHref?: string;
-  state?: 'valid' | 'revoked';
-  revokedReason?: string;
-  actions?: string;
-  footer?: string;
+  verifyHref?: (string) | undefined;
+  state?: ('valid' | 'revoked') | undefined;
+  revokedReason?: (string) | undefined;
+  actions?: (string) | undefined;
+  footer?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QCertificateCardProps>(), { kind: 'placement', state: 'valid' });
 const hid = useId();

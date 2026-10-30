@@ -12,22 +12,22 @@ import QIcon from './QIcon.vue';
  * `acknowledged` is controlled when given (also v-model:acknowledged); omit it to let the component track it. title/detail also have slots.
  */
 export interface QOpsAlertProps {
-  severity?: Severity;
-  severityLabel?: string;
-  title?: string;
-  detail?: string;
+  severity?: (Severity) | undefined;
+  severityLabel?: (string) | undefined;
+  title?: (string) | undefined;
+  detail?: (string) | undefined;
   /** Affected match / station, e.g. «سیمرغ — پارس · ایستگاه ۴». */
-  target?: string;
+  target?: (string) | undefined;
   /** Icon name for the target (default 'monitor'). */
-  targetIcon?: IconName;
-  time?: string;
+  targetIcon?: (IconName) | undefined;
+  time?: (string) | undefined;
   /** Controlled acknowledged state; omit to let the component track it. */
   acknowledged?: boolean | undefined;
-  ackLabel?: string;
-  acknowledgedLabel?: string;
+  ackLabel?: (string) | undefined;
+  acknowledgedLabel?: (string) | undefined;
   /** Default «اقدام» (green secondary action). */
-  actionLabel?: string;
-  actionHref?: string;
+  actionLabel?: (string) | undefined;
+  actionHref?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QOpsAlertProps>(), { severity: 'warning', targetIcon: 'monitor', acknowledged: undefined });
 const emit = defineEmits<{ acknowledge: []; action: []; 'update:acknowledged': [value: boolean] }>();

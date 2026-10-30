@@ -8,22 +8,22 @@ import QLink from './QLink.vue';
 
 /** Event teaser for grids (layout="card") and lists (layout="list"); the whole card is one link. @click and class fall through to the <a>. */
 export interface QEventCardProps {
-  href?: string;
+  href?: (string) | undefined;
   title: string;
   /** Latin game name; outlined caps on the stripe placeholder when there is no cover. */
-  game?: string;
-  cover?: string;
+  game?: (string) | undefined;
+  cover?: (string) | undefined;
   status: EventCardStatus;
-  statusLabel?: string;
+  statusLabel?: (string) | undefined;
   /** Pre-formatted Jalali date, e.g. «۱۲ آذر ۱۴۰۵». */
-  date?: string;
-  mode?: EventCardPresence | (string & {});
-  city?: string;
-  capacity?: { filled: number; total: number; unit?: string; text?: string };
+  date?: (string) | undefined;
+  mode?: (EventCardPresence | (string & {})) | undefined;
+  city?: (string) | undefined;
+  capacity?: ({ filled: number; total: number; unit?: string; text?: string }) | undefined;
   /** Entry fee in rial; 0 / undefined = «رایگان». */
-  feeRial?: number;
-  featured?: boolean;
-  layout?: 'card' | 'list';
+  feeRial?: (number) | undefined;
+  featured?: (boolean) | undefined;
+  layout?: ('card' | 'list') | undefined;
 }
 const p = withDefaults(defineProps<QEventCardProps>(), { href: '#', layout: 'card' });
 

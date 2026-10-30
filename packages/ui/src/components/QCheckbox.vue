@@ -9,18 +9,18 @@ import QIcon from './QIcon.vue';
  * v-model = checked (+ change(checked, event)); defaultChecked seeds it when unbound. label / description / error: prop or slot.
  */
 export interface QCheckboxProps {
-  label?: string;
-  description?: string;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  indeterminate?: boolean;
-  defaultChecked?: boolean;
-  id?: string;
-  name?: string;
-  value?: string;
+  label?: (string) | undefined;
+  description?: (string) | undefined;
+  error?: (string) | undefined;
+  required?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  indeterminate?: (boolean) | undefined;
+  defaultChecked?: (boolean) | undefined;
+  id?: (string) | undefined;
+  name?: (string) | undefined;
+  value?: (string) | undefined;
   /** Extra ids for the input's aria-describedby (pass as aria-describedby). */
-  ariaDescribedby?: string;
+  ariaDescribedby?: (string) | undefined;
 }
 const p = defineProps<QCheckboxProps>();
 const model = defineModel<boolean | null>({ default: null });

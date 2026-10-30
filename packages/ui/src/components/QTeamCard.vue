@@ -14,24 +14,24 @@ import QVerifiedMark from './QVerifiedMark.vue';
  */
 export interface QTeamCardProps {
   name: string;
-  initial?: string;
-  logoSrc?: string;
-  tag?: string;
-  verified?: boolean;
-  games?: string[];
-  members?: number;
-  city?: string;
-  href?: string;
-  linkLabel?: string;
+  initial?: (string) | undefined;
+  logoSrc?: (string) | undefined;
+  tag?: (string) | undefined;
+  verified?: (boolean) | undefined;
+  games?: (string[]) | undefined;
+  members?: (number) | undefined;
+  city?: (string) | undefined;
+  href?: (string) | undefined;
+  linkLabel?: (string) | undefined;
   /** Controlled follow state (`v-model:following`). */
   following?: boolean | undefined;
-  defaultFollowing?: boolean;
+  defaultFollowing?: (boolean) | undefined;
   /** Listener of @follow-change; false hides the follow toggle. Declared as a prop so `false` can be passed. */
   onFollowChange?: ((following: boolean) => void) | false | undefined;
-  followLabel?: string;
-  followingLabel?: string;
-  actions?: string;
-  footer?: string;
+  followLabel?: (string) | undefined;
+  followingLabel?: (string) | undefined;
+  actions?: (string) | undefined;
+  footer?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QTeamCardProps>(), { following: undefined, onFollowChange: undefined });
 const emit = defineEmits<{ 'update:following': [following: boolean] }>();

@@ -8,14 +8,14 @@ import QIcon from './QIcon.vue';
 
 /** CtaBanner: full-width band with an icon tile, title, text and one button («مسابقه بعدی، قدم بعدی»). */
 export interface QCtaBannerProps {
-  icon?: IconName;
+  icon?: (IconName) | undefined;
   /** Default «مسابقه بعدی، قدم بعدی». */
-  title?: string;
+  title?: (string) | undefined;
   /** false hides it. */
   text?: string | false | undefined;
   /** Button config (green by default; or the `action` slot); null hides it. Default «قوانین». */
   action?: QHeroAction | null | undefined;
-  headingLevel?: 2 | 3;
+  headingLevel?: (2 | 3) | undefined;
 }
 const p = withDefaults(defineProps<QCtaBannerProps>(), { icon: 'swords', text: undefined, action: undefined, headingLevel: 2 });
 const slots = useSlots();

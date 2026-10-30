@@ -11,6 +11,7 @@ const lines = [
   "export * from './locale';",
   "export { ICONS, ICON_NAMES, type IconName } from './icons';",
   "export { QLinkKey } from './link';",
+  "export { useToast } from './composables/useToast';",
   "export type { QDataTableColumn, QDataTableSort, QDataTableKey } from './maps/data';",
   ...names.map((n) => `export { default as ${n} } from './components/${n}.vue';`),
   '',

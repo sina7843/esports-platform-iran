@@ -8,11 +8,11 @@ export interface QAvatarGroupItem { name: string; src?: string; kind?: 'user' | 
 /** Overlapping stack of avatars with a «+۳» overflow chip. */
 export interface QAvatarGroupProps {
   items: QAvatarGroupItem[];
-  max?: number;
-  size?: AvatarSize;
-  kind?: 'user' | 'team' | 'organizer';
-  shape?: 'circle' | 'chamfer';
-  label?: string;
+  max?: (number) | undefined;
+  size?: (AvatarSize) | undefined;
+  kind?: ('user' | 'team' | 'organizer') | undefined;
+  shape?: ('circle' | 'chamfer') | undefined;
+  label?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QAvatarGroupProps>(), { max: 4, size: 32, kind: 'user' });
 const sz = computed(() => avSize(p.size));

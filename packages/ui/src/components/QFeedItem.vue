@@ -14,22 +14,22 @@ import QLink from './QLink.vue';
  */
 export interface QFeedItemProps {
   title: string;
-  body?: string;
-  icon?: IconName;
-  tone?: 'neutral' | 'green' | 'warning' | 'info' | 'danger' | 'live';
-  avatar?: string;
+  body?: (string) | undefined;
+  icon?: (IconName) | undefined;
+  tone?: ('neutral' | 'green' | 'warning' | 'info' | 'danger' | 'live') | undefined;
+  avatar?: (string) | undefined;
   /** ISO instant; relative by default. */
-  time?: string;
-  timeFormat?: DateFormat;
-  timeText?: string;
-  now?: string | number;
-  unread?: boolean;
-  unreadLabel?: string;
-  href?: string;
-  badge?: string;
-  actions?: string;
-  as?: 'div' | 'li' | 'article';
-  titleAs?: 'h2' | 'h3' | 'h4' | 'p';
+  time?: (string) | undefined;
+  timeFormat?: (DateFormat) | undefined;
+  timeText?: (string) | undefined;
+  now?: (string | number) | undefined;
+  unread?: (boolean) | undefined;
+  unreadLabel?: (string) | undefined;
+  href?: (string) | undefined;
+  badge?: (string) | undefined;
+  actions?: (string) | undefined;
+  as?: ('div' | 'li' | 'article') | undefined;
+  titleAs?: ('h2' | 'h3' | 'h4' | 'p') | undefined;
 }
 withDefaults(defineProps<QFeedItemProps>(), { tone: 'neutral', icon: 'bell', timeFormat: 'relative', as: 'div', titleAs: 'h3' });
 const emit = defineEmits<{ click: [e: MouseEvent] }>();

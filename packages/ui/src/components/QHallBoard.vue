@@ -26,20 +26,20 @@ type LabelKey = 'title' | 'live' | 'called' | 'upcoming' | 'results' | 'noStatio
 export interface QHallBoardProps {
   eventName: string;
   /** Formatted server time, e.g. «۱۸:۴۲». */
-  clock?: string;
+  clock?: (string) | undefined;
   /** Active public incident notice (danger strip, role="alert"). */
-  notice?: string;
-  live?: QHallBoardMatch[];
-  called?: QHallBoardMatch[];
-  upcoming?: QHallBoardMatch[];
-  results?: QHallBoardMatch[];
-  maxLive?: number;
-  maxCalled?: number;
-  maxUpcoming?: number;
-  maxResults?: number;
-  labels?: Partial<Record<LabelKey, string>>;
-  callupLabels?: Partial<Record<'called' | 'at_station' | 'ready', string>>;
-  logoVariant?: 'auto' | 'color' | 'white' | 'black';
+  notice?: (string) | undefined;
+  live?: (QHallBoardMatch[]) | undefined;
+  called?: (QHallBoardMatch[]) | undefined;
+  upcoming?: (QHallBoardMatch[]) | undefined;
+  results?: (QHallBoardMatch[]) | undefined;
+  maxLive?: (number) | undefined;
+  maxCalled?: (number) | undefined;
+  maxUpcoming?: (number) | undefined;
+  maxResults?: (number) | undefined;
+  labels?: (Partial<Record<LabelKey, string>>) | undefined;
+  callupLabels?: (Partial<Record<'called' | 'at_station' | 'ready', string>>) | undefined;
+  logoVariant?: ('auto' | 'color' | 'white' | 'black') | undefined;
 }
 const p = withDefaults(defineProps<QHallBoardProps>(), { maxLive: 4, maxCalled: 3, maxUpcoming: 6, maxResults: 5, logoVariant: 'auto' });
 

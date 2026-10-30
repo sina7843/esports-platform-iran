@@ -17,7 +17,7 @@ export interface QTagProps {
   removeLabel?: string | undefined;
   disabled?: boolean | undefined;
   /** Listener presence (@remove) shows the × button, as in the DS. */
-  onRemove?: () => void;
+  onRemove?: (() => void) | undefined;
 }
 const p = withDefaults(defineProps<QTagProps>(), { size: 'md', defaultSelected: undefined });
 const selected = defineModel<boolean | null>('selected', { default: null });

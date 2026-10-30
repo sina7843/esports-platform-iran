@@ -12,22 +12,22 @@ import QFormField from './QFormField.vue';
  * Emits complete(code) once every cell is filled and resend() from the button.
  */
 export interface QOtpInputProps {
-  length?: 4 | 5 | 6;
-  label?: string;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  digits?: 'fa' | 'latn';
-  defaultValue?: string;
-  autoComplete?: string;
-  resendIn?: number;
-  resendAfter?: number;
-  countdownRunning?: boolean;
-  hideResend?: boolean;
-  resendText?: string;
-  resendLabel?: string;
-  id?: string;
+  length?: (4 | 5 | 6) | undefined;
+  label?: (string) | undefined;
+  hint?: (string) | undefined;
+  error?: (string) | undefined;
+  required?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  digits?: ('fa' | 'latn') | undefined;
+  defaultValue?: (string) | undefined;
+  autoComplete?: (string) | undefined;
+  resendIn?: (number) | undefined;
+  resendAfter?: (number) | undefined;
+  countdownRunning?: (boolean) | undefined;
+  hideResend?: (boolean) | undefined;
+  resendText?: (string) | undefined;
+  resendLabel?: (string) | undefined;
+  id?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QOtpInputProps>(), { length: 6, countdownRunning: true, resendIn: 45 });
 const model = defineModel<string>();

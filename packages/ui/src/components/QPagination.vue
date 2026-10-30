@@ -10,22 +10,22 @@ import QIcon from './QIcon.vue';
  * current page in green (`v-model:page` + `change`).
  */
 export interface QPaginationProps {
-  mode?: 'numbered' | 'cursor';
+  mode?: ('numbered' | 'cursor') | undefined;
   /** cursor: items shown so far and the total (if known). */
-  shown?: number;
-  total?: number;
+  shown?: (number) | undefined;
+  total?: (number) | undefined;
   hasMore?: boolean | undefined;
-  loading?: boolean;
-  moreLabel?: string;
-  doneLabel?: string;
+  loading?: (boolean) | undefined;
+  moreLabel?: (string) | undefined;
+  doneLabel?: (string) | undefined;
   /** v1.1 — cursor: replaces the «۲۴ از ۱۱۸» count (or the `countLabel` slot); false hides it. */
   countLabel?: string | false | undefined;
   /** numbered */
-  pageCount?: number;
-  defaultPage?: number;
-  siblings?: number;
-  showSummary?: boolean;
-  ariaLabel?: string;
+  pageCount?: (number) | undefined;
+  defaultPage?: (number) | undefined;
+  siblings?: (number) | undefined;
+  showSummary?: (boolean) | undefined;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QPaginationProps>(), {
   mode: 'numbered', shown: 0, hasMore: undefined, countLabel: undefined, pageCount: 1, defaultPage: 1, siblings: 1,

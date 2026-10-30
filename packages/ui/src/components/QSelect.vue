@@ -8,17 +8,17 @@ export interface QSelectOption { value: string; label: string; disabled?: boolea
 export interface QSelectOptionGroup { label: string; options: QSelectOption[] }
 /** Select: native select styled as a 48px control with a chevron at the inline end. options may nest { label, options } groups. */
 export interface QSelectProps {
-  label?: string;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  placeholder?: string;
+  label?: (string) | undefined;
+  hint?: (string) | undefined;
+  error?: (string) | undefined;
+  required?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  placeholder?: (string) | undefined;
   options: Array<QSelectOption | QSelectOptionGroup>;
-  id?: string;
-  name?: string;
-  hideLabel?: boolean;
-  defaultValue?: string;
+  id?: (string) | undefined;
+  name?: (string) | undefined;
+  hideLabel?: (boolean) | undefined;
+  defaultValue?: (string) | undefined;
 }
 const p = defineProps<QSelectProps>();
 const model = defineModel<string>();

@@ -7,22 +7,22 @@ import QTricolor from './QTricolor.vue';
 /** PageHeader — breadcrumb, h1 title, status badge, description and end-aligned actions. compact for panels. */
 export interface QPageHeaderProps {
   /** h1 text (or the `title` slot). */
-  title?: string;
-  description?: string;
-  breadcrumb?: BreadcrumbItem[];
-  breadcrumbMax?: number;
+  title?: (string) | undefined;
+  description?: (string) | undefined;
+  breadcrumb?: (BreadcrumbItem[]) | undefined;
+  breadcrumbMax?: (number) | undefined;
   /** Status shown next to the title as a Badge. */
-  status?: { label: string; tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'live' | 'red' | 'green'; dot?: boolean; icon?: IconName };
+  status?: ({ label: string; tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info' | 'live' | 'red' | 'green'; dot?: boolean; icon?: IconName }) | undefined;
   /** Extra node beside the title (or the `badge` slot). */
-  badge?: string;
+  badge?: (string) | undefined;
   /** Small green line above the title with the tricolour. */
-  eyebrow?: string;
+  eyebrow?: (string) | undefined;
   /** Meta row under the description. */
-  meta?: string;
+  meta?: (string) | undefined;
   /** Buttons at the inline end (normally the `actions` slot). */
-  actions?: string;
+  actions?: (string) | undefined;
   /** Panel density: h3-sized title, tighter padding. */
-  compact?: boolean;
+  compact?: (boolean) | undefined;
 }
 defineProps<QPageHeaderProps>();
 </script>

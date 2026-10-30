@@ -3,6 +3,7 @@ export const version = '1.1.0';
 export * from './locale';
 export { ICONS, ICON_NAMES, type IconName } from './icons';
 export { QLinkKey } from './link';
+export { useToast } from './composables/useToast';
 export type { QDataTableColumn, QDataTableSort, QDataTableKey } from './maps/data';
 export { default as QAccordion } from './components/QAccordion.vue';
 export { default as QActionBar } from './components/QActionBar.vue';

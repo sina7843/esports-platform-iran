@@ -12,32 +12,32 @@ import QIcon from './QIcon.vue';
  * reason; `v-model:reason` + `reasonChange`. Default slot = extra content after the consequences (e.g. a re-auth OtpInput).
  */
 export interface QConfirmDialogProps {
-  title?: string;
+  title?: (string) | undefined;
   /** Warning copy (or the `message` slot). */
-  message?: string;
+  message?: (string) | undefined;
   /** Bullet list of consequences (or `<li>`s in the `consequences` slot). */
-  consequences?: string[];
+  consequences?: (string[]) | undefined;
   /** Default true: the confirm stays disabled until a reason is written. */
-  requireReason?: boolean;
+  requireReason?: (boolean) | undefined;
   /** v1.1 — show the reason field without gating the confirm button. Wins over requireReason. */
-  reasonOptional?: boolean;
+  reasonOptional?: (boolean) | undefined;
   /** v1.1 — 'danger' (default) or 'primary' (red primary confirm + info icon) for irreversible non-destructive steps. */
-  tone?: 'danger' | 'primary';
-  minReasonLength?: number;
-  reasonLabel?: string;
-  reasonPlaceholder?: string;
-  reasonHint?: string;
-  defaultReason?: string;
+  tone?: ('danger' | 'primary') | undefined;
+  minReasonLength?: (number) | undefined;
+  reasonLabel?: (string) | undefined;
+  reasonPlaceholder?: (string) | undefined;
+  reasonHint?: (string) | undefined;
+  defaultReason?: (string) | undefined;
   /** true or custom text: shows «این اقدام به تأیید دوم نیاز دارد». */
-  secondApproval?: boolean | string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  loading?: boolean;
-  icon?: IconName;
-  size?: 'sm' | 'md' | 'lg';
-  inline?: boolean;
-  inlineHeight?: number;
-  backdrop?: string;
+  secondApproval?: (boolean | string) | undefined;
+  confirmLabel?: (string) | undefined;
+  cancelLabel?: (string) | undefined;
+  loading?: (boolean) | undefined;
+  icon?: (IconName) | undefined;
+  size?: ('sm' | 'md' | 'lg') | undefined;
+  inline?: (boolean) | undefined;
+  inlineHeight?: (number) | undefined;
+  backdrop?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QConfirmDialogProps>(), {
   requireReason: true, tone: 'danger', minReasonLength: 1, defaultReason: '', size: 'sm', secondApproval: false,

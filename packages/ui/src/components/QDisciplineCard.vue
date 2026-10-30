@@ -19,22 +19,22 @@ export interface QDisciplineCardStage {
 /** A discipline block on the event page: facts, rules package link and a compact stages table. Default slot = action area. */
 export interface QDisciplineCardProps {
   name: string;
-  platform?: string;
-  mode?: string;
-  gameVersion?: string;
-  participantKind?: 'team' | 'player';
-  capacity?: number;
-  remaining?: number;
-  capacityText?: string;
-  waitlisted?: number;
-  feeRial?: number;
-  fee?: string;
-  opensAt?: string;
-  closesAt?: string;
-  lateUntil?: string;
-  withdrawBy?: string;
-  rules?: { label: string; version: string; href?: string };
-  stages?: QDisciplineCardStage[];
+  platform?: (string) | undefined;
+  mode?: (string) | undefined;
+  gameVersion?: (string) | undefined;
+  participantKind?: ('team' | 'player') | undefined;
+  capacity?: (number) | undefined;
+  remaining?: (number) | undefined;
+  capacityText?: (string) | undefined;
+  waitlisted?: (number) | undefined;
+  feeRial?: (number) | undefined;
+  fee?: (string) | undefined;
+  opensAt?: (string) | undefined;
+  closesAt?: (string) | undefined;
+  lateUntil?: (string) | undefined;
+  withdrawBy?: (string) | undefined;
+  rules?: ({ label: string; version: string; href?: string }) | undefined;
+  stages?: (QDisciplineCardStage[]) | undefined;
 }
 const p = defineProps<QDisciplineCardProps>();
 const uid = useId();

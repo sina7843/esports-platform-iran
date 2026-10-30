@@ -12,26 +12,26 @@ import QLink from './QLink.vue';
  */
 export interface QQueueItemProps {
   subject: string;
-  requester?: string;
-  category?: string;
-  state?: string;
-  stateTone?: 'neutral' | 'success' | 'warning' | 'danger' | 'info';
+  requester?: (string) | undefined;
+  category?: (string) | undefined;
+  state?: (string) | undefined;
+  stateTone?: ('neutral' | 'success' | 'warning' | 'danger' | 'info') | undefined;
   /** false hides the priority badge. Default 'normal'. */
-  priority?: Priority | false;
-  priorityLabel?: string;
+  priority?: (Priority | false) | undefined;
+  priorityLabel?: (string) | undefined;
   /** Minutes to the SLA deadline; negative = overdue. */
-  slaMinutes?: number;
-  slaLabel?: string;
+  slaMinutes?: (number) | undefined;
+  slaLabel?: (string) | undefined;
   /** null = «بدون مسئول» placeholder; false hides the assignee cell. */
-  assignee?: { name: string; initial?: string } | null | false;
-  assigneeLabel?: string;
-  unassignedLabel?: string;
-  internalNote?: boolean;
-  noteLabel?: string;
+  assignee?: ({ name: string; initial?: string } | null | false) | undefined;
+  assigneeLabel?: (string) | undefined;
+  unassignedLabel?: (string) | undefined;
+  internalNote?: (boolean) | undefined;
+  noteLabel?: (string) | undefined;
   /** Mono reference, e.g. 'tkt_3c91'. */
-  reference?: string;
-  selected?: boolean;
-  href?: string;
+  reference?: (string) | undefined;
+  selected?: (boolean) | undefined;
+  href?: (string) | undefined;
 }
 // eslint-disable-next-line vue/require-valid-default-prop -- priority is Priority | false; the default is the string 'normal'
 const p = withDefaults(defineProps<QQueueItemProps>(), { priority: 'normal', assignee: null, stateTone: 'neutral' });

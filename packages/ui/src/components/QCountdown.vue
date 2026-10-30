@@ -11,12 +11,12 @@ export interface QCountdownProps {
   /** Visible label. Default «پایان ثبت‌نام تا»; null hides it. */
   label?: string | null | undefined;
   /** cells (default) | inline «۰۳:۱۴:۲۲». */
-  variant?: 'cells' | 'inline';
-  seconds?: boolean;
-  size?: 'sm' | 'md';
-  endedLabel?: string;
+  variant?: ('cells' | 'inline') | undefined;
+  seconds?: (boolean) | undefined;
+  size?: ('sm' | 'md') | undefined;
+  endedLabel?: (string) | undefined;
   /** Freeze the clock at this instant (previews, tests). */
-  now?: string | number;
+  now?: (string | number) | undefined;
 }
 const p = withDefaults(defineProps<QCountdownProps>(), { variant: 'cells', label: undefined });
 const emit = defineEmits<{ end: [] }>();

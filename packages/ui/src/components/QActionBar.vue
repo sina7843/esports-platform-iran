@@ -7,17 +7,17 @@ import QIcon from './QIcon.vue';
 
 /** ActionBar — sticky footer bar for long forms: unsaved-changes note, «انصراف» (`cancel`) and the «ذخیره» primary (`save`). */
 export interface QActionBarProps {
-  status?: 'dirty' | 'saving' | 'saved' | 'error';
+  status?: ('dirty' | 'saving' | 'saved' | 'error') | undefined;
   /** Overrides the status text (or the `message` slot; default «تغییرات ذخیره نشده»). */
-  message?: string;
-  detail?: string;
-  saveLabel?: string;
-  cancelLabel?: string;
-  saving?: boolean;
-  saveDisabled?: boolean;
+  message?: (string) | undefined;
+  detail?: (string) | undefined;
+  saveLabel?: (string) | undefined;
+  cancelLabel?: (string) | undefined;
+  saving?: (boolean) | undefined;
+  saveDisabled?: (boolean) | undefined;
   /** Not sticky; bordered box (docs, previews). */
-  inline?: boolean;
-  ariaLabel?: string;
+  inline?: (boolean) | undefined;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QActionBarProps>(), { status: 'dirty' });
 const emit = defineEmits<{ save: []; cancel: [] }>();

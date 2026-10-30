@@ -18,20 +18,20 @@ export interface FilterBarFilter {
  * Models: `v-model:values` (by key, '' = all), `v-model:query`, `v-model:view`; emits filterChange, queryChange, viewChange, clear.
  */
 export interface QFilterBarProps {
-  filters?: FilterBarFilter[];
+  filters?: (FilterBarFilter[]) | undefined;
   /** false hides the search field. */
-  search?: boolean;
-  defaultQuery?: string;
-  searchLabel?: string;
-  searchPlaceholder?: string;
+  search?: (boolean) | undefined;
+  defaultQuery?: (string) | undefined;
+  searchLabel?: (string) | undefined;
+  searchPlaceholder?: (string) | undefined;
   /** View toggle options (e.g. کارت‌ها / فهرست); rendered as a SegmentedControl. */
-  views?: SegmentedControlOption[];
-  defaultView?: string;
-  viewLabel?: string;
-  clearLabel?: string;
+  views?: (SegmentedControlOption[]) | undefined;
+  defaultView?: (string) | undefined;
+  viewLabel?: (string) | undefined;
+  clearLabel?: (string) | undefined;
   /** Result count at the end of the chips row (or the `resultLabel` slot). */
-  resultLabel?: string;
-  ariaLabel?: string;
+  resultLabel?: (string) | undefined;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QFilterBarProps>(), { filters: () => [], search: true, defaultQuery: '' });
 const values = defineModel<Record<string, string>>('values');

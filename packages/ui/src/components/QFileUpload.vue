@@ -14,23 +14,23 @@ export interface QFileUploadItem { id?: string; name: string; size?: number; sca
  * remove(file) and retry(file) — the × and «تلاش دوباره» buttons only render when those listeners are bound.
  */
 export interface QFileUploadProps {
-  label?: string;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  disabled?: boolean;
-  accept?: string;
-  multiple?: boolean;
-  typesHint?: string;
-  dropText?: string;
-  pickText?: string;
-  listLabel?: string;
-  files?: QFileUploadItem[];
-  id?: string;
-  name?: string;
+  label?: (string) | undefined;
+  hint?: (string) | undefined;
+  error?: (string) | undefined;
+  required?: (boolean) | undefined;
+  disabled?: (boolean) | undefined;
+  accept?: (string) | undefined;
+  multiple?: (boolean) | undefined;
+  typesHint?: (string) | undefined;
+  dropText?: (string) | undefined;
+  pickText?: (string) | undefined;
+  listLabel?: (string) | undefined;
+  files?: (QFileUploadItem[]) | undefined;
+  id?: (string) | undefined;
+  name?: (string) | undefined;
   /** Listener presence (@remove / @retry) decides whether the buttons render, as in the DS. */
-  onRemove?: (file: QFileUploadItem) => void;
-  onRetry?: (file: QFileUploadItem) => void;
+  onRemove?: ((file: QFileUploadItem) => void) | undefined;
+  onRetry?: ((file: QFileUploadItem) => void) | undefined;
 }
 const p = withDefaults(defineProps<QFileUploadProps>(), { multiple: true, files: () => [] });
 const emit = defineEmits<{ files: [files: File[]]; remove: [file: QFileUploadItem]; retry: [file: QFileUploadItem] }>();

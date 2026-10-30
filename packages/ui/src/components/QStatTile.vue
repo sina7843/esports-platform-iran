@@ -9,15 +9,15 @@ import QIcon from './QIcon.vue';
  * Numbers are grouped: «۱۲٬۰۰۰» / «12,000», decimals «۱۲٬۵۰۰٫۵». label / value / unit / caption: prop or slot.
  */
 export interface QStatTileProps {
-  label?: string;
-  value?: number | string;
-  unit?: string;
-  icon?: IconName;
-  delta?: number | string;
-  trend?: 'up' | 'down' | 'flat';
-  deltaTone?: 'success' | 'danger' | 'warning' | 'neutral';
-  deltaLabel?: string;
-  caption?: string;
+  label?: (string) | undefined;
+  value?: (number | string) | undefined;
+  unit?: (string) | undefined;
+  icon?: (IconName) | undefined;
+  delta?: (number | string) | undefined;
+  trend?: ('up' | 'down' | 'flat') | undefined;
+  deltaTone?: ('success' | 'danger' | 'warning' | 'neutral') | undefined;
+  deltaLabel?: (string) | undefined;
+  caption?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QStatTileProps>(), { trend: 'flat' });
 const v = computed(() => (typeof p.value === 'number' ? (Math.round(p.value) === p.value ? num(p.value) : dec(p.value)) : (p.value ?? '')));

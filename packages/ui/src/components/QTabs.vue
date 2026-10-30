@@ -17,15 +17,15 @@ export interface TabsItem {
  */
 export interface QTabsProps {
   items: TabsItem[];
-  variant?: 'line' | 'pill';
-  defaultValue?: string;
+  variant?: ('line' | 'pill') | undefined;
+  defaultValue?: (string) | undefined;
   /** 'auto' (default) selects on arrow keys; 'manual' moves focus only. */
-  activation?: 'auto' | 'manual';
+  activation?: ('auto' | 'manual') | undefined;
   /** Tabs share the full width equally. */
-  fill?: boolean;
+  fill?: (boolean) | undefined;
   /** v1.1 — 'wrap' (default) or 'scroll': one row that scrolls sideways with a fade on the hidden edge. */
-  overflow?: 'wrap' | 'scroll';
-  ariaLabel?: string;
+  overflow?: ('wrap' | 'scroll') | undefined;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QTabsProps>(), { variant: 'line', activation: 'auto', overflow: 'wrap' });
 const model = defineModel<string>();

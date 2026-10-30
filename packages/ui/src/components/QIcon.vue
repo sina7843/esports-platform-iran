@@ -5,11 +5,11 @@ import { ICONS, type IconName } from '../icons';
 /** Lucide-style stroke icon. Decorative unless `label` is given. `flip` mirrors it in RTL; `filled` fills closed shapes. */
 export interface QIconProps {
   name: IconName;
-  size?: number;
-  label?: string;
-  flip?: boolean;
-  filled?: boolean;
-  strokeWidth?: number;
+  size?: (number) | undefined;
+  label?: (string) | undefined;
+  flip?: (boolean) | undefined;
+  filled?: (boolean) | undefined;
+  strokeWidth?: (number) | undefined;
 }
 const p = withDefaults(defineProps<QIconProps>(), { size: 20, strokeWidth: 2 });
 const paths = computed(() => ICONS[p.name] ?? '');

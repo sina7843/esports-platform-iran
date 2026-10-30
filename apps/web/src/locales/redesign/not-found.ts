@@ -1,6 +1,36 @@
-/** New copy for the redesigned `not-found` page (docs/redesign/03-specs/not-found.md § Copy, rows marked new). fa and en side by side. */
+/** New copy for the redesigned `not-found` page (docs/redesign/03-specs/not-found.md § Copy). */
 export const fa = {
+  'nf.code': 'خطای {code}',
+  'nf.title': 'صفحه‌ای پیدا نشد',
+  'nf.body': 'نشانی اشتباه است، یا این صفحه جابه‌جا یا حذف شده است. اگر از پیوندی در سایت به اینجا رسیده‌اید، به پشتیبانی خبر دهید.',
+  'nf.path': 'نشانی درخواستی:',
+  'nf.searchLabel': 'جست‌وجو در پلتفرم',
+  'nf.searchPlaceholder': 'نام تیم، بازیکن، رویداد یا خبر…',
+  'nf.search': 'جست‌وجو',
+  'nf.home': 'بازگشت به خانه',
+  'nf.back': 'صفحه‌ی قبل',
+  'nf.report': 'گزارش پیوند خراب',
+  'nf.maybe': 'شاید دنبال این‌ها بودید',
+  'nf.events': 'رویدادها', 'nf.eventsHint': 'تقویم مسابقات و ثبت‌نام',
+  'nf.rankings': 'رده‌بندی', 'nf.rankingsHint': 'امتیاز به تفکیک بازی',
+  'nf.recruitment': 'جذب و تمرین', 'nf.recruitmentHint': 'تیم یا هم‌تیمی پیدا کن',
+  'nf.games': 'بازی‌ها', 'nf.gamesHint': 'وضعیت پشتیبانی هر بازی',
 } satisfies Record<string, string>;
 
 export const en: Record<keyof typeof fa, string> = {
+  'nf.code': 'Error {code}',
+  'nf.title': 'Page not found',
+  'nf.body': 'The address is wrong, or the page was moved or removed. If a link on the site brought you here, let support know.',
+  'nf.path': 'Requested address:',
+  'nf.searchLabel': 'Search the platform',
+  'nf.searchPlaceholder': 'Team, player, event or news…',
+  'nf.search': 'Search',
+  'nf.home': 'Back to home',
+  'nf.back': 'Go back',
+  'nf.report': 'Report a broken link',
+  'nf.maybe': 'Maybe you were looking for',
+  'nf.events': 'Events', 'nf.eventsHint': 'Calendar and registration',
+  'nf.rankings': 'Rankings', 'nf.rankingsHint': 'Points per game',
+  'nf.recruitment': 'Recruitment', 'nf.recruitmentHint': 'Find a team or teammates',
+  'nf.games': 'Games', 'nf.gamesHint': 'Support status per game',
 };

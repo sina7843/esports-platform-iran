@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { QFooter, QSideNav, QTopBar, formatJalali, type IconName } from '@esp/ui';
+import { QFooter, QSideNav, QToastRegion, QTopBar, formatJalali, useToast, type IconName } from '@esp/ui';
 import { esp06 } from '../api/esp06';
 import { connection, startRealtime } from '../realtime';
 import { t, type MessageKey } from '../i18n';
@@ -15,6 +15,7 @@ import { settings } from '../settings';
  */
 const route = useRoute();
 const router = useRouter();
+const { toasts, dismiss } = useToast();
 const kind = computed(() => route.meta.layout ?? 'public');
 const panel = computed(() => kind.value === 'panel');
 const menuOpen = ref(false);
@@ -152,5 +153,6 @@ onUnmounted(() => {
       </main>
       <QFooter v-if="kind === 'public'" :title="L('esports_platform')" :subtitle="L('the_arena')" :description="L('tagline')" :groups="footerGroups" :seal="seal" />
     </template>
+    <QToastRegion :toasts="toasts" @dismiss="dismiss" />
   </div>
 </template>

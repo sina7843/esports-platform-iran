@@ -12,21 +12,21 @@ export interface QMatchCardProps {
   home: QMatchCardTeam;
   away: QMatchCardTeam;
   state: MatchCardState;
-  stateLabel?: string;
+  stateLabel?: (string) | undefined;
   /** «۱۸:۳۰»; green while upcoming. */
-  time?: string;
-  date?: string;
+  time?: (string) | undefined;
+  date?: (string) | undefined;
   /** Overrides the derived winner (final). */
-  winner?: 'home' | 'away';
-  stage?: string;
-  round?: string;
-  station?: string;
+  winner?: ('home' | 'away') | undefined;
+  stage?: (string) | undefined;
+  round?: (string) | undefined;
+  station?: (string) | undefined;
   /** Latin game tag. */
-  game?: string;
-  href?: string;
-  variant?: 'row' | 'card';
+  game?: (string) | undefined;
+  href?: (string) | undefined;
+  variant?: ('row' | 'card') | undefined;
   /** Extra label at the end of the foot row (also the `extra` slot). Keep it non-interactive when href is set. */
-  extra?: string;
+  extra?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QMatchCardProps>(), { state: 'scheduled' });
 const slots = defineSlots<{ extra?: () => unknown }>();

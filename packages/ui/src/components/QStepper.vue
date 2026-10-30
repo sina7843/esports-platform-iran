@@ -8,12 +8,12 @@ import QIcon from './QIcon.vue';
 export interface QStepperStep { label: string; description?: string }
 export interface QStepperProps {
   /** Default: اطلاعات تیم، تأیید اعضا، پرداخت، اعلام حضور. */
-  steps?: Array<string | QStepperStep>;
+  steps?: (Array<string | QStepperStep>) | undefined;
   /** Zero-based current step; steps.length marks all done. */
-  current?: number;
-  orientation?: 'horizontal' | 'vertical';
+  current?: (number) | undefined;
+  orientation?: ('horizontal' | 'vertical') | undefined;
   /** `aria-label` names the <ol>, not the root (as in the DS). */
-  ariaLabel?: string;
+  ariaLabel?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QStepperProps>(), { current: 0, orientation: 'horizontal' });
 

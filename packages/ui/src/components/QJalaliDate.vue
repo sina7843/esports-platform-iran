@@ -6,15 +6,15 @@ import { useNow } from '../composables/useNow';
 /** JalaliDate: an ISO instant as locale date text (Jalali in fa, Gregorian in en) inside <time datetime>; empty shows «—». */
 export interface QJalaliDateProps {
   iso: string | null | undefined;
-  format?: DateFormat;
+  format?: (DateFormat) | undefined;
   /** Fixed reference time for `relative`. */
   now?: string | number | undefined;
   /** Re-render `relative` every minute. */
-  live?: boolean;
+  live?: (boolean) | undefined;
   timeZone?: string | undefined;
   /** Tooltip; defaults to the full datetime. false hides it. */
   title?: string | false | undefined;
-  fallback?: string;
+  fallback?: (string) | undefined;
 }
 const p = withDefaults(defineProps<QJalaliDateProps>(), { format: 'datetime', title: undefined });
 
